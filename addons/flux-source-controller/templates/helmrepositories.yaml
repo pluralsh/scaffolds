@@ -14,3 +14,11 @@ metadata:
 spec:
   interval: 5m0s
   url: https://flagger.app
+---
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: HelmRepository
+metadata:
+  name: console
+spec:
+  interval: 5m0s
+  url: https://pluralsh.github.io/console
