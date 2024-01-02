@@ -36,7 +36,7 @@ workers:
       spotMaxPrice: -1
       {% endif -%}
       {% if nodePool.labels -%}
-      nodeLabels: {{ nodePool.labels }}
+      nodeLabels: {{ nodePool.labels | json -}}
       {% endif -%}
       {% if nodePool.taints and nodePool.taints.size != 0 -%}
       taints:
