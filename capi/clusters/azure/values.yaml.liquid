@@ -11,6 +11,7 @@ cluster:
 workers:
   {%- for nodePool in configuration.nodePools %}
   {{ nodePool.name }}:
+    isMultiAZ: true
     spec:
       sku: {{ nodePool.instance_type }}
       scaling:
