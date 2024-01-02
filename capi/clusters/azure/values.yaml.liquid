@@ -6,3 +6,29 @@ cluster:
   resourceGroupName: {{ configuration.resourceGroup }}
   virtualNetwork:
     name: {{ configuration.network }}
+
+{% if configuration.nodePools and configuration.nodePools.size != 0 -%}
+workers:
+  {%- for nodePool in configuration.nodePools %}
+  {{ nodePool.name }}:
+    spec:
+      sku: {{ nodePool.instance_type }}
+      scaling:
+        maxSize: {{ nodePool.max_size }}
+        minSize: {{ nodePool.min_size }}
+      {% if nodePool.spot -%}
+      scaleSetPriority: Spot
+      {% endif -%}
+      {% if nodePool.labels -%}
+      labels: {{ nodePool.labels }}
+      {% endif -%}
+      {% if nodePool.taints and nodePool.taints.size != 0 -%}
+      taints:
+      {% for taint in nodePool.taints -%}
+      - key: {{ taint.key }}
+        value: {{ taint.value }}
+        effect: {{ taint.effect }}
+      {% endfor -%}
+      {% endif -%}
+  {% endfor -%}
+{% endif -%}
