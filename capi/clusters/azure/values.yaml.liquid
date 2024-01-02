@@ -9,6 +9,20 @@ cluster:
 
 {% if configuration.nodePools and configuration.nodePools.size != 0 -%}
 workers:
+  plural-system-internal:
+    replicas: 1
+    spec:
+      additionalTags:
+        ScalingGroup: small-sustained-on-demand
+      mode: System
+      nodeLabels:
+        plural.sh/capacityType: ON_DEMAND
+        plural.sh/performanceType: SUSTAINED
+        plural.sh/scalingGroup: small-sustained-on-demand
+      scaling:
+        maxSize: 9
+        minSize: 1
+      sku: Standard_D2as_v5
   {%- for nodePool in configuration.nodePools %}
   {{ nodePool.name }}:
     isMultiAZ: true
@@ -19,9 +33,10 @@ workers:
         minSize: {{ nodePool.min_size }}
       {% if nodePool.spot -%}
       scaleSetPriority: Spot
+      spotMaxPrice: -1
       {% endif -%}
       {% if nodePool.labels -%}
-      labels: {{ nodePool.labels }}
+      nodeLabels: {{ nodePool.labels }}
       {% endif -%}
       {% if nodePool.taints and nodePool.taints.size != 0 -%}
       taints:
