@@ -3,3 +3,31 @@ cluster:
   kubernetesVersion: {{ configuration.version }}
   aws:
     region: {{ configuration.region }}
+
+{% if configuration.nodePools and configuration.nodePools.size != 0 -%}
+workers:
+  groups:
+    {%- for nodePool in configuration.nodePools %}
+    {{ nodePool.name }}:
+      isMultiAZ: true
+      spec:
+        instanceType: {{ nodePool.instance_type }}
+        scaling:
+          maxSize: {{ nodePool.max_size }}
+          minSize: {{ nodePool.min_size }}
+          {% if nodePool.spot -%}
+        capacityType: spot
+          {% endif -%}
+          {% if nodePool.labels -%}
+        labels: {{ nodePool.labels }}
+          {% endif -%}
+          {% if nodePool.taints and nodePool.taints.size != 0 -%}
+        taints:
+          {% for taint in nodePool.taints -%}
+          - key: {{ taint.key }}
+            value: {{ taint.value }}
+            effect: {{ taint.effect }}
+          {% endfor -%}
+          {% endif -%}
+      {% endfor -%}
+{% endif -%}
