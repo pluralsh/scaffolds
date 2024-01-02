@@ -5,3 +5,28 @@ cluster:
   region: {{ configuration.region }}
   network:
     name: {{ configuration.network }}
+
+{% if configuration.nodePools and configuration.nodePools.size != 0 -%}
+workers:
+  groups:
+    {%- for nodePool in configuration.nodePools %}
+    {{ nodePool.name }}:
+      isMultiAZ: true
+      spec:
+        instanceType: {{ nodePool.instance_type }}
+        scaling:
+          maxCount: {{ nodePool.max_size }}
+          minCount: {{ nodePool.min_size }}
+        {% if nodePool.labels -%}
+        kubernetesLabels: {{ nodePool.labels }}
+        {% endif -%}
+        {% if nodePool.taints and nodePool.taints.size != 0 -%}
+        kubernetesTaints:
+        {% for taint in nodePool.taints -%}
+        - key: {{ taint.key }}
+          value: {{ taint.value }}
+          effect: {{ taint.effect }}
+        {% endfor -%}
+        {% endif -%}
+    {% endfor -%}
+{% endif -%}

@@ -15,19 +15,19 @@ workers:
         scaling:
           maxSize: {{ nodePool.max_size }}
           minSize: {{ nodePool.min_size }}
-          {% if nodePool.spot -%}
+        {% if nodePool.spot -%}
         capacityType: spot
-          {% endif -%}
-          {% if nodePool.labels -%}
+        {% endif -%}
+        {% if nodePool.labels -%}
         labels: {{ nodePool.labels }}
-          {% endif -%}
-          {% if nodePool.taints and nodePool.taints.size != 0 -%}
+        {% endif -%}
+        {% if nodePool.taints and nodePool.taints.size != 0 -%}
         taints:
-          {% for taint in nodePool.taints -%}
-          - key: {{ taint.key }}
-            value: {{ taint.value }}
-            effect: {{ taint.effect }}
-          {% endfor -%}
-          {% endif -%}
-      {% endfor -%}
+        {% for taint in nodePool.taints -%}
+        - key: {{ taint.key }}
+          value: {{ taint.value }}
+          effect: {{ taint.effect }}
+        {% endfor -%}
+        {% endif -%}
+    {% endfor -%}
 {% endif -%}
