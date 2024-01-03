@@ -7,22 +7,8 @@ cluster:
   virtualNetwork:
     name: {{ configuration.network }}
 
-{% if configuration.nodePools and configuration.nodePools.size != 0 -%}
 workers:
-  plrlsystem:
-    replicas: 1
-    spec:
-      additionalTags:
-        ScalingGroup: small-sustained-on-demand
-      mode: System
-      nodeLabels:
-        plural.sh/capacityType: ON_DEMAND
-        plural.sh/performanceType: SUSTAINED
-        plural.sh/scalingGroup: small-sustained-on-demand
-      scaling:
-        maxSize: 9
-        minSize: 1
-      sku: Standard_D2as_v5
+  {% if configuration.nodePools and configuration.nodePools.size != 0 -%}
   {%- for nodePool in configuration.nodePools %}
   {{ nodePool.name }}:
     isMultiAZ: true
@@ -47,4 +33,98 @@ workers:
       {% endfor -%}
       {% endif -%}
   {% endfor -%}
+  {% else %}
+  lsod:
+    spec:
+      additionalTags:
+        ScalingGroup: large-sustained-on-demand
+      nodeLabels:
+        plural.sh/capacityType: ON_DEMAND
+        plural.sh/performanceType: SUSTAINED
+        plural.sh/scalingGroup: large-sustained-on-demand
+      scaling:
+        maxSize: 9
+        minSize: 0
+      sku: Standard_D8as_v5
+  lsspot:
+    isMultiAZ: true
+    spec:
+      additionalTags:
+        ScalingGroup: large-sustained-spot
+      nodeLabels:
+        plural.sh/capacityType: SPOT
+        plural.sh/performanceType: SUSTAINED
+        plural.sh/scalingGroup: large-sustained-spot
+      scaleSetPriority: Spot
+      scaling:
+        maxSize: 9
+        minSize: 0
+      scaleDownMode: Delete
+      spotMaxPrice: -1
+      sku: Standard_D8as_v5
+      taints:
+        - effect: NoSchedule
+          key: plural.sh/capacityType
+          value: SPOT
+        - effect: NoSchedule
+          key: kubernetes.azure.com/scalesetpriority
+          value: spot
+  msod:
+    spec:
+      additionalTags:
+        ScalingGroup: medium-sustained-on-demand
+      nodeLabels:
+        plural.sh/capacityType: ON_DEMAND
+        plural.sh/performanceType: SUSTAINED
+        plural.sh/scalingGroup: medium-sustained-on-demand
+      scaling:
+        maxSize: 9
+        minSize: 0
+      sku: Standard_D4as_v5
+  msspot:
+    isMultiAZ: true
+    spec:
+      additionalTags:
+        ScalingGroup: medium-sustained-spot
+      nodeLabels:
+        plural.sh/capacityType: SPOT
+        plural.sh/performanceType: SUSTAINED
+        plural.sh/scalingGroup: medium-sustained-spot
+      scaleSetPriority: Spot
+      scaling:
+        maxSize: 9
+        minSize: 0
+      scaleDownMode: Delete
+      spotMaxPrice: -1
+      sku: Standard_D4as_v5
+      taints:
+        - effect: NoSchedule
+          key: plural.sh/capacityType
+          value: SPOT
+        - effect: NoSchedule
+          key: kubernetes.azure.com/scalesetpriority
+          value: spot
+  ssspot:
+    isMultiAZ: true
+    spec:
+      additionalTags:
+        ScalingGroup: small-sustained-spot
+      nodeLabels:
+        plural.sh/capacityType: SPOT
+        plural.sh/performanceType: SUSTAINED
+        plural.sh/scalingGroup: small-sustained-spot
+      scaleSetPriority: Spot
+      scaling:
+        maxSize: 9
+        minSize: 0
+      scaleDownMode: Delete
+      spotMaxPrice: -1
+      sku: Standard_D2as_v5
+      taints:
+        - effect: NoSchedule
+          key: plural.sh/capacityType
+          value: SPOT
+        - effect: NoSchedule
+          key: kubernetes.azure.com/scalesetpriority
+          value: spot
 {% endif -%}
