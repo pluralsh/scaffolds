@@ -4,26 +4,26 @@ cluster:
   aws:
     region: {{ configuration.region }}
 
-{% if configuration.nodePools and configuration.nodePools.size != 0 -%}
+{% if workers and workers.size != 0 -%}
 workers:
   groups:
-    {%- for nodePool in configuration.nodePools %}
-    {{ nodePool.name }}:
+    {%- for worker in workers %}
+    {{ worker.name }}:
       isMultiAZ: true
       spec:
-        instanceType: {{ nodePool.instance_type }}
+        instanceType: {{ worker.instance_type }}
         scaling:
-          maxSize: {{ nodePool.max_size }}
-          minSize: {{ nodePool.min_size }}
-        {% if nodePool.spot -%}
+          maxSize: {{ worker.max_size }}
+          minSize: {{ worker.min_size }}
+        {% if worker.spot -%}
         capacityType: spot
         {% endif -%}
-        {% if nodePool.labels -%}
-        labels: {{ nodePool.labels }}
+        {% if worker.labels -%}
+        labels: {{ worker.labels | json}}
         {% endif -%}
-        {% if nodePool.taints and nodePool.taints.size != 0 -%}
+        {% if worker.taints and worker.taints.size != 0 -%}
         taints:
-        {% for taint in nodePool.taints -%}
+        {% for taint in worker.taints -%}
         - key: {{ taint.key }}
           value: {{ taint.value }}
           effect: {{ taint.effect }}

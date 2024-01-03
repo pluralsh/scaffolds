@@ -4,9 +4,28 @@
     "clusterName": "test",
     "consoleUrl": "https://console.test.onplural.sh/ext/gql",
     "deployToken": "",
-    "nodePools": "[{\"_type\":\"cluster_node_pool\",\"cloud_settings\":null,\"cluster_id\":\"2121bdcc-5a52-4082-b12c-5db338cb1462\",\"id\":\"1c23e69e-b9d8-424d-9f45-d1c349c5b4a4\",\"inserted_at\":\"2024-01-03T08:33:37.059132Z\",\"instance_type\":\"t3a.large\",\"labels\":null,\"max_size\":3,\"min_size\":1,\"name\":\"test\",\"spot\":false,\"taints\":[],\"updated_at\":\"2024-01-03T08:33:37.059132Z\"}]",
+    "nodePools": "",
     "operatorNamespace": "plrl-deploy-operator",
     "region": "eu-west-1",
     "version": "1.25"
-  }
+  },
+  "workers": [
+    {
+      "_type": "cluster_node_pool",
+      "cloud_settings": null,
+      "cluster_id": "2121bdcc-5a52-4082-b12c-5db338cb1462",
+      "id": "1c23e69e-b9d8-424d-9f45-d1c349c5b4a4",
+      "inserted_at": "2024-01-03T08:33:37.059132Z",
+      "instance_type": "t3a.large",
+      "labels": {
+        "key": "value"
+      },
+      "max_size": 3,
+      "min_size": 1,
+      "name": "test",
+      "spot": false,
+      "taints": [],
+      "updated_at": "2024-01-03T08:33:37.059132Z"
+    }
+  ]
 }
