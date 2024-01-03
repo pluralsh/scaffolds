@@ -21,8 +21,10 @@ workers:
         {% if worker.labels -%}
         labels: {{ worker.labels | json}}
         {% else %}
+        {% comment %} Remove this once labels will not be required. {% endcomment %}
         labels: { }
         {% endif -%}
+        {% comment %} Remove this once additionalTags will not be required. {% endcomment %}
         additionalTags: { }
         {% if worker.taints and worker.taints.size != 0 -%}
         taints:
@@ -33,4 +35,42 @@ workers:
         {% endfor -%}
         {% endif -%}
     {% endfor -%}
+    small-burst-spot:
+      isMultiAZ: true
+      spec:
+        labels:
+          plural.sh/capacityType: SPOT
+          plural.sh/performanceType: BURST
+          plural.sh/scalingGroup: small-burst-spot
+        additionalTags: { }
+        capacityType: spot
+        taints: { }
+    medium-burst-spot:
+      isMultiAZ: true
+      spec:
+        labels:
+          plural.sh/capacityType: SPOT
+          plural.sh/performanceType: BURST
+          plural.sh/scalingGroup: medium-burst-spot
+        additionalTags: { }
+        capacityType: spot
+        instanceType: t3.xlarge
+        scaling:
+          maxSize: 5
+          minSize: 0
+        taints: { }
+    large-burst-spot:
+      isMultiAZ: true
+      spec:
+        labels:
+          plural.sh/capacityType: SPOT
+          plural.sh/performanceType: BURST
+          plural.sh/scalingGroup: large-burst-spot
+        additionalTags: { } # TODO: allow this to not be set
+        instanceType: t3.2xlarge
+        capacityType: spot
+        scaling:
+          maxSize: 5
+          minSize: 0
+        taints: { }
 {% endif -%}
