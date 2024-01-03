@@ -4,7 +4,7 @@ cluster:
   aws:
     region: {{ configuration.region }}
 
-{% assign workers = configuration.nodePools | fromJson %}
+{% assign workers = configuration.nodePools | from_json %}
 workers:
   groups:
     {% if workers and workers.size != 0 -%}
