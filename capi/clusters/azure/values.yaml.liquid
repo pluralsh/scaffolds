@@ -8,25 +8,25 @@ cluster:
     name: {{ configuration.network }}
 
 workers:
-  {% if configuration.nodePools and configuration.nodePools.size != 0 -%}
-  {%- for nodePool in configuration.nodePools %}
-  {{ nodePool.name }}:
+  {% if workers and workers.size != 0 -%}
+  {%- for worker in workers %}
+  {{ worker.name }}:
     isMultiAZ: true
     spec:
-      sku: {{ nodePool.instance_type }}
+      sku: {{ worker.instance_type }}
       scaling:
-        maxSize: {{ nodePool.max_size }}
-        minSize: {{ nodePool.min_size }}
-      {% if nodePool.spot -%}
+        maxSize: {{ worker.max_size }}
+        minSize: {{ worker.min_size }}
+      {% if worker.spot -%}
       scaleSetPriority: Spot
       spotMaxPrice: -1
       {% endif -%}
-      {% if nodePool.labels -%}
-      nodeLabels: {{ nodePool.labels | json -}}
+      {% if worker.labels -%}
+      nodeLabels: {{ worker.labels | json }}
       {% endif -%}
-      {% if nodePool.taints and nodePool.taints.size != 0 -%}
+      {% if worker.taints and worker.taints.size != 0 -%}
       taints:
-      {% for taint in nodePool.taints -%}
+      {% for taint in worker.taints -%}
       - key: {{ taint.key }}
         value: {{ taint.value }}
         effect: {{ taint.effect }}
