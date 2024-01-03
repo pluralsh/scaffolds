@@ -4,6 +4,7 @@ cluster:
   aws:
     region: {{ configuration.region }}
 
+{% assign workers = configuration.nodePools | fromJson %}
 workers:
   groups:
     {% if workers and workers.size != 0 -%}
@@ -19,7 +20,7 @@ workers:
         capacityType: spot
         {% endif -%}
         {% if worker.labels -%}
-        labels: {{ worker.labels | json}}
+        labels: {{ worker.labels | json }}
         {% else %}
         {% comment %} Remove this once labels will not be required. {% endcomment %}
         labels: { }
