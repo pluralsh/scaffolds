@@ -23,6 +23,7 @@ workers:
         {% else %}
         labels: { }
         {% endif -%}
+        additionalTags: { }
         {% if worker.taints and worker.taints.size != 0 -%}
         taints:
         {% for taint in worker.taints -%}
