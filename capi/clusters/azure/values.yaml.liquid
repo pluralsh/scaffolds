@@ -23,7 +23,12 @@ workers:
       {% endif -%}
       {% if worker.labels -%}
       nodeLabels: {{ worker.labels | json }}
+      {% else %}
+      {% comment %} Remove this once nodeLabels will not be required. {% endcomment %}
+      nodeLabels: { }
       {% endif -%}
+      {% comment %} Remove this once additionalTags will not be required. {% endcomment %}
+      additionalTags: { }
       {% if worker.taints and worker.taints.size != 0 -%}
       taints:
       {% for taint in worker.taints -%}
@@ -127,4 +132,4 @@ workers:
         - effect: NoSchedule
           key: kubernetes.azure.com/scalesetpriority
           value: spot
-{% endif -%}
+  {% endif -%}
