@@ -7,6 +7,7 @@ cluster:
   virtualNetwork:
     name: {{ configuration.network }}
 
+{% assign workers = configuration.nodePools | fromJson %}
 workers:
   {% if workers and workers.size != 0 -%}
   {%- for worker in workers %}
