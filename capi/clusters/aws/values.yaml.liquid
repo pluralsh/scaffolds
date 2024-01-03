@@ -20,6 +20,8 @@ workers:
         {% endif -%}
         {% if worker.labels -%}
         labels: {{ worker.labels | json}}
+        {% else %}
+        labels: { }
         {% endif -%}
         {% if worker.taints and worker.taints.size != 0 -%}
         taints:
