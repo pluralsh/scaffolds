@@ -4,9 +4,9 @@ cluster:
   aws:
     region: {{ configuration.region }}
 
-{% if workers and workers.size != 0 -%}
 workers:
   groups:
+    {% if workers and workers.size != 0 -%}
     {%- for worker in workers %}
     {{ worker.name }}:
       isMultiAZ: true
@@ -35,6 +35,7 @@ workers:
         {% endfor -%}
         {% endif -%}
     {% endfor -%}
+    {% else %}
     small-burst-spot:
       isMultiAZ: true
       spec:
@@ -73,4 +74,4 @@ workers:
           maxSize: 5
           minSize: 0
         taints: { }
-{% endif -%}
+    {% endif -%}
