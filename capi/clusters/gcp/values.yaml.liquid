@@ -6,27 +6,74 @@ cluster:
   network:
     name: {{ configuration.network }}
 
-{% if configuration.nodePools and configuration.nodePools.size != 0 -%}
+{% assign workers = configuration.nodePools | from_json %}
 workers:
   groups:
-    {%- for nodePool in configuration.nodePools %}
-    {{ nodePool.name }}:
+    {% if workers and workers.size != 0 -%}
+    {%- for worker in workers %}
+    {{ worker.name }}:
       isMultiAZ: true
       spec:
-        instanceType: {{ nodePool.instance_type }}
+        instanceType: {{ worker.instance_type }}
         scaling:
-          maxCount: {{ nodePool.max_size }}
-          minCount: {{ nodePool.min_size }}
-        {% if nodePool.labels -%}
-        kubernetesLabels: {{ nodePool.labels }}
+          maxCount: {{ worker.max_size }}
+          minCount: {{ worker.min_size }}
+        {% if worker.labels -%}
+        kubernetesLabels: {{ worker.labels }}
+        {% else %}
+        {% comment %} Remove this once kubernetesLabels will not be required. {% endcomment %}
+        kubernetesLabels: { }
         {% endif -%}
-        {% if nodePool.taints and nodePool.taints.size != 0 -%}
+        {% comment %} Remove this once additionalLabels will not be required. {% endcomment %}
+        additionalLabels: { }
+        {% if worker.taints and worker.taints.size != 0 -%}
         kubernetesTaints:
-        {% for taint in nodePool.taints -%}
+        {% for taint in worker.taints -%}
         - key: {{ taint.key }}
           value: {{ taint.value }}
           effect: {{ taint.effect }}
         {% endfor -%}
         {% endif -%}
     {% endfor -%}
-{% endif -%}
+    {% else %}
+    small-burst-on-demand:
+      replicas: 3
+      isMultiAZ: true
+      spec:
+        scaling:
+          minCount: 1
+          maxCount: 9
+        management:
+          autoRepair: true
+          autoUpgrade: true
+        kubernetesLabels:
+          plural.sh/scalingGroup: small-burst-on-demand
+        additionalLabels: { }
+        machineType: e2-standard-2
+    medium-burst-on-demand:
+      isMultiAZ: true
+      spec:
+        scaling:
+          minCount: 0
+          maxCount: 9
+        management:
+          autoRepair: true
+          autoUpgrade: true
+        kubernetesLabels:
+          plural.sh/scalingGroup: medium-burst-on-demand
+        additionalLabels: { }
+        machineType: e2-standard-4
+    large-burst-on-demand:
+      isMultiAZ: true
+      spec:
+        scaling:
+          minCount: 0
+          maxCount: 9
+        management:
+          autoRepair: true
+          autoUpgrade: true
+        kubernetesLabels:
+          plural.sh/scalingGroup: large-burst-on-demand
+        additionalLabels: { }
+        machineType: e2-standard-8
+    {% endif -%}

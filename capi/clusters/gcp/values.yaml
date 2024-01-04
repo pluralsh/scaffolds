@@ -128,44 +128,4 @@ workers:
   #############################
   ###        WORKERS        ###
   #############################
-  groups:
-    small-burst-on-demand:
-      replicas: 3
-      isMultiAZ: true
-      spec:
-        scaling:
-          minCount: 1
-          maxCount: 9
-        management:
-          autoRepair: true
-          autoUpgrade: true
-        kubernetesLabels:
-          plural.sh/scalingGroup: small-burst-on-demand
-        additionalLabels: { } # TODO: allow this to not be set
-        machineType: e2-standard-2
-    medium-burst-on-demand:
-      isMultiAZ: true
-      spec:
-        scaling:
-          minCount: 0
-          maxCount: 9
-        management:
-          autoRepair: true
-          autoUpgrade: true
-        kubernetesLabels:
-          plural.sh/scalingGroup: medium-burst-on-demand
-        additionalLabels: { } # TODO: allow this to not be set
-        machineType: e2-standard-4
-    large-burst-on-demand:
-      isMultiAZ: true
-      spec:
-        scaling:
-          minCount: 0
-          maxCount: 9
-        management:
-          autoRepair: true
-          autoUpgrade: true
-        kubernetesLabels:
-          plural.sh/scalingGroup: large-burst-on-demand
-        additionalLabels: { } # TODO: allow this to not be set
-        machineType: e2-standard-8
+  groups: { }
