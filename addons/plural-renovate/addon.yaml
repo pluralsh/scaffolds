@@ -2,7 +2,7 @@ name: plural-renovate
 description: A Plural dependency tracker based on renovate
 global: false
 icon: https://raw.githubusercontent.com/pluralsh/design-system/main/public/logos/plural-logomark-only-black.svg
-version: v1.0.0
+version: 1.0.0
 configuration:
 - name: renovateToken
   type: string
@@ -17,7 +17,7 @@ configuration:
   type: string
   documentation: "Comma delimited list of repositories that should be watched for automated dependency updates, i.e. 'pluralsh/bootstrap,pluralsh/renovate'"
 - name: platform
-  type: string
+  type: select
   documentation: "Platform to use."
   values:
     - github
