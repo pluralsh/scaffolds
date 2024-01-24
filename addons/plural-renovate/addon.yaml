@@ -1,0 +1,23 @@
+name: plural-renovate
+description: A Plural dependency tracker based on renovate
+global: false
+icon: https://raw.githubusercontent.com/pluralsh/design-system/main/public/logos/plural-logomark-only-black.svg
+configuration:
+- name: renovateToken
+  type: string
+  documentation: "Access token to repositories on the platform (default: github)"
+- name: consoleUrl
+  type: string
+  documentation: "Plural Console API url, i.e. https://console.mytest.onplural.sh/gql"
+- name: consoleToken
+  type: string
+  documentation: "Access token for the Plural Console"
+- name: repositories
+  type: string
+  documentation: "Comma delimited list of repositories that should be watched for automated dependency updates, i.e. 'pluralsh/bootstrap,pluralsh/renovate'"
+- name: platform
+  type: string
+  documentation: "Supported platforms: github, gitlab. Default: github."
+- name: endpoint
+  type: string
+  documentation: "Custom platform endpoint to use. Leave blank to use platform default."

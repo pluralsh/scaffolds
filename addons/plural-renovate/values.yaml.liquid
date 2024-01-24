@@ -1,0 +1,14 @@
+plural-renovate:
+  config:
+    renovate:
+      repositories: {{ configuration.repositories | split: ',' }}
+      token: {{ configuration.renovateToken }}
+      apiUrl: {{ configuration.consoleUrl }}
+      {% if configuration.platform %}
+      platform: {{ configuration.platform }}
+      {% endif %}
+      {% if configuration.endpoint %}
+      endpoint: {{ configuration.endpoint }}
+      {% endif %}
+    plural:
+      token: {{ configuration.consoleToken }}
