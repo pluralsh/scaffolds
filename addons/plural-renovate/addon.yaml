@@ -17,7 +17,7 @@ configuration:
   documentation: "Comma delimited list of repositories that should be watched for automated dependency updates, i.e. 'pluralsh/bootstrap,pluralsh/renovate'"
 - name: platform
   type: string
-  documentation: "Supported platforms: github, gitlab. Default: github."
+  documentation: "Supported platforms: github, gitlab. Leave empty to use github."
 - name: endpoint
   type: string
-  documentation: "Custom platform endpoint to use. Leave blank to use platform default."
+  documentation: "Custom platform endpoint to use. Leave empty to use platform default."
