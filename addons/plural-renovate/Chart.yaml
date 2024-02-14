@@ -7,4 +7,4 @@ appVersion: "1.0.4"
 dependencies:
 - name: plural-renovate
   repository: oci://ghcr.io/pluralsh
-  version: '1.0.4-helm'
+  version: '1.0.5-helm'
