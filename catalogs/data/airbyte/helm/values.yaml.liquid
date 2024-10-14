@@ -1,0 +1,89 @@
+{% raw %}
+global:
+  deploymentMode: "oss"
+  application:
+    links:
+    - description: airbyte web ui
+      url: {{ context.hostname }}
+  logs:
+    accessKey:
+      existingSecret: airbyte-airbyte-secrets
+      existingSecretKey: AWS_ACCESS_KEY_ID
+      password: {{ imports["airbyte-{{ context.cluster }}"].access_key_id }}
+    s3:
+      bucket: plrl-leadstreams-plrl-mgmt-airbyte
+      bucketRegion: us-east-2
+      enabled: true
+    secretKey:
+      existingSecret: airbyte-airbyte-secrets
+      existingSecretKey: AWS_SECRET_ACCESS_KEY
+      password: {{ imports["airbyte-{{ context.cluster }}"].secret_access_key }}
+    storage:
+      type: S3
+  state:
+    storage:
+      type: S3
+
+  database:
+    secretName: airbyte-airbyte-secrets
+    secretValue: DATABASE_PASSWORD
+    host: {{ imports["airbyte-{{ context.cluster }}"].postgres_host }}
+
+airbyte:
+  externalDatabase:
+    database: airbyte
+    host: {{ imports["airbyte-{{ context.cluster }}"].postgres_host }}
+    user: airbyte
+    existingSecret: ~
+    password: {{ imports["airbyte-{{ context.cluster }}"].postgres_password }}
+    port: 5432    
+  webapp:
+    ingress:
+      hosts:
+      - host: {{ context.hostname }}
+        paths:
+        - path: /.*
+          pathType: ImplementationSpecific
+      tls:
+      - hosts:
+        - {{ context.hostname }}
+        secretName: airbyte-tls
+    podAnnotations:
+      security.plural.sh/oauth-env-secret: airbyte-proxy-config
+      {% if configuration["basicAuth"] %}
+      security.plural.sh/htpasswd-secret: httpaswd-users
+      {% endif %}
+    podLabels:
+      security.plural.sh/inject-oauth-sidecar: "true"
+oidc-config:
+  enabled: true
+  secret:
+    clientID: {{ imports["airbyte-{{ context.cluster }}"].oidc_client_id }}
+    clientSecret: {{ imports["airbyte-{{ context.cluster }}"].oidc_client_secret }}
+    cookieSecret: {{ imports["airbyte-{{ context.cluster }}"].oidc_cookie_secret }}
+    issuer: https://oidc.plural.sh/
+    name: airbyte-proxy-config
+
+{% if configuration["basicAuth"] %}
+{% assign basicAuth = configuration["basicAuth"] | from_json %}
+  users:
+  {% for user in basicAuth %}
+    {{ user[0] }}: {{ user[1] }}
+  {% endfor %}
+{% endif %}
+
+postgres:
+  enabled: false
+private:
+  ingress:
+    enabled: true
+    hosts:
+    - host: {{ context.apiHostname }}
+      paths:
+      - path: /.*
+        pathType: ImplementationSpecific
+    tls:
+    - hosts:
+      - {{ context.apiHostname }}
+      secretName: airbyte-private-tls
+{% endraw %}

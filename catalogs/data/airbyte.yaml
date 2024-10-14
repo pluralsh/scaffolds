@@ -1,0 +1,61 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: airbyte
+spec:
+  name: airbyte
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d79a69b7-dfcd-480a-a51d-518865fd6e7c/airbyte.png
+  documentation: |
+    Sets up an airbyte instance for a given cloud
+  creates:
+    git:
+      ref: main
+      folder: catalogs/data/airbyte
+    templates:
+    - source: stack.yaml
+      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/stack.yaml"
+      external: true
+    - source: stack.yaml
+      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+    - source: README.md
+      destination: documentation/airbyte/README.md
+      external: true
+    - source: helm/values.yaml.liquid
+      destination: helm/airbyte/{{ context.cluster }}.yaml.liquid
+      external: true
+    - source: terraform
+      destination: terraform/apps/airbyte
+      external: true
+  repositoryRef:
+    name: scaffolds
+    namespace: infra
+  catalogRef:
+    name: data-engineering
+    namespace: infra
+  scmConnectionRef:
+    name: github  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up airbyte on cluster {{ context.cluster }} for {{ context.cloud }}"
+  message: |
+    Set up airbyte on {{ context.cluster }} ({{ context.cloud }})
+
+    Will set up an airbyte deployment, including object storage and postgres setup
+  identifier: pluralsh/scaffolds # REPLACEME with your own repo slug
+  configuration:
+  - name: cluster
+    type: STRING
+    documentation: the cluster you want to deploy to
+  - name: cloud
+    type: ENUM
+    documentation: the cloud you can deploy airbyte to
+    values:
+    - aws
+  - name: bucket
+    type: STRING
+    documentation: the name of the S3/GCS/Azure Blob bucket you'll use for airbyte logs.  This must be globally unique
+  - name: hostname
+    type: STRING
+    documentation: the DNS name you'll host airbyte under
+  - name: region
+    type: STRING
+    documentation: the cloud region you're going to use for this instance
