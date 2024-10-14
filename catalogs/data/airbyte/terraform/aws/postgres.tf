@@ -14,10 +14,6 @@ data "aws_vpc" "mgmt" {
   id = one(data.aws_eks_cluster.mgmt.vpc_config).vpc_id
 }
 
-locals {
-  monitoring_role_name = "${var.db_name}-PluralRDSMonitoringRole"
-}
-
 module "db" {
   source = "terraform-aws-modules/rds/aws"
   version = "~> 6.3"
@@ -41,7 +37,7 @@ module "db" {
   backup_retention_period = var.backup_retention_period
 
   monitoring_interval    = "30"
-  monitoring_role_name   = local.monitoring_role_name
+  monitoring_role_name   = "${var.db_name}-PluralRDSMonitoringRole"
   create_monitoring_role = true
   apply_immediately      = true 
 
