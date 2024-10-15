@@ -1,0 +1,23 @@
+name: Test Catalogs
+
+on:
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  test-pras:
+    name: test pras
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+    steps:
+      - uses: actions/checkout@v2
+        name: checkout repo
+      
+      - uses: extractions/setup-just@v2
+      - uses: pluralsh/setup-plural@v0.4.0
+        with:
+          vsn: 0.9.24
+          
+      - run: just test

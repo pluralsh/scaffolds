@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: workspaces
+spec:
+  workdir: test/outputs
+  templates:
+    from: catalogs
+    to: test/outputs/catalogs
+  automations:
+  - file: ../../setup/data/airbyte.yaml
+    context: ../contexts/airbyte.yaml

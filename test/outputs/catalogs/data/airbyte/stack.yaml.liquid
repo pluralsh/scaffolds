@@ -1,0 +1,21 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: airbyte-{{ context.cluster }}
+spec:
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  configuration:
+    version: '1.8'
+  repositoryRef:
+    name: infra
+    namespace: infra
+  clusterRef:
+    name: mgmt
+    namespace: infra
+  git:
+    ref: main
+    folder: terraform/apps/airbyte/{{ context.cloud }}

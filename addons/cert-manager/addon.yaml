@@ -1,8 +1,0 @@
-name: cert-manager
-description: "automate the provisioning of certificates using lets encrypt throughout your k8s cluster"
-global: true
-icon: https://raw.githubusercontent.com/cert-manager/cert-manager/d53c0b9270f8cd90d908460d69502694e1838f5f/logo/logo-small.png
-configuration:
-- name: ownerEmail
-  type: string
-  documentation: the email cert issuance/expiry notifications are sent to

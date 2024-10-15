@@ -1,8 +1,0 @@
-name: ingress-nginx
-description: "automate the provisioning of certificates using lets encrypt throughout your k8s cluster"
-global: true
-icon: https://github.com/pluralsh/plural-artifacts/blob/main/ingress-nginx/plural/icons/nginx.png?raw=true
-configuration:
-- name: aws
-  type: bool
-  documentation: whether you're running on aws, we'll reconfigure ssl proxy protocol and other details for you 
