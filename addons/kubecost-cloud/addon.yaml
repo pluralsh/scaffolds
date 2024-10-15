@@ -1,8 +1,0 @@
-name: kubecost-cloud
-description: "ship cost information to kubecost cloud"
-global: true
-icon: https://github.com/pluralsh/plural-artifacts/blob/main/kubecost/plural/icons/kubecost.png?raw=true
-configuration:
-- name: agentToken
-  type: string
-  documentation: your kubecost cloud license token

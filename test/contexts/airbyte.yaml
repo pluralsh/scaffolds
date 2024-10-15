@@ -1,0 +1,5 @@
+cluster: mgmt
+cloud: aws
+bucket: plrl-airbyte-logs
+hostname: airbyte.plural.sh
+region: us-east-2

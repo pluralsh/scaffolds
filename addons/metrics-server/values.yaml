@@ -1,3 +1,0 @@
-# Default values for metrics-server.
-metrics-server:
-  test: true

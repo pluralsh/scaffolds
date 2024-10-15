@@ -1,6 +1,0 @@
-dependencies:
-- name: kubecost-cloud-agent
-  repository: https://kubecost.github.io/kubecost-cloud-agent/
-  version: 1.0.0
-digest: sha256:ca82e1c341b2266187b2157a70a8f65e88570b69eba27c01dc90a965920482b0
-generated: "2023-11-09T11:41:49.339155-05:00"

@@ -1,6 +1,0 @@
-dependencies:
-- name: plural-renovate
-  repository: oci://ghcr.io/pluralsh
-  version: 1.0.6-helm
-digest: sha256:dcbfb44884b31bacefe6487d83f58cb1d1c6bb03779bd358596fc341b06abfba
-generated: "2024-02-14T17:18:10.145464798+01:00"

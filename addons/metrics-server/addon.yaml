@@ -1,5 +1,0 @@
-name: metrics-server
-description: "adds basic node/pod utilization information used in most kubernetes dashboards"
-global: true
-icon: /chart.png
-configuration: []
