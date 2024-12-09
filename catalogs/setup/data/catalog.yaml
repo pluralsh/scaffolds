@@ -7,3 +7,5 @@ spec:
   name: data
   category: data
   author: Plural
+  description: TODO
+  # icon: what to use for data logo icon?
