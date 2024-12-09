@@ -2,6 +2,7 @@ apiVersion: deployments.plural.sh/v1alpha1
 kind: Catalog
 metadata:
   name: data-engineering
+  namespace: infra
 spec:
   name: data-engineering
   category: data
