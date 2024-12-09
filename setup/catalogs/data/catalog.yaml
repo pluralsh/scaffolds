@@ -6,9 +6,6 @@ spec:
   name: data-engineering
   category: data
   icon: https://docs.plural.sh/favicon-128.png
-  # TODO: this should be optional but there is a controller issue
-  projectRef:
-    name: default
   author: Plural
   description: |
     Sets up OSS data infrastructure using Plural
