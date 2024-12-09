@@ -32,13 +32,14 @@ spec:
   catalogRef:
     name: data-engineering
   scmConnectionRef:
-    name: github  # you'll need to add this ScmConnection manually before this is functional
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: "Setting up airbyte on cluster {{ context.cluster }} for {{ context.cloud }}"
   message: |
     Set up airbyte on {{ context.cluster }} ({{ context.cloud }})
 
     Will set up an airbyte deployment, including object storage and postgres setup
-  identifier: pluralsh/scaffolds # REPLACEME with your own repo slug
+  identifier: pluralsh/plrl-dev-aws # REPLACEME with your own repo slug
+  branch: main
   configuration:
   - name: cluster
     type: STRING
