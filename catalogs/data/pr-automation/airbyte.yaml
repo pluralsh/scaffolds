@@ -1,0 +1,14 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: airbyte-creator
+spec:
+  name: airbyte-creator
+  documentation: |
+    Deploys airbyte to the cluster
+  creates:
+    git:
+      folder:
+      ref:
+  scmConnectionRef:
+    name: github

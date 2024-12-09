@@ -1,0 +1,17 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: catalog-data
+  namespace: infra
+spec:
+  repositoryRef:
+    kind: GitRepository
+    name: scaffolds
+    namespace: infra
+  git:
+    folder: catalogs/data/pr-automation
+    ref: main
+  clusterRef:
+    kind: Cluster
+    name: mgmt
+    namespace: infra

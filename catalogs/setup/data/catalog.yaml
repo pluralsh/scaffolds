@@ -1,0 +1,9 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
+  name: data
+  namespace: infra
+spec:
+  name: data
+  category: data
+  author: Plural
