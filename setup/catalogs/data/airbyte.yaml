@@ -31,7 +31,6 @@ spec:
     name: scaffolds
   catalogRef:
     name: data-engineering
-    namespace: infra
   scmConnectionRef:
     name: github  # you'll need to add this ScmConnection manually before this is functional
   title: "Setting up airbyte on cluster {{ context.cluster }} for {{ context.cloud }}"
