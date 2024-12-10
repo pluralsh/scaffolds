@@ -22,6 +22,9 @@ spec:
   - stackRef:
       name: airbyte-{{ context.cluster }}
       namespace: infra
+  configuration:
+    cluster: {{ context.cluster }}
+    hostname: {{ context.hostname }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
