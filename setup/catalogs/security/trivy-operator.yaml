@@ -15,11 +15,14 @@ spec:
       - source: README.md
         destination: documentation/trivy-operator/README.md
         external: true
-      - source: servicedeployment.yaml.liquid
-        destination: "bootstrap/apps/trivy-operator/{{ context.cluster }}/servicedeployment.yaml"
-        external: true
       - source: helm/values.yaml.liquid
         destination: helm/trivy-operator/{{ context.cluster }}.yaml.liquid
+        external: true
+      - source: helmrepository.yaml
+        destination: "bootstrap/apps/trivy-operator/{{ context.cluster }}/helmrepository.yaml"
+        external: true
+      - source: servicedeployment.yaml.liquid
+        destination: "bootstrap/apps/trivy-operator/{{ context.cluster }}/servicedeployment.yaml"
         external: true
   repositoryRef:
     name: scaffolds
