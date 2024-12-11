@@ -9,3 +9,15 @@ spec:
   author: Plural
   description: |
     Sets up OSS data infrastructure using Plural
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
+  name: security
+spec:
+  name: security
+  category: security
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Sets up OSS security infrastructure using Plural
