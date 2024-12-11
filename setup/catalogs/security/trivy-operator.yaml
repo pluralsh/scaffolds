@@ -27,11 +27,8 @@ spec:
     name: security
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
-  title: "Setting up Trivy Operator on cluster {{ context.cluster }} for {{ context.cloud }}"
-  message: |
-    Set up Trivy Operator on {{ context.cluster }} ({{ context.cloud }})
-
-    Will set up an Trivy Operator deployment
+  title: "Trivy Operator setup ({{ context.cluster }})"
+  message: "Sets up Trivy Operator on cluster {{ context.cluster }}."
   identifier: pluralsh/plrl-dev-aws # FIXME
   configuration:
   - name: cluster
