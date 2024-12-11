@@ -2,7 +2,7 @@ apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
   name: airbyte-{{ context.cluster }}
-  namespace: infra
+  namespace: apps
 spec:
   namespace: airbyte
   git:
@@ -13,9 +13,11 @@ spec:
     name: infra
     namespace: infra
   helm:
-    version: "x.x.x"
+    version: "1.x.x"
     chart: airbyte
-    url: https://app.plural.sh/cm/airbyte
+    repository:
+      name: airbyte
+      namespace: apps
     valuesFiles:
     - {{ context.cluster }}.yaml.liquid
   imports:
