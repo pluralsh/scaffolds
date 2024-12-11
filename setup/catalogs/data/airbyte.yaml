@@ -38,7 +38,6 @@ spec:
     Set up airbyte on {{ context.cluster }} ({{ context.cloud }})
 
     Will set up an airbyte deployment, including object storage and postgres setup
-  identifier: pluralsh/{{ context.cluster }} # REPLACEME with your own repo slug
   branch: main
   configuration:
   - name: cluster
