@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: opa-gatekeeper
+spec:
+  name: opa-gatekeeper
+  icon: https://www.openpolicyagent.org/img/logos/opa-no-text-color.png
+  documentation: |
+    Sets up an OPA Gatekeeper policy controller
+  creates:
+    git:
+      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
+      folder: catalogs/security/opa-gatekeeper
+    templates:
+      - source: README.md
+        destination: documentation/opa-gatekeeper/README.md
+        external: true
+      - source: helmrepository.yaml
+        destination: "bootstrap/apps/opa-gatekeeper/{{ context.cluster }}/helmrepository.yaml"
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: security
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "OPA Gatekeeper setup ({{ context.cluster }})"
+  message: "Sets up OPA Gatekeeper on {{ context.cluster }} cluster."
+  identifier: pluralsh/plrl-dev-aws # FIXME
+  configuration:
+  - name: cluster
+    type: STRING
+    documentation: the cluster you want to deploy to
