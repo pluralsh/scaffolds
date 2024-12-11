@@ -19,7 +19,7 @@ spec:
         destination: "bootstrap/apps/trivy/{{ context.cluster }}/servicedeployment.yaml"
         external: true
       - source: helm/values.yaml.liquid
-        destination: helm/airbyte/{{ context.cluster }}.yaml.liquid
+        destination: helm/trivy/{{ context.cluster }}.yaml.liquid
         external: true
 #    - source: stack.yaml.liquid
 #      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/stack.yaml"
