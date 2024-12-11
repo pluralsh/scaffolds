@@ -12,17 +12,17 @@ spec:
       ref: main
       folder: catalogs/security/trivy
     templates:
+      - source: README.md
+        destination: documentation/trivy/README.md
+        external: true
+      - source: servicedeployment.yaml.liquid
+        destination: "bootstrap/apps/trivy/{{ context.cluster }}/servicedeployment.yaml"
+        external: true
+      - source: helm/values.yaml.liquid
+        destination: helm/airbyte/{{ context.cluster }}.yaml.liquid
+        external: true
 #    - source: stack.yaml.liquid
 #      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/stack.yaml"
-#      external: true
-#    - source: servicedeployment.yaml.liquid
-#      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/servicedeployment.yaml"
-#      external: true
-    - source: README.md
-      destination: documentation/trivy/README.md
-      external: true
-#    - source: helm/values.yaml.liquid
-#      destination: helm/airbyte/{{ context.cluster }}.yaml.liquid
 #      external: true
 #    - source: terraform
 #      destination: terraform/apps/airbyte
