@@ -38,10 +38,10 @@ spec:
     Set up Trivy on {{ context.cluster }} ({{ context.cloud }})
 
     Will set up an Trivy deployment
-#  configuration:
-#  - name: cluster
-#    type: STRING
-#    documentation: the cluster you want to deploy to
+  configuration:
+  - name: cluster
+    type: STRING
+    documentation: the cluster you want to deploy to
 #  - name: cloud
 #    type: ENUM
 #    documentation: the cloud you can deploy airbyte to
