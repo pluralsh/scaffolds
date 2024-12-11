@@ -1,0 +1,39 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: trivy-operator
+spec:
+  name: trivy-operator
+  icon: https://aquasecurity.github.io/trivy-operator/latest/images/trivy-operator-logo.png
+  documentation: |
+    Sets up an Trivy Operator security toolkit
+  creates:
+    git:
+      ref: main
+      folder: catalogs/security/trivy-operator
+    templates:
+      - source: README.md
+        destination: documentation/trivy-operator/README.md
+        external: true
+      - source: servicedeployment.yaml.liquid
+        destination: "bootstrap/apps/trivy-operator/{{ context.cluster }}/servicedeployment.yaml"
+        external: true
+      - source: helm/values.yaml.liquid
+        destination: helm/trivy-operator/{{ context.cluster }}.yaml.liquid
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: security
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up Trivy Operator on cluster {{ context.cluster }} for {{ context.cloud }}"
+  message: |
+    Set up Trivy Operator on {{ context.cluster }} ({{ context.cloud }})
+
+    Will set up an Trivy Operator deployment
+  identifier: pluralsh/plrl-dev-aws # FIXME
+  configuration:
+  - name: cluster
+    type: STRING
+    documentation: the cluster you want to deploy to

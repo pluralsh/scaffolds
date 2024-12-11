@@ -1,12 +1,12 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: trivy-{{ context.cluster }}
+  name: trivy-operator-{{ context.cluster }}
   namespace: apps
 spec:
-  namespace: trivy
+  namespace: trivy-operator
   git:
-    folder: helm/trivy
+    folder: helm/trivy-operator
     ref: main
   repositoryRef:
     kind: GitRepository
@@ -14,16 +14,12 @@ spec:
     namespace: infra
   helm:
     version: "0.x.x"
-    chart: trivy
+    chart: trivy-operator
     repository:
-      name: trivy
+      name: trivy-operator
       namespace: apps
     valuesFiles:
     - {{ context.cluster }}.yaml.liquid
-  {% comment %}imports:{% endcomment %}
-  {% comment %}- stackRef:{% endcomment %}
-      {% comment %}name: trivy-{{ context.cluster }}{% endcomment %}
-      {% comment %}namespace: infra{% endcomment %}
   configuration:
     cluster: {{ context.cluster }}
     hostname: {{ context.hostname }}

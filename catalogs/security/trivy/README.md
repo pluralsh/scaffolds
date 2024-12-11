@@ -1,6 +1,6 @@
-# Trivy
+# Trivy Operator
 
-This is a baseline, prod ready Trivy installation using Plural.
+This is a baseline, prod-ready Trivy Operator installation using Plural.
 
 ## Contributing
 
