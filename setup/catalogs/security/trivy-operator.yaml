@@ -9,7 +9,7 @@ spec:
     Sets up an Trivy Operator security toolkit
   creates:
     git:
-      ref: main
+      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
       folder: catalogs/security/trivy-operator
     templates:
       - source: README.md
