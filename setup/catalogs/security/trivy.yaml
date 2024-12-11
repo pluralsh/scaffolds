@@ -38,6 +38,7 @@ spec:
     Set up Trivy on {{ context.cluster }} ({{ context.cloud }})
 
     Will set up an Trivy deployment
+  identifier: pluralsh/plrl-dev-aws # FIXME
   configuration:
   - name: cluster
     type: STRING
