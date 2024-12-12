@@ -18,8 +18,6 @@ spec:
     repository:
       name: trivy-operator
       namespace: apps
-    valuesFiles:
-    - {{ context.cluster }}.yaml.liquid
   configuration:
     cluster: {{ context.cluster }}
   clusterRef:
