@@ -21,7 +21,7 @@ spec:
   repositoryRef:
     name: scaffolds
   catalogRef:
-    name: data
+    name: data-engineering
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: "Dagster setup ({{ context.cluster }})"
