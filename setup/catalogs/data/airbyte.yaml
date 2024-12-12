@@ -9,7 +9,7 @@ spec:
     Sets up an airbyte instance for a given cloud
   creates:
     git:
-      ref: main
+      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
       folder: catalogs/data/airbyte
     templates:
     - source: helm
