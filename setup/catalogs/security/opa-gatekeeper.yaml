@@ -18,6 +18,9 @@ spec:
       - source: helmrepository.yaml
         destination: "bootstrap/apps/opa-gatekeeper/{{ context.cluster }}/helmrepository.yaml"
         external: true
+      - source: servicedeployments.yaml.liquid
+        destination: "bootstrap/apps/opa-gatekeeper/{{ context.cluster }}/servicedeployments.yaml"
+        external: true
   repositoryRef:
     name: scaffolds
   catalogRef:
