@@ -1,8 +1,8 @@
 apiVersion: source.toolkit.fluxcd.io/v1beta2
 kind: HelmRepository
 metadata:
-  name: gatekeeper
+  name: dagster
   namespace: apps
 spec:
   interval: 5m0s
-  url: https://open-policy-agent.github.io/gatekeeper/charts
+  url: https://dagster-io.github.io/helm

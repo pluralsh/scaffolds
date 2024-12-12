@@ -1,0 +1,40 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: dagster
+spec:
+  name: dagster
+  icon: https://dagster.io/images/brand/logos/dagster-primary-mark.png
+  documentation: |
+    Sets up Dagster instance for given cloud
+  creates:
+    git:
+      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
+      folder: catalogs/data/dagster
+    templates:
+      - source: README.md
+        destination: documentation/dagster/README.md
+        external: true
+      - source: helmrepository.yaml
+        destination: "bootstrap/apps/dagster/{{ context.cluster }}/helmrepository.yaml"
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: data
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Dagster setup ({{ context.cluster }})"
+  message: |
+    Sets up Dagster on {{ context.cluster }} cluster.
+  identifier: pluralsh/plrl-dev-aws # FIXME
+  configuration:
+    - name: cluster
+      type: STRING
+      documentation: the cluster you want to deploy to
+    - name: cloud
+      type: ENUM
+      documentation: the cloud you can deploy Dagster to
+      values:
+        - aws
+
