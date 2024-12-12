@@ -15,8 +15,8 @@ spec:
     - source: README.md
       destination: documentation/grafana/README.md
       external: true
-    - source: values.yaml.liquid
-      destination: "bootstrap/apps/grafana/{{ context.cluster }}/values.yaml"
+    - source: grafana.yaml.liquid
+      destination: "helm/grafana/{{ context.cluster }}/grafana.yaml.liquid"
       external: true
     - source: servicedeployment.yaml.liquid
       destination: "bootstrap/apps/grafana/{{ context.cluster }}/servicedeployment.yaml"

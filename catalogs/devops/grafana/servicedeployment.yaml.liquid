@@ -6,7 +6,7 @@ metadata:
 spec:
   namespace: grafana
   git:
-    folder: helm/grafana
+    folder: helm/grafana/{{ context.cluster }}
     ref: main
   repositoryRef:
     kind: GitRepository
@@ -17,7 +17,7 @@ spec:
     chart: grafana
     url: https://grafana.github.io/helm-charts
     valuesFiles:
-    - {{ context.cluster }}.yaml.liquid
+    - grafana.yaml.liquid
   configuration:
     cluster: {{ context.cluster }}
   clusterRef:
