@@ -12,20 +12,29 @@ spec:
       ref: main
       folder: catalogs/data/airbyte
     templates:
-    - source: stack.yaml.liquid
-      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/stack.yaml"
+    - source: helm
+      destination: helm/airbyte/{{ context.cluster }}
       external: true
-    - source: servicedeployment.yaml.liquid
-      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/servicedeployment.yaml"
+    - source: services/oauth-proxy-ingress.yaml.liquid
+      destination: services/ingress/airbyte/oauth-proxy-ingress.yaml.liquid
+      external: true
+    - source: terraform
+      destination: terraform/apps/airbyte/{{ context.cluster }}
+      external: true
+    - source: airbyte-raw-servicedeployment.yaml
+      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-raw-servicedeployment.yaml"
+      external: true
+    - source: airbyte-servicedeployment.yaml
+      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-servicedeployment.yaml"
+      external: true
+    - source: airbyte-stack.yaml
+      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-stack.yaml"
+      external: true
+    - source: oauth-proxy-config-servicedeployment.yaml
+      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/oauth-proxy-config-servicedeployment.yaml"
       external: true
     - source: README.md
       destination: documentation/airbyte/README.md
-      external: true
-    - source: helm/values.yaml.liquid
-      destination: helm/airbyte/{{ context.cluster }}.yaml.liquid
-      external: true
-    - source: terraform
-      destination: terraform/apps/airbyte
       external: true
   repositoryRef:
     name: scaffolds

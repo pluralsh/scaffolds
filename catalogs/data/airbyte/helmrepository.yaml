@@ -1,8 +1,0 @@
-apiVersion: source.toolkit.fluxcd.io/v1beta2
-kind: HelmRepository
-metadata:
-  name: airbyte
-  namespace: apps
-spec:
-  interval: 5m0s
-  url: https://airbytehq.github.io/helm-charts
