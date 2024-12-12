@@ -6,7 +6,7 @@ metadata:
 spec:
   namespace: airbyte
   git:
-    folder: helm/airbyte
+    folder: helm/airbyte/{{ context.cluster }}
     ref: main
   repositoryRef:
     kind: GitRepository
@@ -15,11 +15,11 @@ spec:
   helm:
     version: "1.x.x"
     chart: airbyte
-    repository:
-      name: airbyte
-      namespace: apps
+    release: airbyte
+    ignoreHooks: false
+    url: https://airbytehq.github.io/helm-charts
     valuesFiles:
-    - {{ context.cluster }}.yaml.liquid
+    - airbyte.yaml.liquid
   imports:
   - stackRef:
       name: airbyte-{{ context.cluster }}
@@ -27,7 +27,8 @@ spec:
   configuration:
     cluster: {{ context.cluster }}
     hostname: {{ context.hostname }}
+    bucket: {{ context.bucket }}
   clusterRef:
     kind: Cluster
-    name: {{ context.cluster }}
+    name: {{ cluster.handle }}
     namespace: infra
