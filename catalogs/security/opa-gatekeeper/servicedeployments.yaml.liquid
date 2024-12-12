@@ -44,3 +44,26 @@ spec:
     kind: Cluster
     name: {{ context.cluster }}
     namespace: infra
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: policy-bundle-{{ context.cluster }}
+  namespace: apps
+spec:
+  name: policy-bundle
+  namespace: policy
+  templated: false
+  git:
+    folder: resources/policy/bundles/{{ context.bundle }}
+    ref: main
+  kustomize:
+    path: '.'
+  repositoryRef:
+    kind: GitRepository
+    name: bootstrap
+    namespace: infra
+  clusterRef:
+    kind: Cluster
+    name: {{ context.cluster }}
+    namespace: infra

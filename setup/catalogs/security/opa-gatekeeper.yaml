@@ -34,3 +34,13 @@ spec:
   - name: cluster
     type: STRING
     documentation: the cluster you want to deploy to
+  - name: bundle
+    type: ENUM
+    documentation: the policy bundle you want to install
+    values:
+      - asm-policy-v0.0.1
+      - cis-k8s-v1.5.1
+      - policy-essentials-v2022
+      - psp-v2022
+      - pss-baseline-v2022
+
