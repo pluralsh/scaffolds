@@ -6,7 +6,7 @@ spec:
   name: grafana
   icon: https://cdn.icon-icons.com/icons2/2699/PNG/512/grafana_logo_icon_171048.png
   documentation: |
-    Sets up Trivy Operator security toolkit
+    Sets up Grafana Open Observability Platform.
   creates:
     git:
       ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
@@ -15,7 +15,7 @@ spec:
     - source: README.md
       destination: documentation/grafana/README.md
       external: true
-    - source: values.yaml
+    - source: values.yaml.liquid
       destination: "bootstrap/apps/grafana/{{ context.cluster }}/values.yaml"
       external: true
     - source: servicedeployment.yaml.liquid
