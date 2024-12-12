@@ -6,7 +6,7 @@ spec:
   name: trivy-operator
   icon: https://aquasecurity.github.io/trivy-operator/latest/images/trivy-operator-logo.png
   documentation: |
-    Sets up an Trivy Operator security toolkit
+    Sets up Trivy Operator security toolkit
   creates:
     git:
       ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
@@ -28,7 +28,8 @@ spec:
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: "Trivy Operator setup ({{ context.cluster }})"
-  message: "Sets up Trivy Operator on {{ context.cluster }} cluster."
+  message: |
+    Sets up Trivy Operator on {{ context.cluster }} cluster. Includes set of constraints and policy bundle.
   identifier: pluralsh/plrl-dev-aws # FIXME
   configuration:
   - name: cluster

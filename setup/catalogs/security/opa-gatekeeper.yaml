@@ -6,7 +6,7 @@ spec:
   name: opa-gatekeeper
   icon: https://www.openpolicyagent.org/img/logos/opa-no-text-color.png
   documentation: |
-    Sets up an OPA Gatekeeper policy controller
+    Sets up OPA Gatekeeper policy controller
   creates:
     git:
       ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
@@ -28,7 +28,8 @@ spec:
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: "OPA Gatekeeper setup ({{ context.cluster }})"
-  message: "Sets up OPA Gatekeeper on {{ context.cluster }} cluster."
+  message: |
+    Sets up OPA Gatekeeper on {{ context.cluster }} cluster.
   identifier: pluralsh/plrl-dev-aws # FIXME
   configuration:
   - name: cluster
