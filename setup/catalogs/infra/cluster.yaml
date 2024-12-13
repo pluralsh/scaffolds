@@ -17,8 +17,8 @@ spec:
       - source: cluster.yaml
         destination: "services/infra/cluster/{{ context.cloud }}/clusters/{{ context.name }}.yaml"
         external: true
-      - source: clusters-servicedeployment.yaml
-        destination: "bootstrap/infra/cluster/{{ context.cloud }}/{{ context.name }}/clusters-servicedeployment.yaml"
+      - source: servicedeployment.yaml
+        destination: "bootstrap/infra/clusters/servicedeployment.yaml"
         external: true
   repositoryRef:
     name: scaffolds
