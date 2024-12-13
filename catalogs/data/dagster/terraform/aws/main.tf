@@ -17,5 +17,5 @@ module "s3_buckets" {
 }
 
 data "aws_eks_cluster" "cluster" {
-  name = var.cluster_name
+  name = data.plural_cluster.cluster.name
 }
