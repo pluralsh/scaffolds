@@ -11,4 +11,4 @@ spec:
       ref: main
     repositoryRef:
       kind: GitRepository
-      name: infra
+      name: bootstrap
