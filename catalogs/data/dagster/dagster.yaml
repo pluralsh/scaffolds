@@ -1,0 +1,55 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: dagster-{{ context.cluster }}
+  namespace: apps
+spec:
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/dagster/{{ context.cluster }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  configuration:
+    version: '1.8'
+  clusterRef:
+    name: {{ context.cluster }}
+    namespace: infra
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: dagster-{{ context.cluster }}
+  namespace: apps
+spec:
+  namespace: dagster
+  git:
+    folder: helm/dagster/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    url: https://dagster-io.github.io/helm
+    version: "1.x.x"
+    chart: dagster
+    valuesFiles:
+    - dagster.yaml.liquid
+  imports:
+  - stackRef:
+      name: dagster-{{ context.cluster }}
+      namespace: infra
+  configuration:
+    cluster: {{ context.cluster }}
+    hostname: {{ context.hostname }}
+    bucket: {{ context.bucket }}
+  clusterRef:
+    kind: Cluster
+    name: {{ context.cluster }}
+    namespace: infra
