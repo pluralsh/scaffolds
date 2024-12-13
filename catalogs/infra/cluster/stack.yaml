@@ -27,3 +27,5 @@ spec:
     value: {{ context.fleet }}
   - name: TF_VAR_tier
     value: {{ context.tier }}
+  - name: TF_VAR_region
+    value: {{ context.region }}

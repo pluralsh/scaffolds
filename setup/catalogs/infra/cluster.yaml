@@ -48,3 +48,7 @@ spec:
       values:
         - dev
         - prd
+    - name: region
+      type: STRING
+      documentation: Region where the cluster should be created.
+      default: us-east-2
