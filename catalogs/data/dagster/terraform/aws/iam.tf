@@ -34,24 +34,24 @@ resource "aws_iam_policy_attachment" "dagster-user" {
   policy_arn = aws_iam_policy.dagster.arn
 }
 
-resource "kubernetes_namespace" "dagster" {
-  metadata {
-    name = var.namespace
-    labels = {
-      "app.kubernetes.io/managed-by" = "plural"
-      "app.plural.sh/name" = "dagster"
-    }
-  }
-}
-
-resource "kubernetes_secret" "dagster_s3_secret" {
-  metadata {
-    name = "dagster-aws-env"
-    namespace = kubernetes_namespace.dagster.id
-  }
-
-  data = {
-    "AWS_ACCESS_KEY_ID" = aws_iam_access_key.dagster.id
-    "AWS_SECRET_ACCESS_KEY" = aws_iam_access_key.dagster.secret
-  }
+# resource "kubernetes_namespace" "dagster" {
+#   metadata {
+#     name = var.namespace
+#     labels = {
+#       "app.kubernetes.io/managed-by" = "plural"
+#       "app.plural.sh/name" = "dagster"
+#     }
+#   }
+# }
+#
+# resource "kubernetes_secret" "dagster_s3_secret" {
+#   metadata {
+#     name = "dagster-aws-env"
+#     namespace = kubernetes_namespace.dagster.id
+#   }
+#
+#   data = {
+#     "AWS_ACCESS_KEY_ID" = aws_iam_access_key.dagster.id
+#     "AWS_SECRET_ACCESS_KEY" = aws_iam_access_key.dagster.secret
+#   }
 }
