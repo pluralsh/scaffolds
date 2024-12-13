@@ -20,8 +20,8 @@ spec:
       - source: gatekeeper-constraints.yaml
         destination: bootstrap/apps/gatekeeper/gatekeeper-constraints.yaml
         external: true
-      - source: gatekeeper-policy-bundle.yaml.liquid
-        destination: bootstrap/apps/gatekeeper/gatekeeper-policy-bundle.yaml.liquid
+      - source: gatekeeper-policy-bundle.yaml
+        destination: bootstrap/apps/gatekeeper/gatekeeper-policy-bundle.yaml
         external: true
   repositoryRef:
     name: scaffolds
