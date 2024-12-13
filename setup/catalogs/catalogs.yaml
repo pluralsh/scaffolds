@@ -21,3 +21,15 @@ spec:
   author: Plural
   description: |
     Sets up OSS security infrastructure using Plural
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
+  name: devops
+spec:
+  name: devops
+  category: devops
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Sets up OSS devops infrastructure using Plural
