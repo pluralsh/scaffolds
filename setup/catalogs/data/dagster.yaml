@@ -5,8 +5,7 @@ metadata:
 spec:
   name: dagster
   icon: https://dagster.io/images/brand/logos/dagster-primary-mark.png
-  documentation: |
-    Sets up Dagster instance for given cloud
+  documentation: Sets up Dagster instance for given cloud.
   creates:
     git:
       ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
@@ -24,17 +23,18 @@ spec:
     name: data-engineering
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
-  title: "Dagster setup ({{ context.cluster }})"
-  message: |
-    Sets up Dagster on {{ context.cluster }} cluster.
-  identifier: pluralsh/plrl-dev-aws # FIXME
+  title: Dagster setup ({{ context.cluster }})
+  message: Sets up Dagster on {{ context.cluster }} cluster.
   configuration:
     - name: cluster
       type: STRING
-      documentation: the cluster you want to deploy to
+      documentation: The cluster you want to deploy to.
     - name: cloud
       type: ENUM
-      documentation: the cloud you can deploy Dagster to
+      documentation: The cloud you want to deploy to.
       values:
         - aws
+    - name: hostname
+      type: STRING
+      documentation: The DNS name you want to host Dagster under.
 
