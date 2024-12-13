@@ -12,9 +12,3 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "airbyte" {
     }
   }
 }
-
-data "aws_iam_role" "postgres" {
-  name = "${data.plural_cluster.cluster.name}-postgres"
-
-  depends_on = [ plural_cluster.cluster ]
-}
