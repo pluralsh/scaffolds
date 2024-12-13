@@ -31,7 +31,6 @@ spec:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: Gatekeeper setup
   message: Sets up Gatekeeper, policy bundle and a set of constraints.
-  identifier: pluralsh/plrl-dev-aws # FIXME
   configuration:
   - name: bundle
     type: ENUM
