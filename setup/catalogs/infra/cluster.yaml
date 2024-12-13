@@ -1,53 +1,53 @@
-apiVersion: deployments.plural.sh/v1alpha1
-kind: PrAutomation
-metadata:
-  name: cluster
-spec:
-  name: cluster
-  documentation: |
-    Sets up a PR to provision a cluster for a fleet + stage
-  creates:
-    git:
-      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
-      folder: catalogs/infra/cluster
-    templates:
-      - source: stack.yaml
-        destination: "services/infra/clusters/{{ context.cloud }}/stacks/{{ context.name }}.yaml"
-        external: true
-      - source: cluster.yaml
-        destination: "services/infra/clusters/{{ context.cloud }}/{{ context.name }}.yaml"
-        external: true
-      - source: servicedeployment.yaml
-        destination: "bootstrap/infra/clusters/servicedeployment.yaml"
-        external: true
-  repositoryRef:
-    name: scaffolds
-  catalogRef:
-    name: infra
-  scmConnectionRef:
-    name: plural  # you'll need to add this ScmConnection manually before this is functional
-  title: "Adding {{ context.cloud }} cluster: {{ context.name }}"
-  message: "Adding {{ context.cloud }} cluster {{ context.name }} and registering it with Plural"
-  configuration:
-    - name: name
-      type: STRING
-      documentation: Name of the cluster.
-    - name: cloud
-      type: ENUM
-      documentation: The cloud provider you'll host on.
-      values:
-        - aws
-        - gcp
-        - azure
-    - name: fleet
-      type: STRING
-      documentation: Name for the fleet you want this cluster to belong to.
-    - name: tier
-      type: ENUM
-      documentation: What tier to place this cluster in.
-      values:
-        - dev
-        - prd
-    - name: region
-      type: STRING
-      documentation: Region where the cluster should be created.
+#apiVersion: deployments.plural.sh/v1alpha1
+#kind: PrAutomation
+#metadata:
+#  name: cluster
+#spec:
+#  name: cluster
+#  documentation: |
+#    Sets up a PR to provision a cluster for a fleet + stage
+#  creates:
+#    git:
+#      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
+#      folder: catalogs/infra/cluster
+#    templates:
+#      - source: stack.yaml
+#        destination: "services/infra/clusters/{{ context.cloud }}/stacks/{{ context.name }}.yaml"
+#        external: true
+#      - source: cluster.yaml
+#        destination: "services/infra/clusters/{{ context.cloud }}/{{ context.name }}.yaml"
+#        external: true
+#      - source: servicedeployment.yaml
+#        destination: "bootstrap/infra/clusters/servicedeployment.yaml"
+#        external: true
+#  repositoryRef:
+#    name: scaffolds
+#  catalogRef:
+#    name: infra
+#  scmConnectionRef:
+#    name: plural  # you'll need to add this ScmConnection manually before this is functional
+#  title: "Adding {{ context.cloud }} cluster: {{ context.name }}"
+#  message: "Adding {{ context.cloud }} cluster {{ context.name }} and registering it with Plural"
+#  configuration:
+#    - name: name
+#      type: STRING
+#      documentation: Name of the cluster.
+#    - name: cloud
+#      type: ENUM
+#      documentation: The cloud provider you'll host on.
+#      values:
+#        - aws
+#        - gcp
+#        - azure
+#    - name: fleet
+#      type: STRING
+#      documentation: Name for the fleet you want this cluster to belong to.
+#    - name: tier
+#      type: ENUM
+#      documentation: What tier to place this cluster in.
+#      values:
+#        - dev
+#        - prd
+#    - name: region
+#      type: STRING
+#      documentation: Region where the cluster should be created.
