@@ -12,4 +12,4 @@ spec:
     repositoryRef:
       kind: GitRepository
       name: infra
-      namespace: policy
+      namespace: infra
