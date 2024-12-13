@@ -12,7 +12,7 @@ spec:
       folder: catalogs/infra/cluster
     templates:
       - source: stack.yaml
-        destination: "services/infra/clusters/{{ context.cloud }}/stacks{{ context.name }}.yaml"
+        destination: "services/infra/clusters/{{ context.cloud }}/stacks/{{ context.name }}.yaml"
         external: true
       - source: cluster.yaml
         destination: "services/infra/clusters/{{ context.cloud }}/{{ context.name }}.yaml"
