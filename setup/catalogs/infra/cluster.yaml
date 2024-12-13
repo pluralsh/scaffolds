@@ -9,17 +9,21 @@ spec:
   creates:
     git:
       ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
-      folder: catalogs/data/airbyte
+      folder: catalogs/data/infra/cluster
     templates:
-      - source: templates/clusters/stack.yaml
-        destination: "services/clusters/{{ context.cloud }}/stacks/{{ context.name }}.yaml"
+      - source: stack.yaml
+        destination: "services/infra/cluster/{{ context.cloud }}/stacks/{{ context.name }}.yaml"
         external: true
-      - source: templates/clusters/cluster.yaml
-        destination: "services/clusters/{{ context.cloud }}/clusters/{{ context.name }}.yaml"
+      - source: cluster.yaml
+        destination: "services/infra/cluster/{{ context.cloud }}/clusters/{{ context.name }}.yaml"
         external: true
-      - source: templates/clusters/clusters.yaml
-        destination: "bootstrap/clusters.yaml"
+      - source: clusters-servicedeployment.yaml
+        destination: "bootstrap/infra/cluster/{{ context.cloud }}/{{ context.name }}/clusters-servicedeployment.yaml"
         external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: infra
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: "Adding {{ context.cloud }} cluster: {{ context.name }}"
