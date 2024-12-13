@@ -12,10 +12,10 @@ spec:
       folder: catalogs/data/infra/cluster
     templates:
       - source: stack.yaml
-        destination: "services/infra/cluster/{{ context.cloud }}/stacks/{{ context.name }}.yaml"
+        destination: "services/infra/clusters/{{ context.cloud }}/stacks{{ context.name }}.yaml"
         external: true
       - source: cluster.yaml
-        destination: "services/infra/cluster/{{ context.cloud }}/clusters/{{ context.name }}.yaml"
+        destination: "services/infra/clusters/{{ context.cloud }}/{{ context.name }}.yaml"
         external: true
       - source: servicedeployment.yaml
         destination: "bootstrap/infra/clusters/servicedeployment.yaml"
