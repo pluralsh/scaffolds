@@ -1,25 +1,28 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: PrAutomation
 metadata:
-  name: opa-gatekeeper
+  name: gatekeeper
 spec:
-  name: opa-gatekeeper
+  name: gatekeeper
   icon: https://www.openpolicyagent.org/img/logos/opa-no-text-color.png
   documentation: |
-    Sets up OPA Gatekeeper policy controller
+    Sets up Gatekeeper policy controller
   creates:
     git:
       ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
-      folder: catalogs/security/opa-gatekeeper
+      folder: catalogs/security/gatekeeper
     templates:
       - source: README.md
-        destination: documentation/opa-gatekeeper/README.md
+        destination: documentation/gatekeeper/README.md
         external: true
-      - source: helmrepository.yaml
-        destination: "bootstrap/apps/opa-gatekeeper/{{ context.cluster }}/helmrepository.yaml"
+      - source: gatekeeper.yaml
+        destination: bootstrap/apps/gatekeeper/gatekeeper.yaml
         external: true
-      - source: servicedeployments.yaml.liquid
-        destination: "bootstrap/apps/opa-gatekeeper/{{ context.cluster }}/servicedeployments.yaml"
+      - source: gatekeeper-constraints.yaml
+        destination: bootstrap/apps/gatekeeper/gatekeeper-constraints.yaml
+        external: true
+      - source: gatekeeper-policy-bundle.yaml.liquid
+        destination: bootstrap/apps/gatekeeper/gatekeeper-policy-bundle.yaml.liquid
         external: true
   repositoryRef:
     name: scaffolds
@@ -27,14 +30,11 @@ spec:
     name: security
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
-  title: "OPA Gatekeeper setup ({{ context.cluster }})"
+  title: "Gatekeeper setup ({{ context.cluster }})"
   message: |
-    Sets up OPA Gatekeeper on {{ context.cluster }} cluster.
+    Sets up Gatekeeper on {{ context.cluster }} cluster. Setup includes policy bundle and a set of constraints.
   identifier: pluralsh/plrl-dev-aws # FIXME
   configuration:
-  - name: cluster
-    type: STRING
-    documentation: the cluster you want to deploy to
   - name: bundle
     type: ENUM
     documentation: the policy bundle you want to install
