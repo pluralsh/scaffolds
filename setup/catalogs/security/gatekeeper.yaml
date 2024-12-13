@@ -5,7 +5,7 @@ metadata:
 spec:
   name: gatekeeper
   icon: https://www.openpolicyagent.org/img/logos/opa-no-text-color.png
-  documentation: Sets up Gatekeeper policy controller
+  documentation: Sets up Gatekeeper policy controller.
   creates:
     git:
       ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main

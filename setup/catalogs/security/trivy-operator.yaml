@@ -4,9 +4,8 @@ metadata:
   name: trivy-operator
 spec:
   name: trivy-operator
-  icon: https://aquasecurity.github.io/trivy-operator/latest/images/trivy-operator-logo.png
-  documentation: |
-    Sets up Trivy Operator security toolkit
+  icon: https://raw.githubusercontent.com/aquasecurity/trivy-vscode-extension/refs/tags/0.7.1/media/trivy.svg
+  documentation: Sets up Trivy Operator security toolkit.
   creates:
     git:
       ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
@@ -15,11 +14,8 @@ spec:
       - source: README.md
         destination: documentation/trivy-operator/README.md
         external: true
-      - source: helmrepository.yaml
-        destination: "bootstrap/apps/trivy-operator/{{ context.cluster }}/helmrepository.yaml"
-        external: true
-      - source: servicedeployment.yaml.liquid
-        destination: "bootstrap/apps/trivy-operator/{{ context.cluster }}/servicedeployment.yaml"
+      - source: trivy-operator.yaml
+        destination: bootstrap/apps/trivy-operator/trivy-operator.yaml
         external: true
   repositoryRef:
     name: scaffolds
@@ -27,11 +23,6 @@ spec:
     name: security
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
-  title: "Trivy Operator setup ({{ context.cluster }})"
-  message: |
-    Sets up Trivy Operator on {{ context.cluster }} cluster. Includes set of constraints and policy bundle.
+  title: Trivy Operator setup
+  message: Sets up Trivy Operator.
   identifier: pluralsh/plrl-dev-aws # FIXME
-  configuration:
-  - name: cluster
-    type: STRING
-    documentation: the cluster you want to deploy to
