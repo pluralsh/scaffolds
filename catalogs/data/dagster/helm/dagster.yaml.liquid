@@ -1,0 +1,130 @@
+global:
+    serviceAccountName: dagster
+
+oidc-config:
+    enabled: false
+    service:
+        name: dagster-oauth2-proxy
+        selector:
+            app.kubernetes.io/instance: dagster
+            component: dagster-webserver
+    secret:
+        env:
+            OAUTH2_PROXY_UPSTREAM_TIMEOUT: '120s'
+
+
+postgres:
+    team: plural
+    user: dagster
+    dbName: dagster
+    ownerChart: dagster
+    password: REPLACE_ME
+    infix: ""
+
+test-base:
+    enabled: false
+    application: dagster
+    testName: dagster-integration
+    promoteTag: stable
+    tags:
+        - 1.7.7
+
+config-overlays:
+    configOverlays:
+        ingress-class:
+            spec:
+                folder: network
+                subfolder: ingress
+                name: Ingress Class
+                documentation: the ingress class to deploy dagster with (use `internal-nginx` to place it on a private network)
+                updates:
+                    - path: ['dagster', 'dagster', 'ingress', 'ingressClassName']
+
+oidcProxy:
+    enabled: false
+
+dagster:
+    migrate:
+        enabled: true
+
+    dagsterDaemon:
+        image:
+            repository: dkr.plural.sh/dagster/dagster/dagster-celery-k8s
+            tag: 1.7.7
+        resources:
+            requests:
+                cpu: 15m
+                memory: 156Mi
+            limits:
+                memory: 256Mi
+    dagsterWebserver:
+        image:
+            repository: dkr.plural.sh/dagster/dagster/dagster-celery-k8s
+            tag: 1.7.7
+        resources:
+            requests:
+                cpu: 25m
+                memory: 180Mi
+            limits:
+                memory: 256Mi
+    busybox:
+        image:
+            repository: dkr.plural.sh/dagster/library/busybox
+            tag: 1.28.0
+    pipelineRun:
+        image:
+            repository: dkr.plural.sh/dagster/dagster/user-code-example
+            tag: 1.7.7
+
+    ingress:
+        enabled: true
+        dagit:
+            tls:
+                enabled: true
+                secretName: dagster-tls
+        ingressClassName: nginx
+        annotations:
+            kubernetes.io/tls-acme: "true"
+            cert-manager.io/cluster-issuer: letsencrypt-prod
+            # Extend timeout to allow long running queries.
+            nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+            nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+            nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+            nginx.ingress.kubernetes.io/use-regex: "true"
+
+    runLauncher:
+        type: K8sRunLauncher
+        config:
+            celeryK8sRunLauncher:
+                image:
+                    repository: dkr.plural.sh/dagster/dagster/dagster-celery-k8s
+                    tag: 1.7.7
+
+    postgresql:
+        enabled: false
+        # image is still used for checks if the db is ready
+        image:
+            repository: dkr.plural.sh/dagster/library/postgres
+            tag: 9.6.24
+        postgresqlHost: plural-dagster
+        postgresqlUsername: dagster
+        postgresqlDatabase: dagster
+        postgresqlParams:
+            sslmode: require
+
+    dagster-user-deployments:
+        enabled: true
+        deployments:
+            - name: "k8s-example-user-code-1"
+              image:
+                  repository: ghcr.io/pluralsh/containers/dagster/user-code-example
+                  tag: 1.7.7-plural1.3.10
+                  pullPolicy: Always
+              resources:
+                  requests:
+                      cpu: 20m
+                      memory: 100Mi
+              dagsterApiGrpcArgs:
+                  - "--python-file"
+                  - "/example_project/example_repo/repo.py"
+              port: 3030
