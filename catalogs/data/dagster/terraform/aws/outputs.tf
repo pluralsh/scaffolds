@@ -3,11 +3,11 @@ output "iam_user" {
 }
 
 output "access_key_id" {
-  value = aws_iam_access_key.airbyte.id
+  value = aws_iam_access_key.dagster.id
 }
 
 output "secret_access_key" {
-  value = aws_iam_access_key.airbyte.secret
+  value = aws_iam_access_key.dagster.secret
   sensitive = true
 }
 
@@ -26,11 +26,11 @@ output "oidc_cookie_secret" {
 }
 
 output "oidc_client_id" {
-  value = plural_oidc_provider.airbyte.client_id
+  value = plural_oidc_provider.dagster.client_id
   sensitive = true
 }
 
 output "oidc_client_secret" {
-  value = plural_oidc_provider.airbyte.client_secret
+  value = plural_oidc_provider.dagster.client_secret
   sensitive = true
 }

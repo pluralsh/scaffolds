@@ -13,16 +13,6 @@ variable "dagster_bucket" {
   default = "{{ context.bucket }}"
 }
 
-variable "dagster_serviceaccount" {
-  type = string
-  default = "dagster"
-}
-
-variable "role_name" {
-  type = string
-  default = "dagster"
-}
-
 variable "force_destroy_bucket" {
   type        = bool
   default     = true
@@ -30,7 +20,7 @@ variable "force_destroy_bucket" {
 }
 
 variable "db_name" {
-  default = "plrl-{{ context.cluster }}-airbyte"
+  default = "plrl-{{ context.cluster }}-dagster"
 }
 
 variable "postgres_vsn" {
