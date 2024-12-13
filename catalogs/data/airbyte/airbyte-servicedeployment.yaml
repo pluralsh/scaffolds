@@ -23,7 +23,7 @@ spec:
   imports:
   - stackRef:
       name: airbyte-{{ context.cluster }}
-      namespace: infra
+      namespace: apps
   configuration:
     cluster: {{ context.cluster }}
     hostname: {{ context.hostname }}
