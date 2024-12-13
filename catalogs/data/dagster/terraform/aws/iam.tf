@@ -1,15 +1,27 @@
-module "assumable_role_airflow" {
-  source                        = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
-  version                       = "3.14.0"
-  create_role                   = true
-  role_name                     = "${data.plural_cluster.cluster.name}-${var.role_name}"
-  provider_url                  = replace(data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer, "https://", "")
-  role_policy_arns              = [module.s3_buckets.policy_arn]
-  oidc_fully_qualified_subjects = ["system:serviceaccount:${var.namespace}:${var.dagster_serviceaccount}"]
+data "aws_iam_policy_document" "dagster" {
+  statement {
+    sid    = "admin"
+    effect = "Allow"
+    actions = ["s3:*"]
+
+    resources = [
+      "arn:aws:s3:::${var.dagster_bucket}",
+      "arn:aws:s3:::${var.dagster_bucket}/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "dagster" {
+  name_prefix = "dagster"
+  description = "policy for the plural admin dagster"
+  policy      = data.aws_iam_policy_document.dagster.json
 }
 
 resource "aws_iam_user" "dagster" {
   name = "${data.plural_cluster.cluster.name}-dagster"
+
+  depends_on = [ data.plural_cluster.cluster ]
+
 }
 
 resource "aws_iam_access_key" "dagster" {
@@ -19,7 +31,17 @@ resource "aws_iam_access_key" "dagster" {
 resource "aws_iam_policy_attachment" "dagster-user" {
   name = "${data.plural_cluster.cluster.name}-dagster-policy"
   users = [aws_iam_user.dagster.name]
-  policy_arn = module.s3_buckets.policy_arn
+  policy_arn = aws_iam_policy.dagster.arn
+}
+
+resource "kubernetes_namespace" "dagster" {
+  metadata {
+    name = var.namespace
+    labels = {
+      "app.kubernetes.io/managed-by" = "plural"
+      "app.plural.sh/name" = "dagster"
+    }
+  }
 }
 
 resource "kubernetes_secret" "dagster_s3_secret" {
