@@ -5,8 +5,7 @@ metadata:
 spec:
   name: gatekeeper
   icon: https://www.openpolicyagent.org/img/logos/opa-no-text-color.png
-  documentation: |
-    Sets up Gatekeeper policy controller
+  documentation: Sets up Gatekeeper policy controller
   creates:
     git:
       ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
@@ -30,14 +29,13 @@ spec:
     name: security
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
-  title: "Gatekeeper setup ({{ context.cluster }})"
-  message: |
-    Sets up Gatekeeper on {{ context.cluster }} cluster. Setup includes policy bundle and a set of constraints.
+  title: Gatekeeper setup
+  message: Sets up Gatekeeper, policy bundle and a set of constraints.
   identifier: pluralsh/plrl-dev-aws # FIXME
   configuration:
   - name: bundle
     type: ENUM
-    documentation: the policy bundle you want to install
+    documentation: The policy bundle you want to install.
     values:
       - asm-policy-v0.0.1
       - cis-k8s-v1.5.1
