@@ -30,5 +30,5 @@ spec:
     bucket: {{ context.bucket }}
   clusterRef:
     kind: Cluster
-    name: {{ cluster.handle }}
+    name: {{ context.cluster }}
     namespace: infra

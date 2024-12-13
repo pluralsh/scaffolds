@@ -6,7 +6,9 @@ resource "aws_iam_policy" "airbyte" {
 }
 
 resource "aws_iam_user" "airbyte" {
-  name = "${var.cluster_name}-airbyte"
+  name = "${data.plural_cluster.cluster.name}-airbyte"
+
+  depends_on = [ plural_cluster.cluster ]
 }
 
 resource "aws_iam_access_key" "airbyte" {
@@ -27,7 +29,9 @@ data "aws_iam_policy_document" "airbyte" {
 }
 
 resource "aws_iam_policy_attachment" "airbyte-user" {
-  name = "${var.cluster_name}-airbyte-policy"
+  name = "${data.plural_cluster.cluster.name}-airbyte-policy"
   users = [aws_iam_user.airbyte.name]
   policy_arn = aws_iam_policy.airbyte.arn
+
+  depends_on = [ plural_cluster.cluster ]
 }

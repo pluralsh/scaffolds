@@ -18,8 +18,8 @@ spec:
     - source: services/oauth-proxy-ingress.yaml.liquid
       destination: services/ingress/airbyte/oauth-proxy-ingress.yaml.liquid
       external: true
-    - source: terraform/{{ context.cloud }}
-      destination: terraform/apps/airbyte/{{ context.cluster }}
+    - source: "terraform/{{ context.cloud }}"
+      destination: "terraform/apps/airbyte/{{ context.cluster }}"
       external: true
     - source: airbyte-raw-servicedeployment.yaml
       destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-raw-servicedeployment.yaml"
@@ -50,18 +50,18 @@ spec:
   configuration:
   - name: cluster
     type: STRING
-    documentation: the cluster you want to deploy to
+    documentation: Handle of the cluster you want to deploy airbyte to.
   - name: cloud
     type: ENUM
-    documentation: the cloud you can deploy airbyte to
+    documentation: Cloud provider you want to deploy airbyte to.
     values:
     - aws
   - name: bucket
     type: STRING
-    documentation: the name of the S3/GCS/Azure Blob bucket you'll use for airbyte logs.  This must be globally unique
+    documentation: The name of the S3/GCS/Azure Blob bucket you'll use for airbyte logs. This must be globally unique.
   - name: hostname
     type: STRING
-    documentation: the DNS name you'll host airbyte under
+    documentation: The DNS name you'll host airbyte under.
   - name: region
     type: STRING
-    documentation: the cloud region you're going to use for this instance
+    documentation: The cloud provider region you're going to use to deploy cloud resources.

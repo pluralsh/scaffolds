@@ -6,7 +6,7 @@ metadata:
 spec:
   namespace: airbyte
   git:
-    folder: services/ingress/airbyte
+    folder: services/apps/airbyte
     ref: main
   repositoryRef:
     kind: GitRepository
@@ -16,5 +16,5 @@ spec:
     hostname: {{ context.hostname }}
   clusterRef:
     kind: Cluster
-    name: {{ cluster.handle }}
+    name: {{ context.cluster }}
     namespace: infra

@@ -7,7 +7,9 @@ resource "random_password" "password" {
 }
 
 data "aws_eks_cluster" "mgmt" {
-  name = var.cluster_name
+  name = data.plural_cluster.cluster.name
+
+  depends_on = [ plural_cluster.cluster ]
 }
 
 data "aws_vpc" "mgmt" {

@@ -19,9 +19,9 @@ secret:
 
 {% if configuration["basicAuth"] %}
 {% assign basicAuth = configuration["basicAuth"] | from_json %}
-  users:
+users:
 {% for user in basicAuth %}
-    {{ user[0] }}: {{ user[1] }}
+  {{ user[0] }}: {{ user[1] }}
 {% endfor %}
 {% endif %}
 

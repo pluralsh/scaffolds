@@ -27,5 +27,5 @@ spec:
     hostname: {{ context.hostname }}
   clusterRef:
     kind: Cluster
-    name: {{ cluster.handle }}
+    name: {{ context.cluster }}
     namespace: infra
