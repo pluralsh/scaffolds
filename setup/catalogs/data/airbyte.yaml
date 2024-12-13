@@ -16,7 +16,7 @@ spec:
       destination: helm/airbyte/{{ context.cluster }}
       external: true
     - source: services/oauth-proxy-ingress.yaml.liquid
-      destination: services/ingress/airbyte/oauth-proxy-ingress.yaml.liquid
+      destination: services/apps/airbyte/oauth-proxy-ingress.yaml.liquid
       external: true
     - source: "terraform/{{ context.cloud }}"
       destination: "terraform/apps/airbyte/{{ context.cluster }}"
