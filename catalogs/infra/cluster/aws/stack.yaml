@@ -2,6 +2,7 @@ apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
   name: cluster-{{ context.name }}
+  namespace: infra
 spec:
   name: cluster-{{ context.name }}
   detach: false
@@ -19,7 +20,7 @@ spec:
     namespace: infra
   git:
     ref: main
-    folder: terraform/modules/clusters/{{ context.cloud }}
+    folder: terraform/modules/clusters/aws
   environment:
   - name: TF_VAR_cluster
     value: {{ context.name }}
@@ -29,3 +30,11 @@ spec:
     value: {{ context.tier }}
   - name: TF_VAR_region
     value: {{ context.region }}
+  - name: AWS_ACCESS_KEY_ID
+    secretKeyRef:
+      name: {{ context.credentialSecret }}
+      key: AWS_ACCESS_KEY_ID
+  - name: AWS_SECRET_ACCESS_KEY
+    secretKeyRef:
+      name: {{ context.credentialSecret }}
+      key: AWS_SECRET_ACCESS_KEY
