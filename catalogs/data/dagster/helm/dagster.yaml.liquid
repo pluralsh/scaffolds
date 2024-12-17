@@ -9,6 +9,8 @@ dagsterWebserver:
     {% endif %}
   labels:
     security.plural.sh/inject-oauth-sidecar: "true"
+  envSecrets:
+    - name: dagster-aws-env
 
 postgresql:
   enabled: false
@@ -46,6 +48,12 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/use-regex: "true"
+
+runLauncher:
+  config:
+    k8sRunLauncher:
+      envSecrets:
+        - name: dagster-aws-env
 
 dagster-user-deployments:
   enabled: true
