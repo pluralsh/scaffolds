@@ -4,7 +4,7 @@ metadata:
   name: mlflow-{{ context.cluster }}
   namespace: apps
 spec:
-  namespace: mflow
+  namespace: mlflow
   git:
     folder: helm/mlflow/{{ context.cluster }}
     ref: main
