@@ -1,0 +1,67 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: mlflow
+spec:
+  name: mlflow
+  icon: https://cdn.icon-icons.com/icons2/3913/PNG/512/mlflow_logo_icon_248445.png
+  documentation: |
+    Sets up an mlflow instance for a given cloud
+  creates:
+    git:
+      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
+      folder: catalogs/data/mlflow
+    templates:
+      - source: helm
+        destination: helm/mlflow/{{ context.cluster }}
+        external: true
+      - source: services/oauth-proxy-ingress.yaml.liquid
+        destination: services/apps/mlflow/oauth-proxy-ingress.yaml.liquid
+        external: true
+      - source: "terraform/{{ context.cloud }}"
+        destination: "terraform/apps/mlflow/{{ context.cluster }}"
+        external: true
+      - source: mlflow-raw-servicedeployment.yaml
+        destination: "bootstrap/apps/mlflow/{{ context.cluster }}/mlflow-raw-servicedeployment.yaml"
+        external: true
+      - source: mlflow-servicedeployment.yaml
+        destination: "bootstrap/apps/mlflow/{{ context.cluster }}/mlflow-servicedeployment.yaml"
+        external: true
+      - source: mlflow-stack.yaml
+        destination: "bootstrap/apps/mlflow/{{ context.cluster }}/mlflow-stack.yaml"
+        external: true
+      - source: oauth-proxy-config-servicedeployment.yaml
+        destination: "bootstrap/apps/mlflow/{{ context.cluster }}/oauth-proxy-config-servicedeployment.yaml"
+        external: true
+      - source: README.md
+        destination: documentation/mlflow/README.md
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: data-engineering
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up mlflow on cluster {{ context.cluster }} for {{ context.cloud }}"
+  message: |
+    Set up mlflow on {{ context.cluster }} ({{ context.cloud }})
+
+    Will set up an mlflow deployment, including object storage and postgres setup
+  configuration:
+    - name: cluster
+      type: STRING
+      documentation: Handle of the cluster you want to deploy mlflow to.
+    - name: cloud
+      type: ENUM
+      documentation: Cloud provider you want to deploy mlflow to.
+      values:
+        - aws
+    - name: bucket
+      type: STRING
+      documentation: The name of the S3/GCS/Azure Blob bucket you'll use for mlflow logs. This must be globally unique.
+    - name: hostname
+      type: STRING
+      documentation: The DNS name you'll host mlflow under.
+    - name: region
+      type: STRING
+      documentation: The cloud provider region you're going to use to deploy cloud resources.
