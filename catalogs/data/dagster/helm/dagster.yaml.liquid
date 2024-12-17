@@ -1,3 +1,4 @@
+{% raw %}
 {% assign imports_dagster_key =  'dagster-' | append: configuration.cluster %}
 
 dagsterWebserver:
@@ -52,3 +53,4 @@ dagster-user-deployments:
               - "--python-file"
               - "/example_project/example_repo/repo.py"
           port: 3030
+{% endraw %}
