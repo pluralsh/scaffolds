@@ -26,6 +26,9 @@ spec:
       - source: oauth-proxy-config.yaml
         destination: "bootstrap/apps/dagster/{{ context.cluster }}/oauth-proxy-config.yaml"
         external: true
+      - source: services/dagster-aws-env.yaml.liquid
+        destination: services/apps/dagster/dagster-aws-env.yaml.liquid
+        external: true
   repositoryRef:
     name: scaffolds
   catalogRef:

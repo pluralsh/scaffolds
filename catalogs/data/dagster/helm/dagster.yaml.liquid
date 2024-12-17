@@ -2,55 +2,61 @@
 {% assign imports_dagster_key =  'dagster-' | append: configuration.cluster %}
 
 dagsterWebserver:
-    annotations:
-        security.plural.sh/oauth-env-secret: dagster-proxy-config
-      {% if configuration["basicAuth"] %}
-        security.plural.sh/htpasswd-secret: httpaswd-users
-      {% endif %}
-    labels:
-        security.plural.sh/inject-oauth-sidecar: "true"
+  annotations:
+    security.plural.sh/oauth-env-secret: dagster-proxy-config
+    {% if configuration["basicAuth"] %}
+    security.plural.sh/htpasswd-secret: httpaswd-users
+    {% endif %}
+  labels:
+    security.plural.sh/inject-oauth-sidecar: "true"
 
 postgresql:
-    enabled: false
-    postgresqlHost: {{ imports[imports_dagster_key].postgres_host }}
-    postgresqlUsername: dagster
-    postgresqlPassword: {{ imports[imports_dagster_key].postgres_password }}
-    postgresqlDatabase: dagster
-    postgresqlParams:
-        sslmode: require
+  enabled: false
+  postgresqlHost: {{ imports[imports_dagster_key].postgres_host }}
+  postgresqlUsername: dagster
+  postgresqlPassword: {{ imports[imports_dagster_key].postgres_password }}
+  postgresqlDatabase: dagster
+  postgresqlParams:
+    sslmode: require
+
+computeLogManager:
+  type: S3ComputeLogManager
+  config:
+    s3ComputeLogManager:
+      bucket: {{ configuration.bucket }}
 
 ingress:
-    enabled: true
-    ingressClassName: nginx
-    dagsterWebserver:
-        host: {{ configuration.hostname }}
-        tls:
-            enabled: true
-            secretName: dagster-tls
-        precedingPaths:
-            - path: /.*
-              pathType: ImplementationSpecific
-              serviceName: dagster-oauth2-proxy
-              servicePort: http-oauth
-    annotations:
-        kubernetes.io/tls-acme: "true"
-        cert-manager.io/cluster-issuer: letsencrypt-prod
-        # Extend timeout to allow long running queries.
-        nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
-        nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-        nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-        nginx.ingress.kubernetes.io/use-regex: "true"
+  enabled: true
+  ingressClassName: nginx
+  dagsterWebserver:
+    host: {{ configuration.hostname }}
+    tls:
+      enabled: true
+      secretName: dagster-tls
+    precedingPaths:
+      - path: /.*
+        pathType: ImplementationSpecific
+        serviceName: dagster-oauth2-proxy
+        servicePort: http-oauth
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Extend timeout to allow long running queries.
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/use-regex: "true"
 
 dagster-user-deployments:
-    enabled: true
-    deployments:
-        - name: "k8s-example-user-code-1"
-          image:
-              repository: "docker.io/dagster/user-code-example"
-              tag: latest
-              pullPolicy: Always
-          dagsterApiGrpcArgs:
-              - "--python-file"
-              - "/example_project/example_repo/repo.py"
-          port: 3030
+  enabled: true
+  deployments:
+    - name: "k8s-example-user-code-1"
+      image:
+        repository: "docker.io/dagster/user-code-example"
+        tag: latest
+        pullPolicy: Always
+      dagsterApiGrpcArgs:
+        - "--python-file"
+        - "/example_project/example_repo/repo.py"
+      port: 3030
 {% endraw %}
