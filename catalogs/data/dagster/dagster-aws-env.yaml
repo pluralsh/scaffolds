@@ -12,6 +12,10 @@ spec:
     kind: GitRepository
     name: infra
     namespace: infra
+  imports:
+    - stackRef:
+        name: dagster-{{ context.cluster }}
+        namespace: apps
   configuration:
     cluster: {{ context.cluster }}
     hostname: {{ context.hostname }}
