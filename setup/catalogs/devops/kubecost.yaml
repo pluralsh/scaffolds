@@ -1,0 +1,37 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: kubecost
+spec:
+  name: kubecost
+  icon: https://cdn.icon-icons.com/icons2/2699/PNG/512/grafana_logo_icon_171048.png
+  documentation: |
+    Sets up Kubecost Kubernetes Cost Monitoring and Management.
+  creates:
+    git:
+      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
+      folder: catalogs/devops/kubecost
+    templates:
+    - source: README.md
+      destination: documentation/kubecost/README.md
+      external: true
+    - source: kubecost.yaml.liquid
+      destination: "helm/kubecost/{{ context.cluster }}/kubecost.yaml.liquid"
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: "bootstrap/apps/kubecost/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Kubecost setup ({{ context.cluster }})"
+  message: |
+    Sets up Kubecost on {{ context.cluster }} cluster.
+  identifier: pluralsh/plrl-dev-aws # FIXME
+  configuration:
+  - name: cluster
+    type: STRING
+    documentation: the cluster you want to deploy to
