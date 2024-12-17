@@ -10,7 +10,7 @@ ingress:
   tls:
     - hosts:
       - {{ context.hostname }}
-      secretName: monitoring-tls
+      secretName: grafana-{{ context.cluster }}-tls
 
 persistence:
   enabled: true

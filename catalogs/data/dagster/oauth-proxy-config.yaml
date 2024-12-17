@@ -1,0 +1,31 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: dagster-oauth-proxy-config-{{ context.cluster }}
+  namespace: apps
+spec:
+  namespace: dagster
+  git:
+    folder: helm/dagster/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "x.x.x"
+    chart: oidc-config
+    url: https://pluralsh.github.io/module-library
+    valuesFiles:
+    - oauth-proxy-config.yaml.liquid
+  imports:
+  - stackRef:
+      name: dagster-{{ context.cluster }}
+      namespace: apps
+  configuration:
+    cluster: {{ context.cluster }}
+    hostname: {{ context.hostname }}
+  clusterRef:
+    kind: Cluster
+    name: {{ context.cluster }}
+    namespace: infra
