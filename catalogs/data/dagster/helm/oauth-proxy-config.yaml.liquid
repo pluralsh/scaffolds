@@ -4,15 +4,15 @@
 service:
   name: dagster-oauth2-proxy
   selector:
-    app.kubernetes.io/instance: dagster
-    app.kubernetes.io/name: webapp
+    app.kubernetes.io/name: dagster
+    component: dagster-webserver
 
 secret:
   clientID: {{ imports[imports_dagster_key].oidc_client_id }}
   clientSecret: {{ imports[imports_dagster_key].oidc_client_secret }}
   cookieSecret: {{ imports[imports_dagster_key].oidc_cookie_secret }}
   issuer: https://oidc.plural.sh/
-  upstream: http://localhost:8080
+  upstream: http://localhost:80
   name: dagster-proxy-config
   env:
     OAUTH2_PROXY_UPSTREAM_TIMEOUT: '120s'
