@@ -1,20 +1,20 @@
 {% raw %}
-  { % assign imports_dagster_key =  'dagster-' | append: configuration.cluster % }
+{% assign imports_dagster_key =  'dagster-' | append: configuration.cluster %}
 
 dagsterWebserver:
   annotations:
     security.plural.sh/oauth-env-secret: dagster-proxy-config
-    { % if configuration[ "basicAuth" ] % }
+    {% if configuration["basicAuth"] %}
     security.plural.sh/htpasswd-secret: httpaswd-users
-    { % endif % }
+    {% endif %}
   labels:
     security.plural.sh/inject-oauth-sidecar: "true"
 
 postgresql:
   enabled: false
-  postgresqlHost: { { imports[ imports_dagster_key ].postgres_host } }
+  postgresqlHost: {{ imports[imports_dagster_key].postgres_host }}
   postgresqlUsername: dagster
-  postgresqlPassword: { { imports[ imports_dagster_key ].postgres_password } }
+  postgresqlPassword: {{ imports[imports_dagster_key].postgres_password }}
   postgresqlDatabase: dagster
   postgresqlParams:
     sslmode: require
@@ -23,13 +23,13 @@ computeLogManager:
   type: S3ComputeLogManager
   config:
     s3ComputeLogManager:
-      bucket: { { configuration.bucket } }
+      bucket: {{ configuration.bucket }}
 
 ingress:
   enabled: true
   ingressClassName: nginx
   dagsterWebserver:
-    host: { { configuration.hostname } }
+    host: {{ configuration.hostname }}
     tls:
       enabled: true
       secretName: dagster-tls
