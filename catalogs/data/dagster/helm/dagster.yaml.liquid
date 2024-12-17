@@ -19,6 +19,12 @@ postgresql:
     postgresqlParams:
         sslmode: require
 
+computeLogManager:
+    type: S3ComputeLogManager
+    config:
+        s3ComputeLogManager:
+            bucket: {{ configuration.bucket }}
+
 ingress:
     enabled: true
     ingressClassName: nginx
