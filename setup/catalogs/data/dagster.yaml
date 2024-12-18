@@ -23,6 +23,9 @@ spec:
       - source: "terraform/{{ context.cloud }}"
         destination: "terraform/apps/dagster/{{ context.cluster }}"
         external: true
+      - source: dagster-aws-env.yaml
+        destination: "bootstrap/apps/dagster/{{ context.cluster }}/dagster-aws-env.yaml"
+        external: true
       - source: oauth-proxy-config.yaml
         destination: "bootstrap/apps/dagster/{{ context.cluster }}/oauth-proxy-config.yaml"
         external: true
