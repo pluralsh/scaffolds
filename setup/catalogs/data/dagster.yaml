@@ -44,6 +44,10 @@ spec:
     - name: cluster
       type: STRING
       documentation: The cluster you want to deploy to.
+    - name: stackCluster
+      type: STRING
+      documentation: Handle of the cluster used to run Infrastructure Stacks for provisioning the infrastructure. Defaults to the management cluster.
+      default: mgmt
     - name: cloud
       type: ENUM
       documentation: The cloud you want to deploy to.

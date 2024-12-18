@@ -18,7 +18,7 @@ spec:
   configuration:
     version: '1.8'
   clusterRef:
-    name: {{ context.cluster }}
+    name: {{ context.stackCluster }}
     namespace: infra
 ---
 apiVersion: deployments.plural.sh/v1alpha1
