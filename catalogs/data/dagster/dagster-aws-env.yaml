@@ -18,7 +18,6 @@ spec:
         namespace: apps
   configuration:
     cluster: {{ context.cluster }}
-    hostname: {{ context.hostname }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
