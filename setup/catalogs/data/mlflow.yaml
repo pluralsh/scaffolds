@@ -54,6 +54,10 @@ spec:
     - name: cluster
       type: STRING
       documentation: Handle of the cluster you want to deploy mlflow to.
+    - name: stackCluster
+      type: STRING
+      documentation: Handle of the cluster used to run Infrastructure Stacks for provisioning the infrastructure. Defaults to the management cluster.
+      default: mgmt
     - name: cloud
       type: ENUM
       documentation: Cloud provider you want to deploy mlflow to.
