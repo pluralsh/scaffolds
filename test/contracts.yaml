@@ -8,5 +8,5 @@ spec:
     from: catalogs
     to: test/outputs/catalogs
   automations:
-  - file: ../../setup/data/airbyte.yaml
+  - file: ../../setup/catalogs/data/airbyte.yaml
     context: ../contexts/airbyte.yaml
