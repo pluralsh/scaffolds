@@ -44,7 +44,7 @@ spec:
   catalogRef:
     name: data-engineering
   scmConnectionRef:
-    name: plural  # you'll need to add this ScmConnection manually before this is functional
+    name: github  # you'll need to add this ScmConnection manually before this is functional
   title: "Setting up mlflow on cluster {{ context.cluster }} for {{ context.cloud }}"
   message: |
     Set up mlflow on {{ context.cluster }} ({{ context.cloud }})

@@ -26,11 +26,10 @@ spec:
   catalogRef:
     name: devops
   scmConnectionRef:
-    name: plural # you'll need to add this ScmConnection manually before this is functional
+    name: github # you'll need to add this ScmConnection manually before this is functional
   title: "Grafana setup ({{ context.cluster }})"
   message: |
     Sets up Grafana on {{ context.cluster }} cluster.
-  identifier: pluralsh/plrl-dev-aws # FIXME
   configuration:
   - name: cluster
     type: STRING

@@ -26,7 +26,7 @@ spec:
   catalogRef:
     name: infra
   scmConnectionRef:
-    name: plural  # you'll need to add this ScmConnection manually before this is functional
+    name: github  # you'll need to add this ScmConnection manually before this is functional
   title: "Adding EKS cluster: {{ context.name }}"
   message: "Adding EKS cluster {{ context.name }} and registering it with Plural"
   configuration:
