@@ -1,12 +1,12 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: airbyte-{{ context.cluster }}
-  namespace: infra
+  name: airbyte-oauth-proxy-config-{{ context.cluster }}
+  namespace: apps
 spec:
   namespace: airbyte
   git:
-    folder: helm/airbyte
+    folder: helm/airbyte/{{ context.cluster }}
     ref: main
   repositoryRef:
     kind: GitRepository
@@ -14,14 +14,17 @@ spec:
     namespace: infra
   helm:
     version: "x.x.x"
-    chart: airbyte
-    url: https://app.plural.sh/cm/airbyte
+    chart: oidc-config
+    url: https://pluralsh.github.io/module-library
     valuesFiles:
-    - {{ context.cluster }}.yaml.liquid
+    - oauth-proxy-config.yaml.liquid
   imports:
   - stackRef:
       name: airbyte-{{ context.cluster }}
-      namespace: infra
+      namespace: apps
+  configuration:
+    cluster: {{ context.cluster }}
+    hostname: {{ context.hostname }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}

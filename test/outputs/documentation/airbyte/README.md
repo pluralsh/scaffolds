@@ -6,7 +6,7 @@ This is a baseline, prod ready airbyte installation using Plural.  It includes a
 * RDS/Google Cloud Sql, Azure Flexible Server to handle postgres. This gives you a robust RDBMS service to hold airbyte's core transactional data.
 * Plural OIDC to handle authentication to Airbyte. Airbyte does not support this natively, and so we use oauth-proxy as a middleware to handle authentication.
 
-In addtion, there are a few common customizations you might want to do.
+In addition, there are a few common customizations you might want to do.
 
 ## Configure Basic Auth
 
