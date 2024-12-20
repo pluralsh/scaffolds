@@ -1,11 +1,11 @@
 variable "cluster_name" {
   type = string
-  default = "{{ context.cluster }}"
+  default = "mgmt"
 }
 
 variable "airbyte_bucket" {
   type = string
-  default = "{{ context.bucket }}"
+  default = "plrl-airbyte-logs"
 }
 
 variable "force_destroy_bucket" {
@@ -15,7 +15,7 @@ variable "force_destroy_bucket" {
 }
 
 variable "db_name" {
-  default = "plrl-{{ context.cluster }}-airbyte"
+  default = "plrl-mgmt-airbyte"
 }
 
 variable "postgres_vsn" {

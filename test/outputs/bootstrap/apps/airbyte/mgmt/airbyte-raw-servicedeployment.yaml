@@ -13,7 +13,7 @@ spec:
     name: infra
     namespace: infra
   configuration:
-    hostname: airbyte.plrl-dev-aws.onplural.sh
+    hostname: airbyte.plural.sh
   clusterRef:
     kind: Cluster
     name: mgmt

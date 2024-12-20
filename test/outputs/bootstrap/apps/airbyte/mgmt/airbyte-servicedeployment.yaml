@@ -26,8 +26,9 @@ spec:
       namespace: apps
   configuration:
     cluster: mgmt
-    hostname: airbyte.plrl-dev-aws.onplural.sh
-    bucket: plrl-catalog-airbyte-1
+    hostname: airbyte.plural.sh
+    bucket: plrl-airbyte-logs
+    region: us-east-2
   clusterRef:
     kind: Cluster
     name: mgmt

@@ -11,7 +11,7 @@ global:
     type: S3
     storageSecretName: airbyte-airbyte-secrets
     s3:
-      region: us-east-2
+      region: {{ configuration.region }}
       authenticationType: credentials
       accessKeyId: {{ imports[imports_airbyte_key].access_key_id }}
       accessKeyIdSecretKey: AWS_ACCESS_KEY_ID
