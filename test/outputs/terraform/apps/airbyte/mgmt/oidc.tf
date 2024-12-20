@@ -11,5 +11,5 @@ resource "plural_oidc_provider" "airbyte" {
   auth_method = "BASIC"
   type = "PLURAL"
   description = "OIDC provider for airbyte deployed to the mgmt cluster"
-  redirect_uris = ["https://airbyte.plrl-dev-aws.onplural.sh/oauth2/callback"]
+  redirect_uris = ["https://airbyte.plural.sh/oauth2/callback"]
 }
