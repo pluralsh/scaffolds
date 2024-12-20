@@ -1,0 +1,13 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: gatekeeper
+  namespace: apps
+spec:
+  template:
+    name: gatekeeper
+    namespace: policy
+    helm:
+      url: https://open-policy-agent.github.io/gatekeeper/charts
+      version: 3.15.1
+      chart: gatekeeper

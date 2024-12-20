@@ -1,0 +1,44 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: gatekeeper
+spec:
+  name: gatekeeper
+  icon: https://www.openpolicyagent.org/img/logos/opa-no-text-color.png
+  documentation: Sets up Gatekeeper policy controller.
+  creates:
+    git:
+      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
+      folder: catalogs/security/gatekeeper
+    templates:
+      - source: README.md
+        destination: documentation/gatekeeper/README.md
+        external: true
+      - source: gatekeeper.yaml
+        destination: bootstrap/apps/gatekeeper/gatekeeper.yaml
+        external: true
+      - source: gatekeeper-constraints.yaml
+        destination: bootstrap/apps/gatekeeper/gatekeeper-constraints.yaml
+        external: true
+      - source: gatekeeper-policy-bundle.yaml
+        destination: bootstrap/apps/gatekeeper/gatekeeper-policy-bundle.yaml
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: security
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: Gatekeeper setup
+  message: Sets up Gatekeeper, policy bundle and a set of constraints.
+  configuration:
+  - name: bundle
+    type: ENUM
+    documentation: The policy bundle you want to install.
+    values:
+      - asm-policy-v0.0.1
+      - cis-k8s-v1.5.1
+      - policy-essentials-v2022
+      - psp-v2022
+      - pss-baseline-v2022
+

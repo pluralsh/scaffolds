@@ -1,0 +1,35 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: airbyte-mgmt
+  namespace: apps
+spec:
+  namespace: airbyte
+  git:
+    folder: helm/airbyte/mgmt
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "1.x.x"
+    chart: airbyte
+    release: airbyte
+    ignoreHooks: false
+    url: https://airbytehq.github.io/helm-charts
+    valuesFiles:
+    - airbyte.yaml.liquid
+  imports:
+  - stackRef:
+      name: airbyte-mgmt
+      namespace: apps
+  configuration:
+    cluster: mgmt
+    hostname: airbyte.plural.sh
+    bucket: plrl-airbyte-logs
+    region: us-east-2
+  clusterRef:
+    kind: Cluster
+    name: mgmt
+    namespace: infra

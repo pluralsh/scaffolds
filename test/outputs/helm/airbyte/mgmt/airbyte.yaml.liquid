@@ -1,0 +1,57 @@
+
+{% assign imports_airbyte_key =  'airbyte-' | append: configuration.cluster %}
+
+global:
+  deploymentMode: oss
+  edition: community
+
+  airbyteUrl: {{ configuration.hostname }}
+
+  storage:
+    type: S3
+    storageSecretName: airbyte-airbyte-secrets
+    s3:
+      region: {{ configuration.region }}
+      authenticationType: credentials
+      accessKeyId: {{ imports[imports_airbyte_key].access_key_id }}
+      accessKeyIdSecretKey: AWS_ACCESS_KEY_ID
+      secretAccessKey: {{ imports[imports_airbyte_key].secret_access_key }}
+      secretAccessKeySecretKey: AWS_SECRET_ACCESS_KEY
+    bucket:
+      log: {{ configuration.bucket }}
+      state: {{ configuration.bucket }}
+      workloadOutput: {{ configuration.bucket }}
+
+  database:
+    type: external
+    database: airbyte
+    host: {{ imports[imports_airbyte_key].postgres_host }}
+    port: "5432"
+    secretName: airbyte-airbyte-secrets
+    user: airbyte
+    userSecretKey: DATABASE_USER
+    password: {{ imports[imports_airbyte_key].postgres_password }}
+    passwordSecretKey: DATABASE_PASSWORD
+
+postgresql:
+  enabled: false
+
+externalDatabase:
+  database: airbyte
+  host: {{ imports[imports_airbyte_key].postgres_host }}
+  user: airbyte
+  existingSecret: ~
+  password: {{ imports[imports_airbyte_key].postgres_password }}
+  port: 5432
+
+webapp:
+  ingress:
+    enabled: false
+  podAnnotations:
+    security.plural.sh/oauth-env-secret: airbyte-proxy-config
+    {% if configuration["basicAuth"] %}
+    security.plural.sh/htpasswd-secret: httpaswd-users
+    {% endif %}
+  podLabels:
+    security.plural.sh/inject-oauth-sidecar: "true"
+

@@ -1,0 +1,14 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: gatekeeper-constraints
+spec:
+  template:
+    name: gatekeeper-constraints
+    namespace: policy
+    git:
+      folder: resources/policy/constraints
+      ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: bootstrap

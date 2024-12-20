@@ -1,0 +1,14 @@
+global:
+  grafana:
+    enabled: false
+
+kubecostFrontend:
+  enabled: false
+
+serviceMonitor:
+  enabled: true
+
+server:
+  global:
+    external_labels:
+      cluster_id: {{ context.cluster }}

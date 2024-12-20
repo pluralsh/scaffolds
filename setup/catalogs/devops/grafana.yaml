@@ -1,0 +1,40 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: grafana
+spec:
+  name: grafana
+  icon: https://cdn.icon-icons.com/icons2/2699/PNG/512/grafana_logo_icon_171048.png
+  documentation: |
+    Sets up Grafana Open Observability Platform.
+  creates:
+    git:
+      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
+      folder: catalogs/devops/grafana
+    templates:
+    - source: README.md
+      destination: documentation/grafana/README.md
+      external: true
+    - source: grafana.yaml.liquid
+      destination: "helm/grafana/{{ context.cluster }}/grafana.yaml.liquid"
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: "bootstrap/apps/grafana/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Grafana setup ({{ context.cluster }})"
+  message: |
+    Sets up Grafana on {{ context.cluster }} cluster.
+  identifier: pluralsh/plrl-dev-aws # FIXME
+  configuration:
+  - name: cluster
+    type: STRING
+    documentation: the cluster you want to deploy to
+  - name: hostname
+    type: STRING
+    documentation: the hostname of the grafana instance

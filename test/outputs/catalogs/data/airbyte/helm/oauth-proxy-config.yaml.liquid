@@ -1,0 +1,28 @@
+{% raw %}
+{% assign imports_airbyte_key =  'airbyte-' | append: configuration.cluster %}
+
+service:
+  name: airbyte-oauth2-proxy
+  selector:
+    app.kubernetes.io/instance: airbyte
+    app.kubernetes.io/name: webapp
+
+secret:
+  clientID: {{ imports[imports_airbyte_key].oidc_client_id }}
+  clientSecret: {{ imports[imports_airbyte_key].oidc_client_secret }}
+  cookieSecret: {{ imports[imports_airbyte_key].oidc_cookie_secret }}
+  issuer: https://oidc.plural.sh/
+  upstream: http://localhost:8080
+  name: airbyte-proxy-config
+  env:
+    OAUTH2_PROXY_UPSTREAM_TIMEOUT: '120s'
+
+{% if configuration["basicAuth"] %}
+{% assign basicAuth = configuration["basicAuth"] | from_json %}
+users:
+{% for user in basicAuth %}
+  {{ user[0] }}: {{ user[1] }}
+{% endfor %}
+{% endif %}
+
+{% endraw %}

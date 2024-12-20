@@ -1,0 +1,15 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: gatekeeper-policy-bundle
+  namespace: apps
+spec:
+  template:
+    name: gatekeeper-policy-bundle
+    namespace: policy
+    git:
+      folder: resources/policy/bundles/{{ context.bundle }}
+      ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: bootstrap

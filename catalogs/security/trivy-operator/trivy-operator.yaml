@@ -1,0 +1,16 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: trivy-operator
+  namespace: apps
+spec:
+  template:
+    name: trivy-operator
+    namespace: trivy-system
+    helm:
+      url: https://aquasecurity.github.io/helm-charts/
+      chart: trivy-operator
+      version: 'x.x.x'
+      values:
+        trivy:
+          additionalVulnerabilityReportFields: Description,Links,CVSS,Target

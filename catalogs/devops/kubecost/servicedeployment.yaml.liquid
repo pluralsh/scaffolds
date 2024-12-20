@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: kubecost-{{ context.cluster }}
+  namespace: apps
+spec:
+  namespace: kubecost
+  git:
+    folder: helm/kubecost/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "2.5.x"
+    chart: kubecost
+    url: https://grafana.github.io/helm-charts
+    valuesFiles:
+    - kubecost.yaml.liquid
+  configuration:
+    cluster: { ? { context.cluster } }
+  clusterRef:
+    kind: Cluster
+    name: mgmt
+    namespace: infra

@@ -1,0 +1,43 @@
+{% raw %}
+{% assign imports_mlflow_key =  'mlflow-' | append: configuration.cluster %}
+
+tracking:
+  enabled: true
+  podAnnotations:
+    security.plural.sh/oauth-env-secret: mlflow-proxy-config
+  podLabels:
+    security.plural.sh/inject-oauth-sidecar: "true"
+  auth:
+    enabled: false
+  service:
+    type: ClusterIP
+
+externalDatabase:
+  dialectDriver: "postgresql"
+  host: {{ imports[imports_mlflow_key].postgres_host }}
+  port: 5432
+  user: 'mlflow'
+  database: 'mlflow'
+  authDatabase: 'mlflow_auth'
+  password: {{ imports[imports_mlflow_key].postgres_password }}
+
+externalS3:
+  host: {{ configuration.region }}.amazonaws.com
+  port: 443
+  useCredentialsInSecret: true
+  accessKeyID: {{imports[imports_mlflow_key].access_key_id}}
+  accessKeySecret: {{imports[imports_mlflow_key].secret_access_key}}
+  existingSecret: ~
+  existingSecretAccessKeyIDKey: AWS_ACCESS_KEY_ID
+  existingSecretKeySecretKey: AWS_SECRET_ACCESS_KEY
+  protocol: "https"
+  bucket: {{ configuration.bucket }}
+  serveArtifacts: true
+
+postgresql:
+  enabled: false
+
+minio:
+  enabled: false
+
+{% endraw %}

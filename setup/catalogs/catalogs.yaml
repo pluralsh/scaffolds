@@ -1,0 +1,47 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
+  name: data-engineering
+spec:
+  name: data-engineering
+  category: data
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Sets up OSS data infrastructure using Plural
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
+  name: security
+spec:
+  name: security
+  category: security
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Sets up OSS security infrastructure using Plural
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
+  name: devops
+spec:
+  name: devops
+  category: devops
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Sets up OSS devops infrastructure using Plural
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
+  name: infra
+spec:
+  name: infra
+  category: data
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Sets up infrastructure using Plural

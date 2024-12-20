@@ -1,0 +1,27 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: trivy-operator
+spec:
+  name: trivy-operator
+  icon: https://raw.githubusercontent.com/aquasecurity/trivy-vscode-extension/refs/tags/0.7.1/media/trivy.svg
+  documentation: Sets up Trivy Operator security toolkit.
+  creates:
+    git:
+      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
+      folder: catalogs/security/trivy-operator
+    templates:
+      - source: README.md
+        destination: documentation/trivy-operator/README.md
+        external: true
+      - source: trivy-operator.yaml
+        destination: bootstrap/apps/trivy-operator/trivy-operator.yaml
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: security
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: Trivy Operator setup
+  message: Sets up Trivy Operator.

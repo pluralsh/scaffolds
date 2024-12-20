@@ -1,5 +1,5 @@
 resource "random_password" "oidc_cookie" {
-  length      = 20
+  length      = 24
   min_lower   = 1
   min_numeric = 1
   min_upper   = 1

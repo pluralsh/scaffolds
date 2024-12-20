@@ -1,0 +1,21 @@
+{% raw %}
+{% assign imports_mlflow_key =  'mlflow-' | append: configuration.cluster %}
+
+service:
+  name: mlflow-oauth2-proxy
+  selector:
+    app.kubernetes.io/instance: mlflow
+    app.kubernetes.io/component: tracking
+    app.kubernetes.io/name: mlflow
+
+secret:
+  clientID: {{ imports[imports_mlflow_key].oidc_client_id }}
+  clientSecret: {{ imports[imports_mlflow_key].oidc_client_secret }}
+  cookieSecret: {{ imports[imports_mlflow_key].oidc_cookie_secret }}
+  issuer: https://oidc.plural.sh/
+  upstream: http://localhost:5000
+  name: mlflow-proxy-config
+  env:
+    OAUTH2_PROXY_UPSTREAM_TIMEOUT: '120s'
+
+{% endraw %}

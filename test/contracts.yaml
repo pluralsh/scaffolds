@@ -5,8 +5,8 @@ metadata:
 spec:
   workdir: test/outputs
   templates:
-    from: catalogs
-    to: test/outputs/catalogs
+    from: catalogs/data/airbyte
+    to: test/outputs/catalogs/data/airbyte
   automations:
-  - file: ../../setup/data/airbyte.yaml
+  - file: ../../setup/catalogs/data/airbyte.yaml
     context: ../contexts/airbyte.yaml
