@@ -30,7 +30,6 @@ spec:
   title: "Kubecost setup ({{ context.cluster }})"
   message: |
     Sets up Kubecost on {{ context.cluster }} cluster.
-  identifier: pluralsh/plrl-dev-aws # FIXME
   configuration:
   - name: cluster
     type: STRING

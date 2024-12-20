@@ -30,7 +30,6 @@ spec:
   title: "Grafana setup ({{ context.cluster }})"
   message: |
     Sets up Grafana on {{ context.cluster }} cluster.
-  identifier: pluralsh/plrl-dev-aws # FIXME
   configuration:
   - name: cluster
     type: STRING
