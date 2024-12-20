@@ -1,12 +1,12 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: airbyte-oauth-proxy-config-{{ context.cluster }}
+  name: airbyte-oauth-proxy-config-mgmt
   namespace: apps
 spec:
   namespace: airbyte
   git:
-    folder: helm/airbyte/{{ context.cluster }}
+    folder: helm/airbyte/mgmt
     ref: main
   repositoryRef:
     kind: GitRepository
@@ -20,12 +20,12 @@ spec:
     - oauth-proxy-config.yaml.liquid
   imports:
   - stackRef:
-      name: airbyte-{{ context.cluster }}
+      name: airbyte-mgmt
       namespace: apps
   configuration:
-    cluster: {{ context.cluster }}
-    hostname: {{ context.hostname }}
+    cluster: mgmt
+    hostname: airbyte.plrl-dev-aws.onplural.sh
   clusterRef:
     kind: Cluster
-    name: {{ context.cluster }}
+    name: mgmt
     namespace: infra

@@ -1,7 +1,7 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: airbyte-raw-{{ context.cluster }}
+  name: airbyte-raw-mgmt
   namespace: apps
 spec:
   namespace: airbyte
@@ -13,8 +13,8 @@ spec:
     name: infra
     namespace: infra
   configuration:
-    hostname: {{ context.hostname }}
+    hostname: airbyte.plrl-dev-aws.onplural.sh
   clusterRef:
     kind: Cluster
-    name: {{ context.cluster }}
+    name: mgmt
     namespace: infra

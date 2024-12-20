@@ -1,7 +1,7 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
-  name: airbyte-{{ context.cluster }}
+  name: airbyte-mgmt
   namespace: apps
 spec:
   detach: false
@@ -11,12 +11,12 @@ spec:
   actor: console@plural.sh
   git:
     ref: main
-    folder: terraform/apps/airbyte/{{ context.cluster }}
+    folder: terraform/apps/airbyte/mgmt
   repositoryRef:
     name: infra
     namespace: infra
   configuration:
     version: '1.8'
   clusterRef:
-    name: {{ context.stackCluster }}
+    name: mgmt
     namespace: infra

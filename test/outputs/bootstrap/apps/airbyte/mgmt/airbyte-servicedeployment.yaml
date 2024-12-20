@@ -1,12 +1,12 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: airbyte-{{ context.cluster }}
+  name: airbyte-mgmt
   namespace: apps
 spec:
   namespace: airbyte
   git:
-    folder: helm/airbyte/{{ context.cluster }}
+    folder: helm/airbyte/mgmt
     ref: main
   repositoryRef:
     kind: GitRepository
@@ -22,14 +22,13 @@ spec:
     - airbyte.yaml.liquid
   imports:
   - stackRef:
-      name: airbyte-{{ context.cluster }}
+      name: airbyte-mgmt
       namespace: apps
   configuration:
-    cluster: {{ context.cluster }}
-    hostname: {{ context.hostname }}
-    bucket: {{ context.bucket }}
-    region: {{ context.region }}
+    cluster: mgmt
+    hostname: airbyte.plrl-dev-aws.onplural.sh
+    bucket: plrl-catalog-airbyte-1
   clusterRef:
     kind: Cluster
-    name: {{ context.cluster }}
+    name: mgmt
     namespace: infra
