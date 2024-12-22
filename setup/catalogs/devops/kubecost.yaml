@@ -27,7 +27,7 @@ spec:
   catalogRef:
     name: devops
   scmConnectionRef:
-    name: github # you'll need to add this ScmConnection manually before this is functional
+    name: plural # you'll need to add this ScmConnection manually before this is functional
   title: "Kubecost setup ({{ context.cluster }})"
   message: |
     Sets up Kubecost on {{ context.cluster }} cluster.

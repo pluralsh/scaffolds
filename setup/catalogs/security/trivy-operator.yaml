@@ -23,6 +23,6 @@ spec:
   catalogRef:
     name: security
   scmConnectionRef:
-    name: github  # you'll need to add this ScmConnection manually before this is functional
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: Trivy Operator setup
   message: Sets up Trivy Operator.
