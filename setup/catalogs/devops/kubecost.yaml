@@ -17,10 +17,13 @@ spec:
       destination: documentation/kubecost/README.md
       external: true
     - source: kubecost.yaml.liquid
-      destination: "helm/kubecost/{{ context.cluster }}/kubecost.yaml.liquid"
+      destination: "helm/kubecost/kubecost.yaml.liquid"
       external: true
-    - source: servicedeployment.yaml.liquid
-      destination: "bootstrap/apps/kubecost/{{ context.cluster }}/servicedeployment.yaml"
+    - source: extractor.yaml.liquid
+      destination: services/kubecost/extractor.yaml
+      external: true
+    - source: global.yaml.liquid
+      destination: "bootstrap/apps/kubecost/globalservice.yaml"
       external: true
   repositoryRef:
     name: scaffolds
@@ -28,10 +31,7 @@ spec:
     name: devops
   scmConnectionRef:
     name: plural # you'll need to add this ScmConnection manually before this is functional
-  title: "Kubecost setup ({{ context.cluster }})"
+  title: "Global Kubecost Setup"
   message: |
-    Sets up Kubecost on {{ context.cluster }} cluster.
-  configuration:
-  - name: cluster
-    type: STRING
-    documentation: the cluster you want to deploy to
+    Sets up Kubecost global service with KubecostExtractor resources to publish back to plural
+  configuration: []

@@ -1,0 +1,37 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: kubecost
+  namespace: apps
+spec:
+  template:
+    namespace: kubecost
+    git:
+      folder: helm/kubecost
+      ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra
+    helm:
+      url: https://kubecost.github.io/cost-analyzer
+      chart: cost-analyzer
+      version: 'x.x.x'
+      valuesFiles:
+      - kubecost.yaml.liquid
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: kubecost-extractor
+  namespace: apps
+spec:
+  template:
+    namespace: kubecost
+    git:
+      folder: services/kubecost
+      ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra

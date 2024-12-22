@@ -1,0 +1,11 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: KubecostExtractor
+metadata:
+  name: extractor
+spec:
+  interval: "6h"
+  recommendationThreshold: "1"
+  kubecostPort: 9090
+  kubecostServiceRef:
+    name: kubecost-cost-analyzer
+    namespace: kubecost
