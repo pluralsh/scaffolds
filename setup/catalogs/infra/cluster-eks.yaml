@@ -5,6 +5,7 @@ metadata:
 spec:
   name: cluster-eks
   icon: https://cdn.icon-icons.com/icons2/2699/PNG/512/amazon_eks_logo_icon_168659.png
+  identifier: mgmt
   documentation: |
     Sets up a PR to provision EKS cluster for a fleet + stage
   creates:

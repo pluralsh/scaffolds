@@ -5,6 +5,7 @@ metadata:
 spec:
   name: kubecost
   icon: https://github.com/pluralsh/plural-artifacts/blob/main/kubecost/plural/icons/kubecost.png?raw=true
+  identifier: mgmt
   documentation: |
     Sets up Kubecost Kubernetes Cost Monitoring and Management.
   creates:

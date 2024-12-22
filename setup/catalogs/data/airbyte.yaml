@@ -5,6 +5,7 @@ metadata:
 spec:
   name: airbyte
   icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d79a69b7-dfcd-480a-a51d-518865fd6e7c/airbyte.png
+  identifier: mgmt
   documentation: |
     Sets up an airbyte instance for a given cloud
   creates:

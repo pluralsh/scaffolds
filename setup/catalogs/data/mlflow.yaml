@@ -5,6 +5,7 @@ metadata:
 spec:
   name: mlflow
   icon: https://cdn.icon-icons.com/icons2/3913/PNG/512/mlflow_logo_icon_248445.png
+  identifier: mgmt
   documentation: |
     Sets up an mlflow instance for a given cloud
   creates:

@@ -5,6 +5,7 @@ metadata:
 spec:
   name: trivy-operator
   icon: https://raw.githubusercontent.com/aquasecurity/trivy-vscode-extension/refs/tags/0.7.1/media/trivy.svg
+  identifier: mgmt
   documentation: Sets up Trivy Operator security toolkit.
   creates:
     git:

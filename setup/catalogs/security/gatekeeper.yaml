@@ -5,6 +5,7 @@ metadata:
 spec:
   name: gatekeeper
   icon: https://www.openpolicyagent.org/img/logos/opa-no-text-color.png
+  identifier: mgmt
   documentation: Sets up Gatekeeper policy controller.
   creates:
     git:
