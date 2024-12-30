@@ -10,7 +10,7 @@ spec:
     Sets up a PR to provision EKS cluster for a fleet + stage
   creates:
     git:
-      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
+      ref: main # TODO set to main
       folder: catalogs/infra/cluster
     templates:
       - source: aws/stack.yaml

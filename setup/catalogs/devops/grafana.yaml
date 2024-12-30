@@ -10,7 +10,7 @@ spec:
     Sets up Grafana Open Observability Platform.
   creates:
     git:
-      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
+      ref: main # TODO set to main
       folder: catalogs/devops/grafana
     templates:
     - source: README.md

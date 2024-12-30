@@ -9,7 +9,7 @@ spec:
   documentation: Sets up Gatekeeper policy controller.
   creates:
     git:
-      ref: sebastian/prod-2981-set-up-catalog-pipeline # TODO set to main
+      ref: main # TODO set to main
       folder: catalogs/security/gatekeeper
     templates:
       - source: README.md
