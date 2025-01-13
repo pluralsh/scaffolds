@@ -1,0 +1,31 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: logstash
+  namespace: infra
+spec:
+  namespace: elastic
+  repositoryRef:
+    name: infra
+    namespace: infra
+  git:
+    folder: services/logstash
+    ref: main
+  configurationRef:
+    name: plrl-elastic-user
+    namespace: infra
+  clusterRef:
+    kind: Cluster
+    name: mgmt
+    namespace: infra
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: logstash
+  namespace: infra
+spec:
+  distro: EKS
+  serviceRef:
+    name: logstash
+    namespace: infra

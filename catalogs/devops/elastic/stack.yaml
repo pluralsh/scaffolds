@@ -1,0 +1,23 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: elastic-stack
+  namespace: infra
+spec:
+  namespace: elastic
+  repositoryRef:
+    name: infra
+    namespace: infra
+  git:
+    folder: helm
+    ref: main
+  helm:
+    url: https://helm.elastic.co
+    version: x.x.x
+    chart: eck-stack
+    valuesFiles:
+    - elastic.yaml
+  clusterRef:
+    kind: Cluster
+    name: mgmt
+    namespace: infra

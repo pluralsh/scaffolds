@@ -1,0 +1,95 @@
+eck-elasticsearch:
+  enabled: true
+
+  fullnameOverride: elasticsearch  
+
+  auth:
+    fileRealm:
+    - secretName: plrl-elastic-user
+
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+
+  ingress:
+    enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+
+    className: nginx
+    pathType: Prefix
+    hosts:
+    - host: "{{ context.elasticHostname }}"
+      path: "/"
+    tls:
+      enabled: true
+      hosts:
+      - {{ context.elasticHostname }}
+      secretName: elastic-tls
+
+
+  nodeSets:
+  - name: default
+    count: 3
+    podTemplate:
+      spec:
+        initContainers:
+        - name: sysctl
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          command: ['sh', '-c', 'sysctl -w vm.max_map_count=262144']
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data # Do not change this name unless you set up a volume mount for the data path.
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ context.storage }}
+
+    config:
+      # node.store.allow_mmap: false
+      # Enable anonymous access to allow GCLB health probes to succeed
+      xpack.security.authc:
+        anonymous:
+          username: anon
+          roles: monitoring_user
+
+eck-kibana:
+  enabled: true
+
+  # Name of the Kibana instance.
+  #
+  fullnameOverride: kibana
+  
+  elasticsearchRef:
+    name: elasticsearch
+
+  config:
+    server:
+      publicBaseUrl: "{{ context.kibanaHostname }}"
+
+  http:
+    tls:
+      selfSignedCertificate:
+        disabled: true
+
+  ingress:
+    enabled: true
+    pathType: Prefix
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+
+    hosts:
+    - host: "{{ context.kibanaHostname }}"
+      path: "/"
+    tls:
+      enabled: true
+      hosts:
+      - {{ context.kibanaHostname }}
