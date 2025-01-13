@@ -56,7 +56,7 @@ spec:
     documentation: Username that will be used to access the device over SSH
     default: plural
   - name: password
-    type: STRING
+    type: PASSWORD
     documentation: Password for the default user that will be used to access the device over SSH
   - name: url
     type: STRING
