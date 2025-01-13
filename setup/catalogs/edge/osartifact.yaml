@@ -1,0 +1,66 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: osartifact
+spec:
+  name: osartifact
+  icon: https://user-images.githubusercontent.com/2420543/193010398-72d4ba6e-7efe-4c2e-b7ba-d3a826a55b7d.png
+  identifier: mgmt
+  documentation: |
+    Sets up an osartifact CRD to initialize Kairos image creation
+  creates:
+    git:
+      ref: catalog/add-edge # TODO change to main
+      folder: catalogs/edge/osartifact
+    templates:
+    - source: services/osartifact.yaml.liquid
+      destination: "services/apps/osartifact/{{ context.cluster }}/{{ context.name }}/osartifact.yaml.liquid"
+      external: true
+    - source: services/secret.yaml.liquid
+      destination: "services/apps/osartifact/{{ context.cluster }}/{{ context.name }}/secret.yaml.liquid"
+      external: true
+    - source: servicedeployment.yaml
+      destination: "bootstrap/apps/osartifact/{{ context.cluster }}/{{ context.name }}/servicedeployment.yaml"
+      external: true
+    - source: README.md
+      destination: documentation/osartifact/README.md
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: edge
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up OSArtifact CRD on cluster {{ context.cluster }}"
+  message: Will create an OSArtifact CRD to initialize Kairos image creation.
+  configuration:
+  - name: cluster
+    type: STRING
+    documentation: Handle of the cluster where osbuilder is installed
+    default: mgmt
+  - name: name
+    type: STRING
+    documentation: Name that helps you better track result images and devices.
+  - name: image
+    type: STRING
+    documentation: The base image to use for building custom Kairos image
+    default: "quay.io/kairos/alpine:3.19-standard-amd64-generic-v3.2.4-k3sv1.31.3-k3s1"
+  - name: device
+    type: ENUM
+    documentation: The target device that will be used to run the OS
+    default: rpi4
+    values:
+      - rpi4
+  - name: username
+    type: STRING
+    documentation: Username that will be used to access the device over SSH
+    default: plural
+  - name: password
+    type: STRING
+    documentation: Password for the default user that will be used to access the device over SSH
+  - name: url
+    type: STRING
+    documentation: Console URL that will be used by the device to join the fleet, i.e. console.plrl-xyz.onplural.sh
+  - name: token
+    type: STRING
+    documentation: Console access token that will be used to bootstrap the device

@@ -1,0 +1,31 @@
+{% raw %}
+kind: OSArtifact
+apiVersion: build.kairos.io/v1alpha2
+metadata:
+  name: plural-edge-{{ configuration.name }}
+spec:
+  imageName: {{ configuration.image }}
+  iso: true
+  cloudConfigRef:
+    name: plural-edge-{{ configuration.name }}-cloud-config
+    key: userdata
+  exporters:
+    - template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: upload
+              image: quay.io/curl/curl
+              command:
+                - /bin/sh
+              args:
+                - -c
+                - |
+                  for f in $(ls /artifacts)
+                  do
+                  curl -T /artifacts/$f http://osartifactbuilder-operator-osbuilder-nginx/upload/$f
+                  done
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+{% endraw %}
