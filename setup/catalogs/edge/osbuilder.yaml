@@ -4,7 +4,7 @@ metadata:
   name: osbuilder
 spec:
   name: osbuilder
-  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d79a69b7-dfcd-480a-a51d-518865fd6e7c/airbyte.png
+  icon: https://user-images.githubusercontent.com/2420543/193010398-72d4ba6e-7efe-4c2e-b7ba-d3a826a55b7d.png
   identifier: mgmt
   documentation: |
     Sets up an osbuilder instance
