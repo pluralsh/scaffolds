@@ -33,3 +33,8 @@ spec:
     Set up osbuilder on {{ context.cluster }}
 
     Will set up an osbuilder deployment.
+  configuration:
+  - name: cluster
+    type: STRING
+    documentation: Handle of the cluster you want to deploy osbuilder to.
+    default: mgmt
