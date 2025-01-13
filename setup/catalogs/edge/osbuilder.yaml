@@ -1,0 +1,35 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: osbuilder
+spec:
+  name: osbuilder
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d79a69b7-dfcd-480a-a51d-518865fd6e7c/airbyte.png
+  identifier: mgmt
+  documentation: |
+    Sets up an osbuilder instance
+  creates:
+    git:
+      ref: main
+      folder: catalogs/edge/osbuilder
+    templates:
+    - source: helm
+      destination: helm/osbuilder/{{ context.cluster }}
+      external: true
+    - source: servicedeployment.yaml
+      destination: "bootstrap/apps/osbuilder/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+    - source: README.md
+      destination: documentation/osbuilder/README.md
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: edge
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up osbuilder on cluster {{ context.cluster }}"
+  message: |
+    Set up osbuilder on {{ context.cluster }}
+
+    Will set up an osbuilder deployment.
