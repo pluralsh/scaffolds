@@ -10,7 +10,7 @@ spec:
     Sets up an osbuilder instance
   creates:
     git:
-      ref: main
+      ref: catalog/add-edge # TODO change to main
       folder: catalogs/edge/osbuilder
     templates:
     - source: helm
