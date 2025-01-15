@@ -1,0 +1,79 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: elastic
+spec:
+  name: elastic
+  icon: https://github.com/pluralsh/plural-artifacts/blob/main/elasticsearch/plural/icons/elastic.png?raw=true
+  identifier: mgmt
+  documentation: |
+    Sets up ElasticSearch
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/elastic
+    templates:
+    - source: README.md
+      destination: documentation/elastic/README.md
+      external: true
+    - source: helm/elastic.yaml.liquid
+      destination: helm/elastic.yaml
+      external: true
+    - source: elastic-operator.yaml
+      destination: "bootstrap/apps/elastic/elastic-operator.yaml"
+      external: true
+    - source: generatedsecret.yaml
+      destination: "bootstrap/apps/elastic/generatedsecret.yaml"
+      external: true
+    - source: logstash.yaml
+      destination: "bootstrap/apps/elastic/logstash.yaml"
+      external: true
+    - source: stack.yaml
+      destination: "bootstrap/apps/elastic/elastic-stack.yaml"
+      external: true
+    - source: services
+      destination: services/logstash
+      external: true
+  updates:
+    yamlOverlays:
+    - file: bootstrap/settings.yaml
+      templated: true
+      yaml: |
+        spec:
+          logging:
+            enabled: true
+            driver: ELASTIC
+            elastic:
+              host: {{ context.elasticHostname }}
+              user: plrl
+              index: plrl-logs-*
+              passwordSecretRef:
+                name: plrl-elastic-user
+                key: password
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Elasticsearch setup ({{ context.cluster }})"
+  message: |
+    Sets up Elastic on {{ context.cluster }} cluster, alongside logstash and kibana.
+  configuration:
+  - name: cluster
+    type: STRING
+    documentation: the cluster you want to deploy to
+  - name: elasticHostname
+    type: STRING
+    documentation: the hostname of the elasticsearch instance
+  - name: kibanaHostname
+    type: STRING
+    documentation: the hostname of the kibana instance
+  - name: storage
+    type: ENUM
+    documentation: the size of the elasticsearch disk you want (this can normally be resized)
+    values:
+    - 25Gi
+    - 50Gi
+    - 100Gi
+    - 250Gi

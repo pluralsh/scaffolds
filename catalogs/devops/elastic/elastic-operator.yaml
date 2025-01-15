@@ -1,0 +1,13 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: elastic-operator
+  namespace: infra
+spec:
+  distro: EKS
+  template:
+    namespace: elastic-system
+    helm:
+      url: https://helm.elastic.co
+      version: x.x.x
+      chart: eck-operator
