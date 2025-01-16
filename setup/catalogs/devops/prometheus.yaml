@@ -17,10 +17,10 @@ spec:
       destination: "documentation/prometheus/README.md"
       external: true
     - source: helm/agent.yaml.liquid
-      destination: "helm/monitoring/agent.yaml"
+      destination: "helm/monitoring/agent.yaml.liquid"
       external: true
     - source: helm/mgmt.yaml.liquid
-      destination: "helm/monitoring/mgmt.yaml"
+      destination: "helm/monitoring/mgmt.yaml.liquid"
       external: true
     - source: generatedsecret.yaml
       destination: "bootstrap/apps/prometheus/generatedsecret.yaml"
