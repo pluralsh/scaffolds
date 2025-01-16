@@ -53,8 +53,6 @@ spec:
   title: "Setup Victoria Metrics for metrics storage and shipping"
   message: |
     Sets up a Victoria Metrics prometheus instance for metrics storage and a prometheus agent for metrics shipping in {{ context.cluster }}.
-  identifier: [[ .Identifier ]] # REPLACEME with your own repo slug
-  branch: [[ or .Context.Branch "main" ]]
   configuration:
   - name: cluster
     type: STRING
