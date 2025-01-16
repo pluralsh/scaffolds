@@ -10,7 +10,7 @@ spec:
     Sets up a victoria metrics prometheus instance for metrics storage and an agent for shipping metrics.
   creates:
     git:
-      ref: main
+      ref: john/prod-2967-observability-catalog-victoriametrics-prometheus
       folder: catalogs/devops/prometheus
     templates:
     - source: README.md
