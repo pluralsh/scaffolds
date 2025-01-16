@@ -37,7 +37,7 @@ spec:
       templated: true
       yaml: |
         spec:
-          promethetheusConnection:
+          prometheusConnection:
             host: {{ context.host }}
             user: plrl
             passwordSecretRef:
