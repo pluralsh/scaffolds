@@ -61,10 +61,4 @@ spec:
     type: STRING
     documentation: |
       The FQDN of your Victoria Metrics prometheus instance. Ensure external-dns and cert manager are already configured.
-  - name: tagName
-    type: STRING
-    documentation: |
-      The cluster tag name you want to use to control the global service for installation of prometheus agent.
-  - name: tagValue
-    type: STRING
-    documentation: The cluster tag value you want to use to control the global service for installation of prometheus agent 
+      

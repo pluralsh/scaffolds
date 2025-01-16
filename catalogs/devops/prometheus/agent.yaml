@@ -33,8 +33,7 @@ metadata:
   name: vmetrics-agent
   namespace: infra
 spec:
-  tags:
-    {{ context.tagName }}: {{ context.tagValue }}
   serviceRef:
     name: vmetrics-agent
     namespace: infra
+    
