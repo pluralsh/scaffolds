@@ -4,11 +4,10 @@ metadata:
   name: prometheus-setup
 spec:
   name: prometheus-setup
-  icon: https://github.com/pluralsh/plural-artifacts/blob/main/monitoring/plural/icons/monitoring.png
+  icon: https://github.com/pluralsh/plural-artifacts/blob/main/monitoring/plural/icons/monitoring.png?raw=true
   identifier: mgmt
   documentation: |
     Sets up a victoria metrics prometheus instance for metrics storage and an agent for shipping metrics.
-    Combines the functionality of prom-creator and metrics-agent-creator for seamless integration.
   creates:
     git:
       ref: main
