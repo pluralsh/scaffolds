@@ -1,0 +1,22 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: osartifact-raw-{{ context.name }}-{{ context.cluster }}
+  namespace: apps
+spec:
+  namespace: osbuilder
+  git:
+    folder: services/apps/osartifact/{{ context.cluster }}/{{ context.name }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configuration:
+    name: {{ context.name }}
+    email: {{ context.email }}
+    project: {{ context.project }}
+  clusterRef:
+    kind: Cluster
+    name: {{ context.cluster }}
+    namespace: infra

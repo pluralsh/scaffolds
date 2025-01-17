@@ -6,7 +6,7 @@ metadata:
 spec:
   namespace: osbuilder
   git:
-    folder: services/apps/osartifact/{{ context.cluster }}/{{ context.name }}
+    folder: helm/osartifact/{{ context.cluster }}/{{ context.name }}
     ref: main
   repositoryRef:
     kind: GitRepository
@@ -16,12 +16,10 @@ spec:
     version: "0.x.x"
     chart: osartifact
     release: plural-edge-{{ context.name }}
-    ignoreHooks: false
     url: https://pluralsh.github.io/osbuilder/
     valuesFiles:
       - osartifact.yaml.liquid
   configuration:
-    cluster: {{ context.cluster }}
     name: {{ context.name }}
     image: {{ context.image }}
     device: {{ context.device }}
