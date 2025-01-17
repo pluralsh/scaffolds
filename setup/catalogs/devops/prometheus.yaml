@@ -1,0 +1,64 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: prometheus-setup
+spec:
+  name: prometheus-setup
+  icon: https://github.com/pluralsh/plural-artifacts/blob/main/monitoring/plural/icons/monitoring.png?raw=true
+  identifier: mgmt
+  documentation: |
+    Sets up a victoria metrics prometheus instance for metrics storage and an agent for shipping metrics.
+  creates:
+    git:
+      ref: john/prod-2967-observability-catalog-victoriametrics-prometheus
+      folder: catalogs/devops/prometheus
+    templates:
+    - source: README.md
+      destination: "documentation/prometheus/README.md"
+      external: true
+    - source: helm/agent.yaml.liquid
+      destination: "helm/monitoring/agent.yaml.liquid"
+      external: true
+    - source: helm/mgmt.yaml.liquid
+      destination: "helm/monitoring/mgmt.yaml.liquid"
+      external: true
+    - source: generatedsecret.yaml
+      destination: "bootstrap/apps/prometheus/generatedsecret.yaml"
+      external: true
+    - source: agent.yaml
+      destination: "bootstrap/apps/prometheus/agent.yaml"
+      external: true
+    - source: mgmt.yaml
+      destination: "bootstrap/apps/prometheus/mgmt.yaml"
+      external: true
+  updates:
+    yamlOverlays:
+    - file: bootstrap/settings.yaml
+      templated: true
+      yaml: |
+        spec:
+          prometheusConnection:
+            host: https://{{ context.host }}/select/0/prometheus
+            user: plrl
+            passwordSecretRef:
+              name: basic-auth-prom
+              key: password
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setup Victoria Metrics for metrics storage and shipping"
+  message: |
+    Sets up a Victoria Metrics prometheus instance for metrics storage and a prometheus agent for metrics shipping in {{ context.cluster }}.
+  configuration:
+  - name: cluster
+    type: STRING
+    documentation: |
+      CRD name for this cluster. Use `mgmt` to place it in the management cluster.
+  - name: host
+    type: STRING
+    documentation: |
+      The FQDN of your Victoria Metrics prometheus instance. Ensure external-dns and cert manager are already configured.
+      
