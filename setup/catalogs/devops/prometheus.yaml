@@ -38,7 +38,7 @@ spec:
       yaml: |
         spec:
           prometheusConnection:
-            host: {{ context.host }}
+            host: https://{{ context.host }}/select/0/prometheus
             user: plrl
             passwordSecretRef:
               name: basic-auth-prom
