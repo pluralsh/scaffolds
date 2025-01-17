@@ -2,7 +2,7 @@ vmagent:
   enabled: true
 
   additionalRemoteWrites:
-  - url: https://{{ context.host }}/insert/0/prometheus/api/v1/write
+  - url: https://{{ context.host }}/select/0/prometheus
     basicAuth:
       username: 
         name: vm-auth
