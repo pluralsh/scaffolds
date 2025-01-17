@@ -1,3 +1,4 @@
+{% raw %}
 apiVersion: deployments.plural.sh/v1alpha1
 kind: Project
 metadata:
@@ -15,3 +16,4 @@ spec:
     name: {{ configuration.project }}
   tokenSecretRef:
     name: plural-edge-{{ configuration.name }}-bootstrap-token
+{% endraw %}
