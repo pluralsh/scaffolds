@@ -6,12 +6,20 @@ metadata:
 spec:
   namespace: osbuilder
   git:
-    folder: services/apps/osartifact
+    folder: services/apps/osartifact/{{ context.cluster }}/{{ context.name }}
     ref: main
   repositoryRef:
     kind: GitRepository
     name: infra
     namespace: infra
+  helm:
+    version: "0.x.x"
+    chart: osartifact
+    release: plural-edge-{{ context.name }}
+    ignoreHooks: false
+    url: https://pluralsh.github.io/osbuilder/
+    valuesFiles:
+      - osartifact.yaml.liquid
   configuration:
     cluster: {{ context.cluster }}
     name: {{ context.name }}
@@ -19,8 +27,9 @@ spec:
     device: {{ context.device }}
     username: {{ context.username }}
     password: {{ context.password }}
+    email: {{ context.email }}
+    project: {{ context.project }}
     url: {{ context.url }}
-    token: {{ context.token }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}

@@ -1,0 +1,17 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Project
+metadata:
+  name: {{ configuration.project }}
+spec:
+  name: {{ configuration.project }}
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: BootstrapToken
+metadata:
+  name: plural-edge-{{ configuration.name }}
+spec:
+  user: {{ configuration.email }}
+  projectRef:
+    name: {{ configuration.project }}
+  tokenSecretRef:
+    name: plural-edge-{{ configuration.name }}
