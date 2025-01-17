@@ -26,7 +26,6 @@ spec:
     image: {{ context.image }}
     device: {{ context.device }}
     username: {{ context.username }}
-    password: {{ context.password }}
     email: {{ context.email }}
     project: {{ context.project }}
     url: {{ context.url }}
