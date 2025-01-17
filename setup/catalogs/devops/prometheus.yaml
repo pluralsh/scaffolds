@@ -26,10 +26,10 @@ spec:
       destination: "bootstrap/apps/prometheus/generatedsecret.yaml"
       external: true
     - source: agent.yaml
-      destination: "bootstrap/monitoring/services/agent.yaml"
+      destination: "bootstrap/apps/prometheus/agent.yaml"
       external: true
     - source: mgmt.yaml
-      destination: "bootstrap/monitoring/services/mgmt.yaml"
+      destination: "bootstrap/apps/prometheus/mgmt.yaml"
       external: true
   updates:
     yamlOverlays:
