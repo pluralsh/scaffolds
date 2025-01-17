@@ -1,3 +1,4 @@
+{% raw %}
 # Kubernetes node name
 nodeName: {{ configuration.name }}
 
@@ -26,3 +27,4 @@ url: {{ configuration.url }}
 tokenSecret:
   # Name of the secret that holds the bootstrap token
   name: plural-edge-{{ configuration.name }}-bootstrap-token
+{% endraw %}
