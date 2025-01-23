@@ -44,7 +44,7 @@ spec:
             enabled: true
             driver: ELASTIC
             elastic:
-              host: {{ context.elasticHostname }}
+              host: https://{{ context.elasticHostname }}
               user: plrl
               index: plrl-logs-*
               passwordSecretRef:
