@@ -16,8 +16,20 @@ spec:
     - source: helm
       destination: helm/osbuilder/{{ context.cluster }}
       external: true
-    - source: servicedeployment.yaml
-      destination: "bootstrap/apps/osbuilder/{{ context.cluster }}/servicedeployment.yaml"
+    - source: services
+      destination: "services/apps/osbuilder/{{ context.cluster }}"
+      external: true
+    - source: "terraform/{{ context.cloud }}"
+      destination: "terraform/apps/osbuilder/{{ context.cluster }}"
+      external: true
+    - source: osbuilder-servicedeployment.yaml
+      destination: "bootstrap/apps/osbuilder/{{ context.cluster }}/osbuilder-servicedeployment.yaml"
+      external: true
+    - source: osbuilder-stack.yaml
+      destination: "bootstrap/apps/osbuilder/{{ context.cluster }}/osbuilder-stack.yaml"
+      external: true
+    - source: osbuilder-raw-servicedeployment.yaml
+      destination: "bootstrap/apps/osbuilder/{{ context.cluster }}/osbuilder-raw-servicedeployment.yaml"
       external: true
     - source: README.md
       destination: documentation/osbuilder/README.md
@@ -38,3 +50,21 @@ spec:
     type: STRING
     documentation: Handle of the cluster you want to deploy osbuilder to.
     default: mgmt
+  - name: stackCluster
+    type: STRING
+    documentation: Handle of the cluster used to run Infrastructure Stacks for provisioning the infrastructure. Defaults to the management cluster.
+    default: mgmt
+  - name: cloud
+    type: ENUM
+    documentation: Cloud provider you want to deploy osbuilder to.
+    values:
+    - aws
+  - name: bucket
+    type: STRING
+    documentation: The name of the S3/GCS/Azure Blob bucket you'll use as docker registry storage. This must be globally unique.
+  - name: hostname
+    type: STRING
+    documentation: The DNS name you'll host private docker registry under.
+  - name: region
+    type: STRING
+    documentation: The cloud provider region you're going to use to deploy cloud resources.
