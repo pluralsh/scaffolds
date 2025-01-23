@@ -16,5 +16,5 @@ output "bucket_region" {
 }
 
 output "console_dns" {
-  value = "console.{{ .Subdomain }}"
+  value = "console.${local.subdomain}"
 }
