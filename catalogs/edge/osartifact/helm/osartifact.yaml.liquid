@@ -22,9 +22,24 @@ email: {{ configuration.email }}
 project: {{ configuration.project }}
 
 # Console URL that will be used by the device to join the fleet, i.e. console.plrl-xyz.onplural.sh
-url: {{ configuration.url }}
+url: {{ configuration.console_dns }}
 
 tokenSecret:
   # Name of the secret that holds the bootstrap token
   name: plural-edge-{{ configuration.name }}-bootstrap-token
+
+# Export configuration for the final ISO images
+exporter:
+  # Docker registry DNS name where we should export packed ISO images
+  registry: {{ configuration.hostname }}
+  # Name of the repository where images should be stored
+  repository: {{ configuration.repository | default plural-edge }}
+  # Image tag that should be used when pushing to the registry
+  tag: {{ configuration.tag | default latest }}
+  # Repository username used for basic auth
+  username: plural
+  # Secret that stores just the password for the docker registry user.
+  # One of 'passwordSecret' or 'configSecret' must be provided.
+  passwordSecret:
+    name: osbuilder-registry-basic-auth
 {% endraw %}

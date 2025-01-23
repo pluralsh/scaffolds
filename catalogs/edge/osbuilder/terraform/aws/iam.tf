@@ -1,6 +1,6 @@
 data "aws_iam_policy_document" "osbuilder" {
   statement {
-    sid    = "osbuilder-registry"
+    sid    = "admin"
     effect = "Allow"
     actions = ["s3:*"]
 

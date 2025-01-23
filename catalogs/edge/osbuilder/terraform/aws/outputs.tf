@@ -11,10 +11,10 @@ output "bucket_name" {
   value = aws_s3_bucket.osbuilder.bucket
 }
 
-output "bucket_domain" {
-  value = aws_s3_bucket.osbuilder.bucket_regional_domain_name
-}
-
 output "bucket_region" {
   value = aws_s3_bucket.osbuilder.region
+}
+
+output "console_dns" {
+  value = "console.{{ .Subdomain }}"
 }

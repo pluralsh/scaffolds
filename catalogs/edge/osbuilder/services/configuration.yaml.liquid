@@ -1,0 +1,12 @@
+{% raw %}
+
+{% assign imports_osbuilder_key =  'osbuilder-' | append: configuration.cluster %}
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: osbuilder-{{ configuration.cluster }}-configuration
+stringData:
+  hostname: {{ configuration.hostname }}
+  console_dns: {{ imports[imports_osbuilder_key].console_dns }}
+{% endraw %}

@@ -19,6 +19,8 @@ spec:
     url: https://pluralsh.github.io/osbuilder/
     valuesFiles:
       - osartifact.yaml.liquid
+  configurationRef:
+    name: osbuilder-{{ context.cluster }}-configuration
   configuration:
     name: {{ context.name }}
     image: {{ context.image }}
@@ -26,7 +28,6 @@ spec:
     username: {{ context.username }}
     email: {{ context.email }}
     project: {{ context.project }}
-    url: {{ context.url }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}

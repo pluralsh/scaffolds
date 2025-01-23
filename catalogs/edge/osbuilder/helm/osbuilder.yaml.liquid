@@ -9,13 +9,14 @@ registry:
       secretKey: {{ imports[imports_osbuilder_key].secret_access_key }}
       region: {{ imports[imports_osbuilder_key].bucket_region }}
       bucket: {{ imports[imports_osbuilder_key].bucket_name }}
-      endpoint: {{ imports[imports_osbuilder_key].bucket_domain }}
+      endpoint: s3.{{ configuration.region }}.amazonaws.com
 
-auth:
-  htpasswd:
-    secret:
-      name: osbuilder-registry-basic-auth
+  auth:
+    htpasswd:
+      secret:
+        name: osbuilder-registry-basic-auth
 
-ingress:
-  dns: {{ configuration.hostname }}
+  ingress:
+    dns: {{ configuration.hostname }}
+
 {% endraw %}

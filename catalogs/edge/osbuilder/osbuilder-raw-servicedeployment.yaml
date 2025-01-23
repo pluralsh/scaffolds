@@ -12,6 +12,13 @@ spec:
     kind: GitRepository
     name: infra
     namespace: infra
+  imports:
+    - stackRef:
+        name: osbuilder-{{ context.cluster }}
+        namespace: apps
+  configuration:
+    cluster: {{ context.cluster }}
+    hostname: {{ context.hostname }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
