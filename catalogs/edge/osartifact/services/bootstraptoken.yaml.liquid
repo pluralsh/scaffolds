@@ -11,7 +11,7 @@ kind: BootstrapToken
 metadata:
   name: plural-edge-{{ configuration.name }}
 spec:
-  user: {{ configuration.email }}
+  {% if configuration.email %}user: {{ configuration.email }}{% endif %}
   projectRef:
     name: {{ configuration.project }}
   tokenSecretRef:

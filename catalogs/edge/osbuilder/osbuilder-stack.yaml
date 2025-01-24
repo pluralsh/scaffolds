@@ -2,7 +2,7 @@ apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
   name: osbuilder-{{ context.cluster }}
-  namespace: apps
+  namespace: osbuilder
 spec:
   detach: false
   type: TERRAFORM

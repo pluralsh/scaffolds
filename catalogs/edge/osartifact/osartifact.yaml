@@ -2,7 +2,7 @@ apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
   name: osartifact-{{ context.name }}-{{ context.cluster }}
-  namespace: apps
+  namespace: osbuilder
 spec:
   namespace: osbuilder
   git:
@@ -21,6 +21,7 @@ spec:
       - osartifact.yaml.liquid
   configurationRef:
     name: osbuilder-{{ context.cluster }}-configuration
+    namespace: osbuilder
   configuration:
     cluster: {{ context.cluster }}
     name: {{ context.name }}

@@ -2,7 +2,7 @@ apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
   name: osbuilder-raw-{{ context.cluster }}
-  namespace: apps
+  namespace: osbuilder
 spec:
   namespace: osbuilder
   git:
