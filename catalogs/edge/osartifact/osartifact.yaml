@@ -27,9 +27,9 @@ spec:
     image: {{ context.image }}
     device: {{ context.device }}
     username: {{ context.username }}
-    registry: {{ context.registry | default: "''" }}
-    repository: {{ context.repository| default: "''" }}
-    tag: {{ context.tag | default: "''" }}
+    {% if context.registry %}registry: {{ context.registry }}{% endif %}
+    {% if context.repository %}repository: {{ context.repository }}{% endif %}
+    {% if context.endif %}tag: {{ context.tag }}{% endif %}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
