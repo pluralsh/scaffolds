@@ -62,9 +62,6 @@ spec:
     type: STRING
     documentation: Name of the Plural project that will be attached to the device bootstrap token.
     default: default
-  - name: registry
-    type: STRING
-    documentation: Name of the Plural project that will be attached to the device bootstrap token.
   - name: advanced
     type: BOOL
     documentation: Show advanced configuration
@@ -76,9 +73,9 @@ spec:
       field: advanced
       operation: EQ
       value: 'true'
-  - name: tag
+  - name: registry
     type: STRING
-    documentation: Image tag that should be used when pushing to the registry.
+    documentation: Docker registry DNS name where we should export packed ISO images. If not provided, default osbuilder registry will be used.
     optional: true
     condition:
       field: advanced
@@ -88,6 +85,15 @@ spec:
     type: STRING
     documentation: Name of the repository where images should be stored.
     optional: true
+    condition:
+      field: advanced
+      operation: EQ
+      value: 'true'
+  - name: tag
+    type: STRING
+    documentation: Image tag that should be used when pushing to the registry.
+    optional: true
+    default: latest
     condition:
       field: advanced
       operation: EQ

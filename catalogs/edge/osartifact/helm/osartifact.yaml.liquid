@@ -1,4 +1,7 @@
 {% raw %}
+
+{% assign defaultRepositoryName = 'pluralos-' | append: configuration.name %}
+
 # Kubernetes node name
 nodeName: {{ configuration.name }}
 
@@ -31,12 +34,12 @@ tokenSecret:
 # Export configuration for the final ISO images
 exporter:
   # Docker registry DNS name where we should export packed ISO images
-  registry: {{ configuration.hostname }}
+  registry: {{ configuration.registry | default: configuration.hostname }}
   # Name of the repository where images should be stored
-  repository: {{ configuration.repository | default plural-edge }}
+  repository: {{ configuration.repository | default: defaultRepositoryName }}
   # Image tag that should be used when pushing to the registry
-  tag: {{ configuration.tag | default latest }}
-  # Repository username used for basic auth
+  tag: {{ configuration.tag | default: "latest" }}
+  # Registry username used for basic auth
   username: plural
   # Secret that stores just the password for the docker registry user.
   # One of 'passwordSecret' or 'configSecret' must be provided.

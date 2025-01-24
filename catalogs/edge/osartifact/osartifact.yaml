@@ -22,12 +22,16 @@ spec:
   configurationRef:
     name: osbuilder-{{ context.cluster }}-configuration
   configuration:
+    cluster: {{ context.cluster }}
     name: {{ context.name }}
     image: {{ context.image }}
     device: {{ context.device }}
     username: {{ context.username }}
-    email: {{ context.email }}
     project: {{ context.project }}
+    email: {{ context.email }}
+    registry: {{ context.registry }}
+    repository: {{ context.repository }}
+    tag: {{ context.tag }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
