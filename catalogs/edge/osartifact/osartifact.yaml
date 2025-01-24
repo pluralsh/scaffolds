@@ -27,11 +27,9 @@ spec:
     image: {{ context.image }}
     device: {{ context.device }}
     username: {{ context.username }}
-    project: {{ context.project }}
-    email: {{ context.email }}
-    registry: {{ context.registry }}
-    repository: {{ context.repository }}
-    tag: {{ context.tag }}
+    registry: {{ context.registry | default: '' }}
+    repository: {{ context.repository| default: '' }}
+    tag: {{ context.tag | default: '' }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
