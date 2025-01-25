@@ -4,8 +4,11 @@ eck-elasticsearch:
   fullnameOverride: elasticsearch  
 
   auth:
+    roles:
+    - secretName: elastic-roles
     fileRealm:
     - secretName: plrl-elastic-user
+    - secretName: plrl-logstash-user
 
   http:
     tls:

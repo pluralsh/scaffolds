@@ -12,7 +12,7 @@ spec:
     folder: services/logstash
     ref: main
   configurationRef:
-    name: plrl-elastic-user
+    name: plrl-logstash-user
     namespace: infra
   clusterRef:
     kind: Cluster
