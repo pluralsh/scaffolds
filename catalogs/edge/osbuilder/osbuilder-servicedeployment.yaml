@@ -23,7 +23,7 @@ spec:
   imports:
     - stackRef:
         name: osbuilder-{{ context.cluster }}
-        namespace: apps
+        namespace: osbuilder
   configuration:
     cluster: {{ context.cluster }}
     hostname: {{ context.hostname }}

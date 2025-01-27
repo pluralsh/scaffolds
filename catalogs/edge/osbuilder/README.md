@@ -1,6 +1,10 @@
 # osbuilder
 
-This is a baseline, Kairos osbuilder setup. See [osbuilder](https://github.com/pluralsh/osbuilder) repository for more information.
+This is a baseline Plural osbuilder setup. See [osbuilder](https://github.com/pluralsh/osbuilder) repository for more information.
+
+## Requirements
+
+- Deployment Operator version must be greater than v0.5.7
 
 ## Contributing
 
