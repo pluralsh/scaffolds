@@ -38,7 +38,7 @@ spec:
   message: Will create an OSArtifact CRD to initialize Kairos image creation.
   configuration:
   - name: cluster
-    type: STRING
+    type: CLUSTER
     documentation: Handle of the cluster where osbuilder is installed
     default: mgmt
   - name: name
@@ -59,7 +59,7 @@ spec:
     documentation: Username that will be used to access the device over SSH
     default: plural
   - name: project
-    type: STRING
+    type: PROJECT
     documentation: Name of the Plural project that will be attached to the device bootstrap token.
     default: default
   - name: advanced

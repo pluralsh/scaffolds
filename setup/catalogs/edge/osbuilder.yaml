@@ -47,11 +47,11 @@ spec:
     Will set up an osbuilder deployment.
   configuration:
   - name: cluster
-    type: STRING
+    type: CLUSTER
     documentation: Handle of the cluster you want to deploy osbuilder to.
     default: mgmt
   - name: stackCluster
-    type: STRING
+    type: CLUSTER
     documentation: Handle of the cluster used to run Infrastructure Stacks for provisioning the infrastructure. Defaults to the management cluster.
     default: mgmt
   - name: cloud
