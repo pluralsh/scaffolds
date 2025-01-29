@@ -1,3 +1,5 @@
+{% if context.deploySelfHostedRegistry %}
+
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
@@ -20,3 +22,5 @@ spec:
   clusterRef:
     name: {{ context.stackCluster }}
     namespace: infra
+
+{% endif %}

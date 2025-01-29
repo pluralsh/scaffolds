@@ -18,7 +18,8 @@ spec:
         namespace: apps
   configuration:
     cluster: {{ context.cluster }}
-    hostname: {{ context.hostname }}
+    {% if context.hostname %}hostname: {{ context.hostname }}{% endif %}
+    deploySelfHostedRegistry: {{ context.deploySelfHostedRegistry }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}

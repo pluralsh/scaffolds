@@ -27,16 +27,27 @@ tokenSecret:
 
 # Export configuration for the final ISO images
 exporter:
+  # Whether container registry is an ECR instance or other. One of: "ecr", "other"
+  cloud: {% if configuration.isECRRegistry %}ecr{% else %}other{% endif %}
   # Docker registry DNS name where we should export packed ISO images
   registry: {{ configuration.registry | default: configuration.hostname }}
   # Name of the repository where images should be stored
   repository: {{ configuration.repository | default: defaultRepositoryName }}
   # Image tag that should be used when pushing to the registry
   tag: {{ configuration.tag | default: "latest" }}
-  # Registry username used for basic auth
+  # Username used when generating docker config.json. It is only used when 'passwordSecret' is provided.
   username: plural
   # Secret that stores just the password for the docker registry user.
-  # One of 'passwordSecret' or 'configSecret' must be provided.
+  # One of 'passwordSecret' or 'configSecret' must be provided when cloud is set to 'other'.
+  {% unless configuration.registry %}
   passwordSecret:
     name: osbuilder-registry-basic-auth
+  {% endif %}
+  # Secret configuration that stores the docker config.json file with the auth information.
+  # It is in the default docker format.
+  {% if configuration.registryAuthSecret %}
+  configSecret:
+    name: {{ configuration.registryAuthSecret }}
+    key: config.json
+  {% endif %}
 {% endraw %}
