@@ -4,6 +4,6 @@ kind: Secret
 metadata:
   name: osbuilder-{{ configuration.cluster }}-configuration
 stringData:
-  {% if configuration.deploySelfHostedRegistry %}hostname: {{ configuration.hostname }}{% endif %}
+  hostname: {{ configuration.hostname }}
   console_dns: {{ cluster.ConsoleDNS }}
 {% endraw %}

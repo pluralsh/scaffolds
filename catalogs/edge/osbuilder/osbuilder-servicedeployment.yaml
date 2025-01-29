@@ -20,10 +20,12 @@ spec:
     url: https://pluralsh.github.io/osbuilder/
     valuesFiles:
       - osbuilder.yaml.liquid
+  {% if context.deploySelfHostedRegistry %}
   imports:
     - stackRef:
         name: osbuilder-{{ context.cluster }}
         namespace: osbuilder
+  {% endif %}
   configuration:
     cluster: {{ context.cluster }}
     {% if context.hostname %}hostname: {{ context.hostname }}{% endif %}

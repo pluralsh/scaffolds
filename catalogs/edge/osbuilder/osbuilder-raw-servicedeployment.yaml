@@ -12,10 +12,12 @@ spec:
     kind: GitRepository
     name: infra
     namespace: infra
+  {% if context.deploySelfHostedRegistry %}
   imports:
     - stackRef:
         name: osbuilder-{{ context.cluster }}
         namespace: apps
+  {% endif %}
   configuration:
     cluster: {{ context.cluster }}
     {% if context.hostname %}hostname: {{ context.hostname }}{% endif %}
