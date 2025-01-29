@@ -28,7 +28,7 @@ spec:
     image: {{ context.image }}
     device: {{ context.device }}
     username: {{ context.username }}
-    isECRRegistry: {{ context.isECRRegistry | default: false }}
+    isECRRegistry: '{{ context.isECRRegistry | default: false }}'
     {% if context.registry %}registry: {{ context.registry }}{% endif %}
     {% if context.repository %}repository: {{ context.repository }}{% endif %}
     {% if context.tag %}tag: {{ context.tag }}{% endif %}
