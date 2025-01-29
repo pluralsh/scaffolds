@@ -72,6 +72,7 @@ spec:
   - name: registry
     type: STRING
     documentation: Docker registry DNS name where we should export packed ISO images.
+    optional: true
     condition:
       field: useExistingRegistry
       operation: EQ
@@ -80,6 +81,7 @@ spec:
     type: BOOL
     documentation: Whether your existing container registry is hosted on ECR.
     default: 'false'
+    optional: true
     condition:
       field: useExistingRegistry
       operation: EQ
@@ -87,6 +89,7 @@ spec:
   - name: registryAuthSecret
     type: STRING
     documentation: Name of the secret in 'osbuilder' namespace that stores docker 'config.json' auth file.
+    optional: true
     condition:
       field: isECRRegistry
       operation: EQ

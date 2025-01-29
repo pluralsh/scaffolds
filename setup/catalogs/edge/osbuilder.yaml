@@ -78,6 +78,7 @@ spec:
   - name: bucket
     type: STRING
     documentation: The name of the S3 Blob bucket you'll use as docker registry storage. This must be globally unique.
+    optional: true
     condition:
       field: deploySelfHostedRegistry
       operation: EQ
@@ -85,6 +86,7 @@ spec:
   - name: hostname
     type: STRING
     documentation: The DNS name you'll host private docker registry under.
+    optional: true
     condition:
       field: deploySelfHostedRegistry
       operation: EQ
@@ -92,6 +94,7 @@ spec:
   - name: region
     type: STRING
     documentation: The cloud provider region you're going to use to deploy cloud resources.
+    optional: true
     condition:
       field: deploySelfHostedRegistry
       operation: EQ
