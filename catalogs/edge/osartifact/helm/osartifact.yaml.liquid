@@ -42,7 +42,7 @@ exporter:
   {% unless configuration.registry %}
   passwordSecret:
     name: osbuilder-registry-basic-auth
-  {% endif %}
+  {% endunless %}
   # Secret configuration that stores the docker config.json file with the auth information.
   # It is in the default docker format.
   {% if configuration.registryAuthSecret %}
