@@ -19,7 +19,7 @@ spec:
   configuration:
     cluster: {{ context.cluster }}
     {% if context.hostname %}hostname: {{ context.hostname }}{% endif %}
-    deploySelfHostedRegistry: {{ context.deploySelfHostedRegistry }}
+    deploySelfHostedRegistry: '{{ context.deploySelfHostedRegistry }}'
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
