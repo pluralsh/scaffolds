@@ -60,6 +60,7 @@ spec:
     type: CLUSTER
     documentation: Cluster used to run Infrastructure Stacks for provisioning the infrastructure.
     default: mgmt
+    optional: true
     condition:
       field: deploySelfHostedRegistry
       operation: EQ
