@@ -84,10 +84,10 @@ spec:
 
   - name: registry
     type: STRING
-    documentation: Docker registry DNS name where we should export packed ISO images.
+    documentation: Docker registry DNS name where we should export packed ISO images. Optional when using ECR registry.
     optional: true
     condition:
-      field: isECRRegistry
+      field: useExistingRegistry
       operation: EQ
       value: 'false'
   - name: registryAuthSecret
