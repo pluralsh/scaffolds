@@ -29,8 +29,13 @@ spec:
     device: {{ context.device }}
     username: {{ context.username }}
     isECRRegistry: '{{ context.isECRRegistry | default: false }}'
-    {% if context.registry %}registry: {{ context.registry }}{% endif %}
-    {% if context.repository %}repository: {{ context.repository }}{% endif %}
+    useExistingRegistry: '{{ context.useExistingRegistry | default: true }}'
+    {% if context.registry %}registry: {{ context.registry }}{% endif %
+    {% if context.repository %}
+    repository: {{ context.repository }}
+    {% else %}
+    repository: pluralos-{{ context.name }}
+    {% endif %}
     {% if context.tag %}tag: {{ context.tag }}{% endif %}
     {% if context.registryAuthSecret %}registryAuthSecret: {{ context.registryAuthSecret }}{% endif %}
   clusterRef:
