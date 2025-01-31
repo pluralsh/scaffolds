@@ -1,5 +1,6 @@
 {% raw %}
 
+{% assign imports_osartifact_key =  'osartifact-' | append: configuration.name | append: '-' |  append: configuration.cluster %}
 {% assign defaultRepositoryName = 'pluralos-' | append: configuration.name %}
 
 # Kubernetes node name
@@ -27,27 +28,37 @@ tokenSecret:
 
 # Export configuration for the final ISO images
 exporter:
-  # Whether container registry is an ECR instance or other. One of: "ecr", "other"
-  cloud: {% if configuration.isECRRegistry == 'true' %}ecr{% else %}other{% endif %}
-  # Docker registry DNS name where we should export packed ISO images
-  registry: {{ configuration.registry | default: configuration.hostname }}
-  # Name of the repository where images should be stored
-  repository: {{ configuration.repository | default: defaultRepositoryName }}
-  # Image tag that should be used when pushing to the registry
-  tag: {{ configuration.tag | default: "latest" }}
-  # Username used when generating docker config.json. It is only used when 'passwordSecret' is provided.
-  username: plural
-  # Secret that stores just the password for the docker registry user.
-  # One of 'passwordSecret' or 'configSecret' must be provided when cloud is set to 'other'.
-  {% unless configuration.registry %}
-  passwordSecret:
-    name: osbuilder-registry-basic-auth
-  {% endunless %}
-  # Secret configuration that stores the docker config.json file with the auth information.
-  # It is in the default docker format.
-  {% if configuration.registryAuthSecret %}
-  configSecret:
-    name: {{ configuration.registryAuthSecret }}
-    key: config.json
+  {% if configuration.isECRRegistry == 'true' %}
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: {{ imports[imports_airbyte_key].iam_role_name }}
   {% endif %}
+
+  registry:
+    # Docker registry DNS name where we should export packed ISO images
+    name: {{ configuration.registry | default: configuration.hostname }}
+    # Whether container registry is an ECR instance or other. One of: "ecr", "other"
+    type: {% if configuration.isECRRegistry == 'true' %}ecr{% else %}other{% endif %}
+
+    image:
+      # Name of the repository where images should be stored
+      repository: {{ configuration.repository | default: defaultRepositoryName }}
+      # Image tag that should be used when pushing to the registry
+      tag: {{ configuration.tag | default: "latest" }}
+
+    # Username used when generating docker config.json. It is only used when 'passwordSecret' is provided.
+    username: plural
+    # Secret that stores just the password for the docker registry user.
+    # One of 'passwordSecret' or 'configSecret' must be provided when cloud is set to 'other'.
+    {% unless configuration.registry %}
+    passwordSecret:
+      name: osbuilder-registry-basic-auth
+    {% endunless %}
+    # Secret configuration that stores the docker config.json file with the auth information.
+    # It is in the default docker format.
+    {% if configuration.registryAuthSecret %}
+    configSecret:
+      name: {{ configuration.registryAuthSecret }}
+      key: config.json
+    {% endif %}
 {% endraw %}
