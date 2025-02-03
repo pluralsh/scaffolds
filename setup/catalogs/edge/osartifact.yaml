@@ -16,11 +16,17 @@ spec:
     - source: services
       destination: "services/apps/osartifact/{{ context.cluster }}/{{ context.name }}"
       external: true
+    - source: "terraform/{{ context.cloud }}"
+      destination: "terraform/apps/osartifact/{{ context.cluster }}/{{ context.name }}"
+      external: true
     - source: osartifact.yaml
       destination: "bootstrap/apps/osartifact/{{ context.cluster }}/{{ context.name }}/osartifact.yaml"
       external: true
     - source: osartifact-raw.yaml
       destination: "bootstrap/apps/osartifact/{{ context.cluster }}/{{ context.name }}/osartifact-raw.yaml"
+      external: true
+    - source: osartifact-stack.yaml
+      destination: "bootstrap/apps/osartifact/{{ context.cluster }}/{{ context.name }}/osartifact-stack.yaml"
       external: true
     - source: helm
       destination: "helm/osartifact/{{ context.cluster }}/{{ context.name }}"
@@ -41,6 +47,12 @@ spec:
     type: CLUSTER
     documentation: Handle of the cluster where osbuilder is installed.
     default: mgmt
+  - name: cloud
+    type: ENUM
+    default: aws
+    documentation: Cloud used to run infrastructure stack.
+    values:
+      - aws
   - name: project
     type: PROJECT
     documentation: Name of the Plural project that will be attached to the device bootstrap token.
