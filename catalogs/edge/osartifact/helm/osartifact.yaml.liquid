@@ -37,7 +37,7 @@ exporter:
   {% if configuration.isECRRegistry == 'true' %}
   serviceAccount:
     annotations:
-      eks.amazonaws.com/role-arn: {{ imports[imports_airbyte_key].ecr_push_role_arn }}
+      eks.amazonaws.com/role-arn: {{ imports[imports_osartifact_key].ecr_push_role_arn }}
   {% endif %}
 
   registry:

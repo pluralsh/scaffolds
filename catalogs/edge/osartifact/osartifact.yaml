@@ -41,6 +41,7 @@ spec:
   imports:
     - stackRef:
         name: osartifact-{{ context.name }}-{{ context.cluster }}
+        namespace: osbuilder
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
