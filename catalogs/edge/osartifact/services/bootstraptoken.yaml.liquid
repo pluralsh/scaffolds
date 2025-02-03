@@ -9,11 +9,11 @@ spec:
 apiVersion: deployments.plural.sh/v1alpha1
 kind: BootstrapToken
 metadata:
-  name: plural-edge-{{ configuration.name }}
+  name: pluralos-{{ configuration.name }}
 spec:
   {% if configuration.email %}user: {{ configuration.email }}{% endif %}
   projectRef:
     name: {{ configuration.project }}
   tokenSecretRef:
-    name: plural-edge-{{ configuration.name }}-bootstrap-token
+    name: pluralos-{{ configuration.name }}-bootstrap-token
 {% endraw %}
