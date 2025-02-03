@@ -15,7 +15,7 @@ spec:
   helm:
     version: "0.x.x"
     chart: osartifact
-    release: plural-edge-{{ context.name }}
+    release: pluralos-{{ context.name }}
     url: https://pluralsh.github.io/osbuilder/
     valuesFiles:
       - osartifact.yaml.liquid
@@ -31,13 +31,16 @@ spec:
     isECRRegistry: '{{ context.isECRRegistry | default: false }}'
     useExistingRegistry: '{{ context.useExistingRegistry | default: true }}'
     {% if context.registry %}registry: {{ context.registry }}{% endif %}
-    {% if context.repository %}
+    {% if context.repository != blank %}
     repository: {{ context.repository }}
     {% else %}
     repository: pluralos-{{ context.name }}
     {% endif %}
     {% if context.tag %}tag: {{ context.tag }}{% endif %}
     {% if context.registryAuthSecret %}registryAuthSecret: {{ context.registryAuthSecret }}{% endif %}
+  imports:
+    - stackRef:
+        name: osartifact-{{ context.name }}-{{ context.cluster }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
