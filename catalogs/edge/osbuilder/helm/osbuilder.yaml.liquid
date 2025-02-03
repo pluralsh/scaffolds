@@ -1,4 +1,4 @@
-{% if configuration.deploySelfHostedRegistry %}
+{% if configuration.deploySelfHostedRegistry == 'true' %}
 {% raw %}
 
 {% assign imports_osbuilder_key =  'osbuilder-' | append: configuration.cluster %}
