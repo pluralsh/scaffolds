@@ -10,15 +10,19 @@ variable "osartifact_name" {
 
 variable "repository_name" {
   type = string
+  {% if context.repository != nil and context.repository != '' %}
   default = "{{ context.repository }}"
+  {% else %}
+  default = "pluralos-{{ context.name }}"
+  {% endif %}
 }
 
 variable "namespace" {
   type = string
-  default = "{{ context.namespace }}"
+  default = "osbuilder"
 }
 
 variable "service_account_name" {
   type = string
-  default = "{{ context.serviceAccountName }}"
+  default = "pluralos-{{ context.name }}-osartifact"
 }
