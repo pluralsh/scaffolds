@@ -31,7 +31,7 @@ spec:
     isECRRegistry: '{{ context.isECRRegistry | default: false }}'
     useExistingRegistry: '{{ context.useExistingRegistry | default: true }}'
     {% if context.registry %}registry: {{ context.registry }}{% endif %}
-    {% if context.repository != empty %}
+    {% if context.repository != nil and context.repository != '' %}
     repository: {{ context.repository }}
     {% else %}
     repository: pluralos-{{ context.name }}
