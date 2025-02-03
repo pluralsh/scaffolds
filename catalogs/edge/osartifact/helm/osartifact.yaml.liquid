@@ -37,8 +37,13 @@ exporter:
   registry:
     # Docker registry DNS name where we should export packed ISO images
     name: {{ configuration.registry | default: configuration.hostname }}
+
     # Whether container registry is an ECR instance or other. One of: "ecr", "other"
-    type: {% if configuration.isECRRegistry == 'true' %}ecr{% else %}other{% endif %}
+    {% if configuration.isECRRegistry == 'true' %}
+    type: ecr
+    {% else %}
+    type: other
+    {% endif %}
 
     image:
       # Name of the repository where images should be stored
