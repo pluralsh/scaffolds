@@ -4,7 +4,7 @@ metadata:
   name: grafana
 spec:
   name: grafana
-  icon: https://cdn.icon-icons.com/icons2/2699/PNG/512/grafana_logo_icon_171048.png
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/2783a06b-8317-4998-8c5d-18bcdc2a3c6c/grafana.png?v=63849313526
   identifier: mgmt
   documentation: |
     Sets up a Grafana instance backed by postgres
