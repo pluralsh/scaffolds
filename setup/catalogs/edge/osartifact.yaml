@@ -139,7 +139,15 @@ spec:
     type: STRING
     documentation: SSID of the WiFi network to connect to after boot.
     optional: true
+    condition:
+      field: advanced
+      operation: EQ
+      value: 'true'
   - name: wifiPassword
     type: PASSWORD
     documentation: Password for the WiFi network.
     optional: true
+    condition:
+      field: advanced
+      operation: EQ
+      value: 'true'
