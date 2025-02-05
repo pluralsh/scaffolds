@@ -144,7 +144,7 @@ spec:
       operation: EQ
       value: 'true'
   - name: wifiPassword
-    type: PASSWORD
+    type: STRING
     documentation: Password for the WiFi network.
     optional: true
     condition:
