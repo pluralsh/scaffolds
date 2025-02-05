@@ -14,7 +14,7 @@ spec:
     namespace: infra
   configuration:
     name: {{ context.name }}
-    {% if context.email %}email: {{ context.email }}{% endif %}
+    {% if context.email != nil and context.email != '' %}email: {{ context.email }}{% endif %}
     project: {{ context.project }}
   clusterRef:
     kind: Cluster
