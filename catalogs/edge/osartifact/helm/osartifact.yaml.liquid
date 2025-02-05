@@ -18,6 +18,14 @@ image: {{ configuration.image }}
 # Target device. Currently supported values: rpi4
 device: {{ configuration.device }}
 
+{% if configuration.wifiSSID %}
+# WiFi configuration. It will attempt the connection on the first boot.
+wifi:
+ enabled: true
+ ssid: {{ configuration.wifiSSID }}
+ password: {{ configuration.wifiPassword }}
+{% endif %}
+
 # Username that will be used to access the device over SSH
 username: {{ configuration.username }}
 
