@@ -16,18 +16,24 @@ spec:
     - source: helm
       destination: helm/osbuilder/{{ context.cluster }}
       external: true
-    - source: services
-      destination: "services/apps/osbuilder/{{ context.cluster }}"
+    - source: services/configuration.yaml.liquid
+      destination: "services/apps/osbuilder/{{ context.cluster }}/configuration.yaml.liquid"
       external: true
+    - source: services/generatedsecret.yaml.liquid
+      destination: "services/apps/osbuilder/{{ context.cluster }}/generatedsecret.yaml.liquid"
+      external: true
+      condition: "context.deploySelfHostedRegistry == true"
     - source: "terraform/{{ context.cloud }}"
       destination: "terraform/apps/osbuilder/{{ context.cluster }}"
       external: true
+      condition: "context.deploySelfHostedRegistry == true"
     - source: osbuilder-servicedeployment.yaml
       destination: "bootstrap/apps/osbuilder/{{ context.cluster }}/osbuilder-servicedeployment.yaml"
       external: true
     - source: osbuilder-stack.yaml
       destination: "bootstrap/apps/osbuilder/{{ context.cluster }}/osbuilder-stack.yaml"
       external: true
+      condition: "context.deploySelfHostedRegistry == true"
     - source: osbuilder-raw-servicedeployment.yaml
       destination: "bootstrap/apps/osbuilder/{{ context.cluster }}/osbuilder-raw-servicedeployment.yaml"
       external: true

@@ -1,4 +1,3 @@
-{% if configuration.deploySelfHostedRegistry == 'true' %}
 {% raw %}
 
 {% assign imports_osbuilder_key =  'osbuilder-' | append: configuration.cluster %}
@@ -21,4 +20,3 @@ registry:
     dns: {{ configuration.hostname }}
 
 {% endraw %}
-{% endif %}

@@ -31,7 +31,6 @@ spec:
     {% if context.hostname %}hostname: {{ context.hostname }}{% endif %}
     {% if context.bucket %}bucket: {{ context.bucket }}{% endif %}
     {% if context.region %}region: {{ context.region }}{% endif %}
-    deploySelfHostedRegistry: '{{ context.deploySelfHostedRegistry }}'
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
