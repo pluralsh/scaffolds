@@ -19,6 +19,7 @@ spec:
     - source: "terraform/{{ context.cloud }}"
       destination: "terraform/apps/osartifact/{{ context.cluster }}/{{ context.name }}"
       external: true
+      condition: "context.isECRRegistry == true"
     - source: osartifact.yaml
       destination: "bootstrap/apps/osartifact/{{ context.cluster }}/{{ context.name }}/osartifact.yaml"
       external: true
@@ -28,7 +29,7 @@ spec:
     - source: osartifact-stack.yaml
       destination: "bootstrap/apps/osartifact/{{ context.cluster }}/{{ context.name }}/osartifact-stack.yaml"
       external: true
-      condition: "context.deploySelfHostedRegistry == true"
+      condition: "context.isECRRegistry == true"
     - source: helm
       destination: "helm/osartifact/{{ context.cluster }}/{{ context.name }}"
       external: true
