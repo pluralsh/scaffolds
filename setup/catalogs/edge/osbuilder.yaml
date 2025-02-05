@@ -16,7 +16,6 @@ spec:
     - source: helm
       destination: helm/osbuilder/{{ context.cluster }}
       external: true
-      condition: "context.deploySelfHostedRegistry == true"
     - source: services/configuration.yaml.liquid
       destination: "services/apps/osbuilder/{{ context.cluster }}/configuration.yaml.liquid"
       external: true
