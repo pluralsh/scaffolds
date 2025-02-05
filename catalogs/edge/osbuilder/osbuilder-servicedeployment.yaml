@@ -18,9 +18,9 @@ spec:
     release: osbuilder
     ignoreHooks: false
     url: https://pluralsh.github.io/osbuilder/
+  {% if context.deploySelfHostedRegistry %}
     valuesFiles:
       - osbuilder.yaml.liquid
-  {% if context.deploySelfHostedRegistry %}
   imports:
     - stackRef:
         name: osbuilder-{{ context.cluster }}
