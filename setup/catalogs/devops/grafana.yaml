@@ -13,8 +13,8 @@ spec:
       ref: main
       folder: catalogs/devops/grafana
     templates:
-    - source: grafana.yaml.liquid
-      destination: "helm/grafana/{{ context.cluster }}/grafana.yaml.liquid"
+    - source: helm/grafana.yaml.liquid
+      destination: "helm/grafana/grafana.yaml.liquid"
       external: true
     - source: servicedeployment.yaml.liquid
       destination: "bootstrap/apps/grafana/{{ context.cluster }}/servicedeployment.yaml"
