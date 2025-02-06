@@ -51,7 +51,7 @@ grafana.ini:
     skip_org_role_sync: 'true'
     token_url: https://oidc.plural.sh/oauth2/token
   server:
-    root_url: {{ context.hostname}}
+    root_url: https://{{ context.hostname}}
 
 extraObjects:
 - apiVersion: v1
