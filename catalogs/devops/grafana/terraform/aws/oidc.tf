@@ -19,5 +19,5 @@ resource "plural_oidc_provider" "grafana" {
   auth_method = "BASIC"
   type = "PLURAL"
   description = "OIDC provider for grafana deployed to the {{ context.cluster }} cluster"
-  redirect_uris = ["https://{{ context.hostname }}/oauth2/callback"]
+  redirect_uris = ["https://{{ context.hostname }}/login/generic_oauth"]
 }
