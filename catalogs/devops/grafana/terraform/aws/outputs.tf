@@ -3,7 +3,7 @@ output "postgres_host" {
 }
 
 output "postgres_password" {
-  value = random_password.password.result
+  value = random_password.grafana.result
   sensitive = true
 }
 
