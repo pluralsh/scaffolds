@@ -49,7 +49,7 @@ module "db" {
   multi_az = false
 
   create_db_subnet_group = true
-  subnet_ids             = module.mgmt.vpc.private_subnets
+  subnet_ids             = one(data.aws_eks_cluster.mgmt.vpc_config).subnet_ids
   vpc_security_group_ids = [module.security_group.security_group_id]
 
   create_cloudwatch_log_group = true
@@ -75,8 +75,8 @@ module "security_group" {
   version = "~> 5.0"
 
   name        = "grafana-db-security-group"
-  description = "security group for your plural console db"
-  vpc_id      = module.mgmt.vpc.vpc_id
+  description = "security group for your plural grafana db"
+  vpc_id      = data.aws_vpc.mgmt.id
 
   ingress_with_cidr_blocks = [
     {
@@ -84,7 +84,7 @@ module "security_group" {
       to_port     = 5432
       protocol    = "tcp"
       description = "PostgreSQL access from within VPC"
-      cidr_blocks = module.mgmt.vpc.vpc_cidr_block
+      cidr_blocks = data.aws_vpc.mgmt.cidr_block
     },
   ]
 }

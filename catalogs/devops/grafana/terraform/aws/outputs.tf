@@ -18,11 +18,11 @@ output "oidc_cookie_secret" {
 }
 
 output "oidc_client_id" {
-  value = plural_oidc_provider.airbyte.client_id
+  value = plural_oidc_provider.grafana.client_id
   sensitive = true
 }
 
 output "oidc_client_secret" {
-  value = plural_oidc_provider.airbyte.client_secret
+  value = plural_oidc_provider.grafana.client_secret
   sensitive = true
 }
