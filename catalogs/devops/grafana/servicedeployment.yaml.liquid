@@ -4,6 +4,7 @@ metadata:
   name: grafana-{{ context.cluster }}
   namespace: apps
 spec:
+  name: grafana
   namespace: grafana
   git:
     folder: helm/grafana/{{ context.cluster }}
@@ -18,6 +19,10 @@ spec:
     url: https://grafana.github.io/helm-charts
     valuesFiles:
     - grafana.yaml.liquid
+  imports:
+  - stackRef:
+      name: grafana-{{ context.cluster }}
+      namespace: apps
   configuration:
     cluster: {{ context.cluster }}
   clusterRef:

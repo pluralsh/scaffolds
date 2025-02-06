@@ -10,17 +10,20 @@ spec:
     Sets up a Grafana instance backed by postgres
   creates:
     git:
-      ref: main # TODO set to main
+      ref: main
       folder: catalogs/devops/grafana
     templates:
-    - source: README.md
-      destination: documentation/grafana/README.md
-      external: true
     - source: grafana.yaml.liquid
       destination: "helm/grafana/{{ context.cluster }}/grafana.yaml.liquid"
       external: true
     - source: servicedeployment.yaml.liquid
       destination: "bootstrap/apps/grafana/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+    - source: terraform/{{ context.cloud }}
+      destination: terraform/apps/grafana
+      external: true
+    - source: grafana-stack.yaml.liquid
+      destination: "bootstrap/apps/grafana/{{ context.cluster }}/stack.yaml"
       external: true
   repositoryRef:
     name: scaffolds
@@ -32,6 +35,11 @@ spec:
   message: |
     Sets up Grafana on {{ context.cluster }} cluster.
   configuration:
+  - name: cloud
+    type: ENUM
+    documentation: the cloud provider you'll be deploying grafana to
+    values:
+    - aws
   - name: cluster
     type: STRING
     documentation: the cluster you want to deploy to

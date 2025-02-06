@@ -1,0 +1,20 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: grafana-{{ context.cluster }}
+  namespace: apps
+spec:
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/grafana
+  repositoryRef:
+    name: infra
+    namespace: infra
+  clusterRef:
+    name: {{ context.stackCluster }}
+    namespace: infra
