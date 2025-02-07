@@ -1,3 +1,10 @@
+{% raw %}
+builder:
+  consoleUrl: https://{{ cluster.ConsoleDNS }}/gql
+  consoleTokenSecret:
+    name: osbuilder-console-token
+{% endraw %}
+
 {% if configuration.deploySelfHostedRegistry == 'true' %}
 {% raw %}
 

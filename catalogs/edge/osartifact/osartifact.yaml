@@ -24,6 +24,7 @@ spec:
     namespace: osbuilder
   configuration:
     cluster: {{ context.cluster }}
+    project: {{ context.project }}
     name: {{ context.name }}
     image: {{ context.image }}
     device: {{ context.device }}

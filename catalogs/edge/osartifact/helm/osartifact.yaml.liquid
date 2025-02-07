@@ -18,6 +18,9 @@ image: {{ configuration.image }}
 # Target device. Currently supported values: rpi4
 device: {{ configuration.device }}
 
+# Plural project name this image should be tied to.
+project: {{ configuration.project }}
+
 {% if configuration.wifiSSID %}
 # WiFi configuration. It will attempt the connection on the first boot.
 wifi:
