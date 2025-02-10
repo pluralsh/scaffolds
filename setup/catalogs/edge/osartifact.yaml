@@ -7,10 +7,10 @@ spec:
   icon: https://user-images.githubusercontent.com/2420543/193010398-72d4ba6e-7efe-4c2e-b7ba-d3a826a55b7d.png
   identifier: mgmt
   documentation: |
-    Sets up an osartifact CRD to initialize Kairos image creation
+    Sets up an osartifact CRD to initialize Pluralos image creation
   creates:
     git:
-      ref: catalog/add-edge # TODO change to main
+      ref: main
       folder: catalogs/edge/osartifact
     templates:
     - source: services
