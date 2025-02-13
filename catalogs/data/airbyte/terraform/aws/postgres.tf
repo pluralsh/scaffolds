@@ -1,3 +1,7 @@
+module "plural_service_context" {
+  source = "git::https://github.com/pluralsh/bootstrap.git?ref=feat/use-plrl-ctx-svc"
+}
+
 resource "random_password" "password" {
   length      = 20
   min_lower   = 1
@@ -13,7 +17,7 @@ data "aws_eks_cluster" "mgmt" {
 }
 
 data "aws_vpc" "mgmt" {
-  id = one(data.aws_eks_cluster.mgmt.vpc_config).vpc_id
+  id = module.plural_service_context["vpc_id"]
 }
 
 module "db" {
