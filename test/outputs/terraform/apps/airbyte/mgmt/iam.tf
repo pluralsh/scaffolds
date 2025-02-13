@@ -1,3 +1,6 @@
+locals {
+  cluster_name = jsondecode(data.plural_service_context.mgmt.configuration)["cluster_name"]
+}
 
 resource "aws_iam_policy" "airbyte" {
   name_prefix = "airbyte"
@@ -6,9 +9,7 @@ resource "aws_iam_policy" "airbyte" {
 }
 
 resource "aws_iam_user" "airbyte" {
-  name = "${data.plural_cluster.cluster.name}-airbyte"
-
-  depends_on = [ data.plural_cluster.cluster ]
+  name = "${local.cluster_name}-airbyte"
 }
 
 resource "aws_iam_access_key" "airbyte" {
@@ -29,9 +30,7 @@ data "aws_iam_policy_document" "airbyte" {
 }
 
 resource "aws_iam_policy_attachment" "airbyte-user" {
-  name = "${data.plural_cluster.cluster.name}-airbyte-policy"
+  name = "${local.cluster_name}-airbyte-policy"
   users = [aws_iam_user.airbyte.name]
   policy_arn = aws_iam_policy.airbyte.arn
-
-  depends_on = [ data.plural_cluster.cluster ]
 }

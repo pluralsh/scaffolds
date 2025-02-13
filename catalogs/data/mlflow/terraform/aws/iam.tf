@@ -1,3 +1,6 @@
+locals {
+  cluster_name = jsondecode(data.plural_service_context.mgmt.configuration)["cluster_name"]
+}
 
 resource "aws_iam_policy" "mlflow" {
   name_prefix = "mlflow"
@@ -6,9 +9,7 @@ resource "aws_iam_policy" "mlflow" {
 }
 
 resource "aws_iam_user" "mlflow" {
-  name = "${data.plural_cluster.cluster.name}-mlflow"
-
-  depends_on = [ data.plural_cluster.cluster ]
+  name = "${local.cluster_name}-mlflow"
 }
 
 resource "aws_iam_access_key" "mlflow" {
@@ -29,9 +30,7 @@ data "aws_iam_policy_document" "mlflow" {
 }
 
 resource "aws_iam_policy_attachment" "mlflow-user" {
-  name = "${data.plural_cluster.cluster.name}-mlflow-policy"
+  name = "${local.cluster_name}-mlflow-policy"
   users = [aws_iam_user.mlflow.name]
   policy_arn = aws_iam_policy.mlflow.arn
-
-  depends_on = [ data.plural_cluster.cluster ]
 }
