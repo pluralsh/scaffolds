@@ -1,0 +1,9 @@
+{% raw %}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: osbuilder-{{ configuration.cluster }}-configuration
+stringData:
+  {% if configuration.hostname %}hostname: {{ configuration.hostname }}{% endif %}
+  console_dns: {{ cluster.ConsoleDNS }}
+{% endraw %}

@@ -1,0 +1,27 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: osbuilder-raw-{{ context.cluster }}
+  namespace: osbuilder
+spec:
+  namespace: osbuilder
+  git:
+    folder: services/apps/osbuilder/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  {% if context.deploySelfHostedRegistry %}
+  imports:
+    - stackRef:
+        name: osbuilder-{{ context.cluster }}
+        namespace: apps
+  {% endif %}
+  configuration:
+    cluster: {{ context.cluster }}
+    {% if context.hostname %}hostname: {{ context.hostname }}{% endif %}
+  clusterRef:
+    kind: Cluster
+    name: {{ context.cluster }}
+    namespace: infra

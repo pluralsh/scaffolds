@@ -1,0 +1,86 @@
+{% raw %}
+
+{% assign imports_osartifact_key =  'osartifact-' | append: configuration.name | append: '-' |  append: configuration.cluster %}
+{% assign registryName = configuration.hostname %}
+
+{% if configuration.isECRRegistry == 'true' %}
+  {% assign registryName = imports[imports_osartifact_key].repository_url | remove: configuration.repository | remove: "/" %}
+{% elsif configuration.useExistingRegistry == 'true' %}
+  {% assign registryName = configuration.registry %}
+{% endif %}
+
+# Kubernetes node name
+nodeName: {{ configuration.name }}
+
+# Base image used for building customized plural ISO
+image: {{ configuration.image }}
+
+# Target device. Currently supported values: rpi4
+device: {{ configuration.device }}
+
+# Plural project name this image should be tied to.
+project: {{ configuration.project }}
+
+{% if configuration.wifiSSID %}
+# WiFi configuration. It will attempt the connection on the first boot.
+wifi:
+ enabled: true
+ ssid: {{ configuration.wifiSSID }}
+ password: {{ configuration.wifiPassword }}
+{% endif %}
+
+# Username that will be used to access the device over SSH
+username: {{ configuration.username }}
+
+# Secret that holds password for the default user that will be used to access the device over SSH
+passwordSecret:
+  name: pluralos-{{ configuration.name }}-ssh
+
+# Console URL that will be used by the device to join the fleet, i.e. console.plrl-xyz.onplural.sh
+url: {{ configuration.console_dns }}
+
+tokenSecret:
+  # Name of the secret that holds the bootstrap token
+  name: pluralos-{{ configuration.name }}-bootstrap-token
+
+# Export configuration for the final ISO images
+exporter:
+  {% if configuration.isECRRegistry == 'true' %}
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: {{ imports[imports_osartifact_key].ecr_push_role_arn }}
+  {% endif %}
+
+  registry:
+    # Docker registry DNS name where we should export packed ISO images
+    name: {{ registryName }}
+
+    # Whether container registry is an ECR instance or other. One of: "ecr", "other"
+    {% if configuration.isECRRegistry == 'true' %}
+    type: ecr
+    {% else %}
+    type: other
+    {% endif %}
+
+    image:
+      # Name of the repository where images should be stored
+      repository: {{ configuration.repository }}
+      # Image tag that should be used when pushing to the registry
+      tag: {{ configuration.tag | default: "latest" }}
+
+    # Username used when generating docker config.json. It is only used when 'passwordSecret' is provided.
+    username: plural
+    # Secret that stores just the password for the docker registry user.
+    # One of 'passwordSecret' or 'configSecret' must be provided when cloud is set to 'other'.
+    {% if configuration.useExistingRegistry == 'false' %}
+    passwordSecret:
+      name: osbuilder-registry-basic-auth
+    {% endif %}
+    # Secret configuration that stores the docker config.json file with the auth information.
+    # It is in the default docker format.
+    {% if configuration.registryAuthSecret %}
+    configSecret:
+      name: {{ configuration.registryAuthSecret }}
+      key: config.json
+    {% endif %}
+{% endraw %}

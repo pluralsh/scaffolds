@@ -1,0 +1,31 @@
+{% raw %}
+builder:
+  consoleUrl: https://{{ cluster.ConsoleDNS }}/gql
+  consoleTokenSecret:
+    name: osbuilder-console-token
+{% endraw %}
+
+{% if configuration.deploySelfHostedRegistry == 'true' %}
+{% raw %}
+
+{% assign imports_osbuilder_key =  'osbuilder-' | append: configuration.cluster %}
+
+registry:
+  storage:
+    s3:
+      accessKey: {{ imports[imports_osbuilder_key].access_key_id }}
+      secretKey: {{ imports[imports_osbuilder_key].secret_access_key }}
+      region: {{ imports[imports_osbuilder_key].bucket_region }}
+      bucket: {{ imports[imports_osbuilder_key].bucket_name }}
+      endpoint: s3.{{ configuration.region }}.amazonaws.com
+
+  auth:
+    htpasswd:
+      secret:
+        name: osbuilder-registry-basic-auth
+
+  ingress:
+    dns: {{ configuration.hostname }}
+
+{% endraw %}
+{% endif %}

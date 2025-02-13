@@ -1,0 +1,22 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: osartifact-{{ context.name }}-{{ context.cluster }}
+  namespace: osbuilder
+spec:
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/osartifact/{{ context.cluster }}/{{ context.name }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  configuration:
+    version: '1.8'
+  clusterRef:
+    name: {{ context.cluster }}
+    namespace: infra
