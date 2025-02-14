@@ -1,0 +1,34 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: network-observability-operator
+spec:
+  name: network-observability-operator
+  icon: https://avatars.githubusercontent.com/u/91939379?s=200&v=4
+  identifier: mgmt
+  documentation: |
+    Sets up a network-observability-operator.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/netobserv
+    templates:
+    - source: README.md
+      destination: "documentation/netobserv/README.md"
+      external: true
+    - source: netobserv.yaml.liquid
+      destination: "helm/monitoring/netobserv.yaml.liquid"
+      external: true
+    - source: netobserv.yaml
+      destination: "bootstrap/apps/netobserv/netobserv.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setup Network Observability Operator"
+  message: |
+    Sets up a Network Observability Operator in {{ context.cluster }}.
+  configuration: []
