@@ -22,6 +22,9 @@ spec:
     - source: netobserv.yaml
       destination: "bootstrap/apps/netobserv/netobserv.yaml"
       external: true
+    - source: services
+      destination: services/netobserv
+      external: true
   repositoryRef:
     name: scaffolds
   catalogRef:
