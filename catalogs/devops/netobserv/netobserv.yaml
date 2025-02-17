@@ -6,9 +6,6 @@ metadata:
 spec:
   template:
     namespace: netobserv
-    git:
-      folder: helm/netobserv
-      ref: main
     repositoryRef:
       kind: GitRepository
       name: infra
