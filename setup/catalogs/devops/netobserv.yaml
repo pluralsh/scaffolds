@@ -17,7 +17,7 @@ spec:
       destination: "documentation/netobserv/README.md"
       external: true
     - source: netobserv.yaml.liquid
-      destination: "helm/monitoring/netobserv.yaml.liquid"
+      destination: "helm/netobserv/netobserv.yaml.liquid"
       external: true
     - source: netobserv.yaml
       destination: "bootstrap/apps/netobserv/netobserv.yaml"
