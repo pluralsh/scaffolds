@@ -16,11 +16,11 @@ spec:
     - source: README.md
       destination: "documentation/netobserv/README.md"
       external: true
-    - source: netobserv.yaml.liquid
-      destination: "helm/netobserv/netobserv.yaml.liquid"
-      external: true
     - source: netobserv.yaml
       destination: "bootstrap/apps/netobserv/netobserv.yaml"
+      external: true
+    - source: flowcollector.yaml
+      destination: "bootstrap/apps/netobserv/flowcollector.yaml"
       external: true
     - source: services
       destination: services/netobserv
