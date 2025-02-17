@@ -1,0 +1,51 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: osartifact-{{ context.name }}-{{ context.cluster }}
+  namespace: osbuilder
+spec:
+  namespace: osbuilder
+  git:
+    folder: helm/osartifact/{{ context.cluster }}/{{ context.name }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "0.x.x"
+    chart: osartifact
+    release: pluralos-{{ context.name }}
+    url: https://pluralsh.github.io/osbuilder/
+    valuesFiles:
+      - osartifact.yaml.liquid
+  configurationRef:
+    name: osbuilder-{{ context.cluster }}-configuration
+    namespace: osbuilder
+  configuration:
+    cluster: {{ context.cluster }}
+    project: {{ context.project }}
+    name: {{ context.name }}
+    image: {{ context.image }}
+    device: {{ context.device }}
+    username: {{ context.username }}
+    isECRRegistry: '{{ context.isECRRegistry | default: false }}'
+    useExistingRegistry: '{{ context.useExistingRegistry | default: true }}'
+    {% if context.registry %}registry: {{ context.registry }}{% endif %}
+    {% if context.repository != nil and context.repository != '' %}
+    repository: {{ context.repository }}
+    {% else %}
+    repository: pluralos-{{ context.name }}
+    {% endif %}
+    {% if context.tag %}tag: {{ context.tag }}{% endif %}
+    {% if context.registryAuthSecret %}registryAuthSecret: {{ context.registryAuthSecret }}{% endif %}
+    {% if context.wifiSSID %}wifiSSID: {{ context.wifiSSID }}{% endif %}
+    {% if context.wifiPassword %}wifiPassword: {{ context.wifiPassword }}{% endif %}
+  imports:
+    - stackRef:
+        name: osartifact-{{ context.name }}-{{ context.cluster }}
+        namespace: osbuilder
+  clusterRef:
+    kind: Cluster
+    name: {{ context.cluster }}
+    namespace: infra
