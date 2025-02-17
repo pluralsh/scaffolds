@@ -1,0 +1,38 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: osbuilder-{{ context.cluster }}
+  namespace: osbuilder
+spec:
+  namespace: osbuilder
+  git:
+    folder: helm/osbuilder/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "0.x.x"
+    chart: osbuilder
+    release: osbuilder
+    ignoreHooks: false
+    url: https://pluralsh.github.io/osbuilder/
+    valuesFiles:
+      - osbuilder.yaml.liquid
+  {% if context.deploySelfHostedRegistry %}
+  imports:
+    - stackRef:
+        name: osbuilder-{{ context.cluster }}
+        namespace: osbuilder
+  {% endif %}
+  configuration:
+    cluster: {{ context.cluster }}
+    {% if context.hostname %}hostname: {{ context.hostname }}{% endif %}
+    {% if context.bucket %}bucket: {{ context.bucket }}{% endif %}
+    {% if context.region %}region: {{ context.region }}{% endif %}
+    deploySelfHostedRegistry: '{{ context.deploySelfHostedRegistry }}'
+  clusterRef:
+    kind: Cluster
+    name: {{ context.cluster }}
+    namespace: infra
