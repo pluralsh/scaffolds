@@ -14,5 +14,3 @@ spec:
       url: https://pluralsh.github.io/console
       chart: network-observability-operator
       version: 'x.x.x'
-      valuesFiles:
-        - netobserv.yaml.liquid
