@@ -1,1 +1,1 @@
-# NetObserv Operator
+# Network Observability Operator

@@ -29,6 +29,5 @@ spec:
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: "Setup Network Observability Operator"
-  message: |
-    Sets up a Network Observability Operator in {{ context.cluster }}.
+  message: "Sets up a Network Observability Operator."
   configuration: []
