@@ -8,6 +8,6 @@ spec:
     name: netobserv
     namespace: netobserv
     helm:
-      url: https://maciaszczykm.github.io/helm-charts # TODO: https://pluralsh.github.io/console.
+      url: https://pluralsh.github.io/console
       chart: network-observability-operator
       version: 'x.x.x'
