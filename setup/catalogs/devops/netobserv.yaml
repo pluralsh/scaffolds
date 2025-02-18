@@ -10,7 +10,7 @@ spec:
     Sets up a network-observability-operator.
   creates:
     git:
-      ref: marcin/prod-3215-setup-redhat-network-observability-operator-to-send # TODO: main.
+      ref: main
       folder: catalogs/devops/netobserv
     templates:
     - source: README.md
