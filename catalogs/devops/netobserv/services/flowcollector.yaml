@@ -29,6 +29,8 @@ spec:
     advanced:
       conversationEndTimeout: 10s
       conversationHeartbeatInterval: 30s
+  loki:
+    enable: false
   prometheus:
     querier:
       enable: true
