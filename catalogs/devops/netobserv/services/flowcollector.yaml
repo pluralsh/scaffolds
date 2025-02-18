@@ -34,4 +34,6 @@ spec:
       enable: false
   loki:
     enable: false
+  consolePlugin:
+    enable: false
   exporters: []
