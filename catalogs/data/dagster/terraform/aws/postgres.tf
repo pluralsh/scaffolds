@@ -7,9 +7,7 @@ resource "random_password" "password" {
 }
 
 data "plural_service_context" "mgmt" {
-  name = "mgmt"
-
-  depends_on = [ data.plural_service_context.mgmt ]
+  name = "plrl/clusters/mgmt"
 }
 
 locals {

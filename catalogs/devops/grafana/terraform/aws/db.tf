@@ -11,9 +11,7 @@ data "plural_cluster" "cluster" {
 }
 
 data "plural_service_context" "mgmt" {
-  name = "mgmt"
-
-  depends_on = [ data.plural_service_context.mgmt ]
+  name = "plrl/clusters/mgmt"
 }
 
 locals {
