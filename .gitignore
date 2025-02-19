@@ -20,3 +20,6 @@ bin/
 # vendor/
 
 *.code-workspace
+
+# Ignore all .terraform items
+.terraform
