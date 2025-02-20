@@ -10,14 +10,12 @@ data "plural_cluster" "cluster" {
   handle = var.cluster_name
 }
 
-data "aws_eks_cluster" "mgmt" {
-  name = data.plural_cluster.cluster.name
-
-  depends_on = [ data.plural_cluster.cluster ]
+data "plural_service_context" "mgmt" {
+  name = "plrl/clusters/mgmt"
 }
 
-data "aws_vpc" "mgmt" {
-  id = one(data.aws_eks_cluster.mgmt.vpc_config).vpc_id
+locals {
+  configuration = jsondecode(data.plural_service_context.mgmt.configuration)
 }
 
 module "db" {
@@ -49,7 +47,7 @@ module "db" {
   multi_az = false
 
   create_db_subnet_group = true
-  subnet_ids             = one(data.aws_eks_cluster.mgmt.vpc_config).subnet_ids
+  subnet_ids             = local.configuration["subnet_ids"]
   vpc_security_group_ids = [module.security_group.security_group_id]
 
   create_cloudwatch_log_group = true
@@ -76,7 +74,7 @@ module "security_group" {
 
   name        = "grafana-db-security-group"
   description = "security group for your plural grafana db"
-  vpc_id      = data.aws_vpc.mgmt.id
+  vpc_id      = local.configuration["vpc_id"]
 
   ingress_with_cidr_blocks = [
     {
@@ -84,7 +82,7 @@ module "security_group" {
       to_port     = 5432
       protocol    = "tcp"
       description = "PostgreSQL access from within VPC"
-      cidr_blocks = data.aws_vpc.mgmt.cidr_block
+      cidr_blocks = local.configuration["vpc_cidr"]
     },
   ]
 }

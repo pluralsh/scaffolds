@@ -1,3 +1,7 @@
+locals {
+  cluster_name = jsondecode(data.plural_service_context.mgmt.configuration)["cluster_name"]
+}
+
 data "aws_iam_policy_document" "dagster" {
   statement {
     sid    = "admin"
@@ -18,10 +22,7 @@ resource "aws_iam_policy" "dagster" {
 }
 
 resource "aws_iam_user" "dagster" {
-  name = "${data.plural_cluster.cluster.name}-dagster"
-
-  depends_on = [ data.plural_cluster.cluster ]
-
+  name = "${local.cluster_name}-dagster"
 }
 
 resource "aws_iam_access_key" "dagster" {
@@ -29,7 +30,7 @@ resource "aws_iam_access_key" "dagster" {
 }
 
 resource "aws_iam_policy_attachment" "dagster-user" {
-  name = "${data.plural_cluster.cluster.name}-dagster-policy"
+  name = "${local.cluster_name}-dagster-policy"
   users = [aws_iam_user.dagster.name]
   policy_arn = aws_iam_policy.dagster.arn
 }
