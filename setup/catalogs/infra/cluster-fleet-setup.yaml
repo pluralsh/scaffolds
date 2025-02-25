@@ -10,7 +10,7 @@ spec:
     Sets up a PR to a new fleet, with a dev + prod cluster and a pipeline to control upgrades
   creates:
     git:
-      ref: main # TODO set to main
+      ref: cluster-setup-improvements # TODO set to main
       folder: catalogs/infra/cluster
     templates:
       - source: pipeline.yaml
