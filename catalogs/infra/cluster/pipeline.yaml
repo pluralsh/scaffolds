@@ -1,7 +1,7 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: Pipeline
 metadata:
-  name: {{ context.fleet }}-cluster-upgrade
+  name: {{ context.fleet }}-fleet-upgrade
 spec:
   stages:
     - name: dev

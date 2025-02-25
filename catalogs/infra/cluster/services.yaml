@@ -2,7 +2,6 @@ apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
   name: {{ context.fleet }}-dev
-  namespace: infra
 spec:
   namespace: {{ context.fleet }}
   git:
@@ -22,7 +21,6 @@ apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
   name: {{ context.fleet }}-prod
-  namespace: infra
 spec:
   namespace: {{ context.fleet }}
   git:

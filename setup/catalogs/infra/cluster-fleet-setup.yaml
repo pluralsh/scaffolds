@@ -10,7 +10,7 @@ spec:
     Sets up a PR to a new fleet, with a dev + prod cluster and a pipeline to control upgrades
   creates:
     git:
-      ref: cluster-setup-improvements # TODO set to main
+      ref: main
       folder: catalogs/infra/cluster
     templates:
       - source: pipeline.yaml
@@ -19,18 +19,18 @@ spec:
       - source: services.yaml
         destination: "services/{{ context.fleet }}/setup/services.yaml"
         external: true
-      - source: {{ context.cloud }}/stack.yaml
+      - source: '{{ context.cloud }}/stack.yaml'
         destination: "services/{{ context.fleet }}/clusters/dev/{{ context.fleet }}-dev.yaml.liquid"
         context:
           tier: dev
         external: true
-      - source: {{ context.cloud }}/stack.yaml
+      - source: '{{ context.cloud }}/stack.yaml'
         destination: "services/{{ context.fleet }}/clusters/prod/{{ context.fleet }}-prod.yaml.liquid"
         context:
           tier: prod
         external: true
       - source: service.yaml
-        destination: "bootstrap/infra/{{ context.fleet }}yaml"
+        destination: "bootstrap/infra/{{ context.fleet }}.yaml"
         external: true
       - source: pra.yaml
         destination: bootstrap/pr-automation/fleet-upgrade-pra.yaml
@@ -52,12 +52,6 @@ spec:
     - name: fleet
       type: STRING
       documentation: Name for the fleet you want this cluster to belong to.
-    - name: tier
-      type: ENUM
-      documentation: What tier to place this cluster in.
-      values:
-        - dev
-        - prod
     - name: region
       type: STRING
       documentation: Region where the cluster should be created.

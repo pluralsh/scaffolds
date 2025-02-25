@@ -1,0 +1,39 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: fleet-cluster-deleter
+spec:
+  name: fleet-cluster-deleter
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d1a82b07-b809-4eb4-b615-8f24365b72b8/k8s.png?v=63861145828
+  identifier: mgmt
+  documentation: |
+    Sets up a PR to delete a cluster from the provided fleet
+  deletes:
+    files:
+    - "services/{{ context.fleet }}/clusters/{{ context.tier }}/{{ context.name }}.yaml.liquid"
+  catalogRef:
+    name: infra
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Deletes cluster {{ context.name }} in fleet {{ context.fleet }}"
+  message: "Deletes cluster {{ context.name }} in fleet {{ context.fleet }}"
+  configuration:
+    - name: cloud
+      type: ENUM
+      documentation: Cloud where the clusters for this fleet should be created.
+      values:
+      - aws
+    - name: fleet
+      type: STRING
+      documentation: Name for the fleet you want this cluster to belong to.
+    - name: name
+      type: STRING
+      documentation: the name for this cluster
+      validation:
+        regex: '[a-z\-]+'
+    - name: tier
+      type: ENUM
+      documentation: What tier to place this cluster in.
+      values:
+        - dev
+        - prod
