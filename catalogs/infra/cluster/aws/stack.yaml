@@ -1,10 +1,9 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
-  name: cluster-{{ context.name }}
-  namespace: infra
+  name: cluster-{{ context.fleet }}-{{ context.tier }}
 spec:
-  name: cluster-{{ context.name }}
+  name: cluster-{{ context.fleet }}-{{ context.tier }}
   detach: false
   type: TERRAFORM
   approval: true
@@ -21,20 +20,18 @@ spec:
   git:
     ref: main
     folder: terraform/modules/clusters/aws
-  environment:
-  - name: TF_VAR_cluster
-    value: {{ context.name }}
-  - name: TF_VAR_fleet
-    value: {{ context.fleet }}
-  - name: TF_VAR_tier
-    value: {{ context.tier }}
-  - name: TF_VAR_region
-    value: {{ context.region }}
-  - name: AWS_ACCESS_KEY_ID
-    secretKeyRef:
-      name: {{ context.credentialSecret }}
-      key: AWS_ACCESS_KEY_ID
-  - name: AWS_SECRET_ACCESS_KEY
-    secretKeyRef:
-      name: {{ context.credentialSecret }}
-      key: AWS_SECRET_ACCESS_KEY
+  variables:
+    cluster: {{ context.name }}
+    fleet: {{ context.fleet }}
+    tier: {{ context.tier }}
+    region: {{ context.region }}
+    {% raw %} 
+    kubernetes_version: {{ context.kubernetesVersion }}
+    {% endraw %}
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Cluster
+metadata:
+  name: {{ context.name }}
+spec:
+  handle: {{ context.name }}
