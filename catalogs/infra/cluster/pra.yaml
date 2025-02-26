@@ -1,0 +1,26 @@
+{% raw %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: fleet-upgrade-pra
+spec:
+  name: fleet-upgrade-pra
+  documentation: Updates the k8s version of a given stage of cluster for a fleet
+  updates:
+    regexReplacements:
+    - regex: "kubernetesVersion: (.*) # {{ context.pipeline.stage.name }}"
+      file: "services/fleets/{{ context.fleet }}/setup/services.yaml"
+      replacement: "kubernetesVersion: \"{{ context.version }}\" # {{ context.pipeline.stage.name }}"
+  scmConnectionRef:
+    name: plural
+  title: "Updating {{ context.fleet }} {{ context.pipeline.stage.name }} clusters to {{ context.version }}"
+  message: "Updating {{ context.fleet }} {{ context.pipeline.stage.name }} clusters to {{ context.version }}"
+  identifier: pluralsh/fleet
+  configuration:
+  - name: fleet
+    type: STRING
+    documentation: "the fleet to update"
+  - name: version
+    type: STRING
+    documentation: The k8s version to use
+{% endraw %}

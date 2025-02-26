@@ -1,0 +1,28 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Pipeline
+metadata:
+  name: {{ context.fleet }}-fleet-upgrade
+spec:
+  stages:
+    - name: dev
+      services:
+        - serviceRef:
+            name: {{ context.fleet }}-dev
+            namespace: {{ context.fleet }}
+          criteria:
+            prAutomationRef:
+              name: fleet-upgrade-pra
+    - name: prod
+      services:
+        - serviceRef:
+            name: {{ context.fleet }}-prod
+            namespace: {{ context.fleet }}
+          criteria:
+            prAutomationRef:
+              name: fleet-upgrade-pra
+  edges:
+  - from: dev
+    to: prod
+    gates:
+    - name: approval-gate
+      type: APPROVAL

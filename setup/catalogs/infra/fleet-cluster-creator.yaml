@@ -1,0 +1,49 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: fleet-cluster-creator
+spec:
+  name: fleet-cluster-creator
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d1a82b07-b809-4eb4-b615-8f24365b72b8/k8s.png?v=63861145828
+  identifier: mgmt
+  documentation: |
+    Sets up a PR to add a new cluster to the provided fleet
+  creates:
+    git:
+      ref: main
+      folder: catalogs/infra/cluster
+    templates:
+      - source: '{{ context.cloud }}/stack.yaml'
+        destination: "services/{{ context.fleet }}/clusters/{{ context.tier }}/{{ context.name }}.yaml.liquid"
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: infra
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up {{ context.name }} cluster in fleet {{ context.fleet }}"
+  message: "Setting up {{ context.name }} cluster in fleet {{ context.fleet }}"
+  configuration:
+    - name: cloud
+      type: ENUM
+      documentation: Cloud where the clusters for this fleet should be created.
+      values:
+      - aws
+    - name: fleet
+      type: STRING
+      documentation: Name for the fleet you want this cluster to belong to.
+    - name: name
+      type: STRING
+      documentation: the name for this cluster
+      validation:
+        regex: '[a-z\-]+'
+    - name: tier
+      type: ENUM
+      documentation: What tier to place this cluster in.
+      values:
+        - dev
+        - prod
+    - name: region
+      type: STRING
+      documentation: Region where the cluster should be created.

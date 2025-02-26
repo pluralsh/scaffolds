@@ -1,0 +1,37 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: {{ context.fleet }}-dev
+spec:
+  namespace: {{ context.fleet }}
+  git:
+    folder: services/{{ context.fleet }}/clusters/dev
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configuration:
+    kubernetesVersion: '1.29' # dev
+  clusterRef:
+    name: mgmt
+    namespace: infra
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: {{ context.fleet }}-prod
+spec:
+  namespace: {{ context.fleet }}
+  git:
+    folder: services/{{ context.fleet }}/clusters/prod
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configuration:
+    kubernetesVersion: '1.29' # prod
+  clusterRef:
+    name: mgmt
+    namespace: infra

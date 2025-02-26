@@ -1,12 +1,12 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: clusters
+  name: {{ context.fleet }}-setup
   namespace: infra
 spec:
-  namespace: infra
+  namespace: {{ context.fleet }}
   git:
-    folder: services/infra/clusters
+    folder: services/{{ context.fleet }}/setup
     ref: main
   repositoryRef:
     kind: GitRepository
