@@ -1,0 +1,33 @@
+{% raw %}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bedrock-ingress
+  namespace: bedrock
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - {{ configuration.hostname }}
+      secretName: bedrock-tls
+  rules:
+    - host: {{ configuration.hostname }}
+      http:
+        paths:
+          - path: /.*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: bedrock
+                port:
+                  number: {{ configuration.service_port | default: 443 }}
+{% endraw %}
