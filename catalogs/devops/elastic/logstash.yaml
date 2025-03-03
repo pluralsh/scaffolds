@@ -25,7 +25,6 @@ metadata:
   name: logstash
   namespace: infra
 spec:
-  distro: EKS
   serviceRef:
     name: logstash
     namespace: infra

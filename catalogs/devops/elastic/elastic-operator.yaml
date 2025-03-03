@@ -4,7 +4,6 @@ metadata:
   name: elastic-operator
   namespace: infra
 spec:
-  distro: EKS
   template:
     namespace: elastic-system
     helm:

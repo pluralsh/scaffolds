@@ -1,0 +1,13 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: netobserv
+  namespace: apps
+spec:
+  template:
+    name: netobserv
+    namespace: netobserv
+    helm:
+      url: https://pluralsh.github.io/console
+      chart: network-observability-operator
+      version: 'x.x.x'

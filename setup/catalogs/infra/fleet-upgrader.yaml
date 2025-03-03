@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: fleet-upgrader
+spec:
+  name: fleet-upgrader
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d1a82b07-b809-4eb4-b615-8f24365b72b8/k8s.png?v=63861145828
+  identifier: mgmt
+  documentation: |
+    Upgrades a given fleet to a new kubernetes version
+  creates:
+    git:
+      ref: main
+      folder: catalogs/infra/cluster
+    templates:
+      - source: context.yaml
+        destination: "services/{{ context.fleet }}/setup/context.yaml"
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: infra
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Triggers a pipelined cluster upgrade for fleet {{ context.fleet }}"
+  message: "Triggers a pipelined cluster upgrade for fleet {{ context.fleet }}"
+  configuration:
+    - name: fleet
+      type: STRING
+      documentation: Name for the fleet to upgrade
+    - name: version
+      type: STRING
+      documentation: the kubernetes version to upgrade to

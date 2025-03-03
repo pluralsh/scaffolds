@@ -1,0 +1,39 @@
+apiVersion: flows.netobserv.io/v1beta2
+kind: FlowCollector
+metadata:
+  name: cluster
+spec:
+  namespace: netobserv
+  deploymentModel: Direct
+  agent:
+    type: eBPF
+    ebpf:
+      sampling: 50
+      logLevel: info
+      privileged: false
+      resources:
+        requests:
+          memory: 50Mi
+          cpu: 100m
+        limits:
+          memory: 800Mi
+  processor:
+    logLevel: info
+    resources:
+      requests:
+        memory: 100Mi
+        cpu: 100m
+      limits:
+        memory: 800Mi
+    logTypes: Flows
+    advanced:
+      conversationEndTimeout: 10s
+      conversationHeartbeatInterval: 30s
+  prometheus:
+    querier:
+      enable: false
+  loki:
+    enable: false
+  consolePlugin:
+    enable: false
+  exporters: []
