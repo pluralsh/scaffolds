@@ -40,6 +40,18 @@ spec:
       templated: true
       yaml: |
         spec:
+          ai:
+            vectorStore:
+              enabled: true
+              vectorStore: ELASTIC
+              elastic:
+                host: https://{{ context.elasticHostname }}
+                user: plrl
+                index: plrl-ai-vector
+                passwordSecretRef:
+                  name: plrl-elastic-user
+                  key: password
+
           logging:
             enabled: true
             driver: ELASTIC
