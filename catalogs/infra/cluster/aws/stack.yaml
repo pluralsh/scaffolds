@@ -28,7 +28,7 @@ spec:
     tier: {{ context.tier }}
     region: {{ context.region }}
     {% raw %} 
-    kubernetes_version: {{ configuration.kubernetesVersion }}
+    kubernetes_version: "{{ configuration.kubernetesVersion }}"
     {% endraw %}
 ---
 apiVersion: deployments.plural.sh/v1alpha1
