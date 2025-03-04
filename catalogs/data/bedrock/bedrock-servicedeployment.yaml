@@ -1,0 +1,32 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: bedrock-{{ context.cluster }}
+  namespace: apps
+spec:
+  namespace: bedrock
+  git:
+    folder: terraform/bedrock/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  valuesFiles:
+    - bedrock.yaml.liquid
+    - bedrock-ingress.yaml.liquid
+  imports:
+  - stackRef:
+      name: bedrock-{{ context.cluster }}
+      namespace: apps
+  configurationRef:
+    name: bedrock-access-token
+    namespace: infra
+  configuration:
+    cluster: {{ context.cluster }}
+    region: ${bedrock-{{ context.cluster }}.aws_region}
+    role_arn: ${bedrock-{{ context.cluster }}.bedrock_role_arn}
+  clusterRef:
+    kind: Cluster
+    name: {{ context.cluster }}
+    namespace: infra
