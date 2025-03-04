@@ -14,7 +14,7 @@ spec:
       folder: catalogs/infra/cluster
     templates:
       - source: context.yaml
-        destination: "services/{{ context.fleet }}/setup/context.yaml"
+        destination: "services/{{ context.fleet }}/setup/pipelinecontext.yaml"
         external: true
   repositoryRef:
     name: scaffolds
