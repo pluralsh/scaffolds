@@ -73,7 +73,7 @@ spec:
     Sets up Elastic on {{ context.cluster }} cluster, alongside logstash and kibana.
   configuration:
   - name: cluster
-    type: STRING
+    type: CLUSTER
     documentation: the cluster you want to deploy to
   - name: elasticHostname
     type: STRING

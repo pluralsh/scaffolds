@@ -54,7 +54,7 @@ spec:
     Sets up a Victoria Metrics prometheus instance for metrics storage and a prometheus agent for metrics shipping in {{ context.cluster }}.
   configuration:
   - name: cluster
-    type: STRING
+    type: CLUSTER
     documentation: |
       CRD name for this cluster. Use `mgmt` to place it in the management cluster.
   - name: host

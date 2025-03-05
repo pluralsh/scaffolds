@@ -27,10 +27,8 @@ spec:
       type: STRING
       documentation: Name for the fleet you want this cluster to belong to.
     - name: name
-      type: STRING
+      type: CLUSTER
       documentation: the name for this cluster
-      validation:
-        regex: '[a-z\-]+'
     - name: tier
       type: ENUM
       documentation: What tier to place this cluster in.

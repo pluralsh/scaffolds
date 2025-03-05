@@ -41,7 +41,7 @@ spec:
     values:
     - aws
   - name: cluster
-    type: STRING
+    type: CLUSTER
     documentation: the cluster you want to deploy to
   - name: hostname
     type: STRING
