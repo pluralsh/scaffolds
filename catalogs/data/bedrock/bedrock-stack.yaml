@@ -15,8 +15,6 @@ spec:
   repositoryRef:
     name: infra
     namespace: infra
-  configuration:
-    region: {{ context.region }}
   clusterRef:
     name: {{ context.stackCluster }}
     namespace: infra

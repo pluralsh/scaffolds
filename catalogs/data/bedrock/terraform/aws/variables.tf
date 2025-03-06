@@ -3,9 +3,9 @@ variable "namespace" {
   type        = string
 }
 
-variable "service_account_name" {
-  description = "The Kubernetes service account that should assume the IAM role"
-  type        = string
+variable "cluster_name" {
+  type    = string
+  default = "plural"
 }
 
 variable "aws_region" {

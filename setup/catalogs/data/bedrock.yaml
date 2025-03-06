@@ -22,9 +22,6 @@ spec:
       - source: bedrock-stack.yaml
         destination: "bootstrap/apps/bedrock/{{ context.cluster }}/bedrock-stack.yaml"
         external: true
-      - source: bedrock-ingress.yaml.liquid
-        destination: "bootstrap/apps/bedrock/{{ context.cluster }}/bedrock-ingress.yaml.liquid"
-        external: true
       - source: bedrock.yaml.liquid
         destination: "bootstrap/apps/bedrock/{{ context.cluster }}/bedrock.yaml.liquid"
         external: true
@@ -56,7 +53,7 @@ spec:
       type: ENUM
       documentation: Cloud provider you want to deploy bedrock to.
       values:
-      - aws
+        - aws
     - name: region
       type: STRING
       documentation: The cloud provider region (e.g., us-east-1) you'll use for AWS Bedrock.

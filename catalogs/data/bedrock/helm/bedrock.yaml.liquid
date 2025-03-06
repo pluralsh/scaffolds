@@ -1,5 +1,19 @@
-aws:
-  enabled: true
-  accessKeyRef: bedrock-access-token
-  iamRoleArn: {{ configuration.role_arn }}
-  region: {{ configuration.region }}
+{% raw %}
+{% assign imports_bedrock_key =  'bedrock-' | append: configuration.name | append: '-' |  append: configuration.cluster %}
+
+config:
+  provider: bedrock
+
+secrets:
+
+args:
+  - --provider=bedrock
+  - --provider-aws-region={{ configuration.region | default: "us-east-1" }}
+
+serviceAccount:
+  create: true
+  name: bedrock-sa
+  annotations: {
+    eks.amazonaws.com/role-arn:  {{ imports[imports_bedrock_key].bedrock }}
+  }
+{% endraw %}
