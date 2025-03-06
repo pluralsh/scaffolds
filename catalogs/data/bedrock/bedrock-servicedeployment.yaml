@@ -12,12 +12,12 @@ spec:
     kind: GitRepository
     name: infra
     namespace: infra
-   helm:
-      url: https://pluralsh.github.io/console
-      chart: ai-proxy
-      version: 'x.x.x'
-      valuesFiles:
-      - bedrock.yaml.liquid
+  helm:
+    url: https://pluralsh.github.io/console
+    chart: ai-proxy
+    version: 'x.x.x'
+    valuesFiles:
+    - bedrock.yaml.liquid
   imports:
   - stackRef:
       name: bedrock-{{ context.cluster }}
