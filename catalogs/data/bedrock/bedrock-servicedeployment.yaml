@@ -27,7 +27,7 @@ spec:
   #   namespace: infra
   configuration:
     cluster: {{ context.cluster }}
-    region: ${bedrock-{{ context.cluster }}.aws_region}
+    region: ${bedrock-{{ context.cluster }}.region}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
