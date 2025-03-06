@@ -1,8 +1,8 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
-  name: bedrock-iam-{{ context.cluster }}
-  namespace: bedrock
+  name: bedrock-{{ context.cluster }}
+  namespace: apps
 spec:
   detach: false
   type: TERRAFORM
@@ -15,6 +15,8 @@ spec:
   repositoryRef:
     name: infra
     namespace: infra
+  configuration:
+    version: '1.8'
   clusterRef:
     name: {{ context.stackCluster }}
     namespace: infra
