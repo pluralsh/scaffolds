@@ -4,8 +4,6 @@
 config:
   provider: bedrock
 
-secrets:
-
 args:
   - --provider=bedrock
   - --provider-aws-region={{ configuration.region | default: "us-east-1" }}
