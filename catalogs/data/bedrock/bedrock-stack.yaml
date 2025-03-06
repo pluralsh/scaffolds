@@ -1,0 +1,20 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: bedrock-iam-{{ context.cluster }}
+  namespace: bedrock
+spec:
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/bedrock/{{ context.cluster }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  clusterRef:
+    name: {{ context.stackCluster }}
+    namespace: infra
