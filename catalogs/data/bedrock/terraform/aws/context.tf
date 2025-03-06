@@ -31,6 +31,7 @@ resource "plural_service_context" "mgmt" {
     private_subnets = data.aws_subnets.private.ids
     public_subnets  = data.aws_subnets.public.ids
     vpc_cidr        = data.aws_vpc.selected.cidr_block
+    eks_cluster_oidc_issuer_url = data.aws_eks_cluster.eks.identity[0].oidc[0].issuer  
   })
 }
 
