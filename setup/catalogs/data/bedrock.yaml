@@ -10,7 +10,7 @@ spec:
     Sets up AWS Bedrock within Plural for your chosen cloud and cluster.
   creates:
     git:
-      ref: main
+      ref: john/prod-3002-data-catalog-ai-catalog-bedrock-openai-gateway
       folder: catalogs/data/bedrock
     templates:
       - source: terraform/{{ context.cloud }}
