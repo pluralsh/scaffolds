@@ -13,6 +13,9 @@ spec:
       ref: john/prod-3002-data-catalog-ai-catalog-bedrock-openai-gateway
       folder: catalogs/data/bedrock
     templates:
+      - source: helm
+        destination: helm/bedrock/{{ context.cluster }}
+        external: true
       - source: terraform/{{ context.cloud }}
         destination: "terraform/apps/bedrock/{{ context.cluster }}"
         external: true
@@ -21,9 +24,6 @@ spec:
         external: true
       - source: bedrock-stack.yaml
         destination: "bootstrap/apps/bedrock/{{ context.cluster }}/bedrock-stack.yaml"
-        external: true
-      - source: bedrock.yaml.liquid
-        destination: "bootstrap/apps/bedrock/{{ context.cluster }}/bedrock.yaml.liquid"
         external: true
       - source: README.md
         destination: documentation/bedrock/README.md
