@@ -1,42 +1,5 @@
-data "aws_eks_cluster" "eks" {
-  name = var.cluster
-}
-
-data "aws_vpc" "selected" {
-  default = true
-}
-
-data "aws_subnets" "private" {
-  filter {
-    name   = "tag:Name"
-    values = ["*private*"]
-  }
-}
-
-data "aws_subnets" "public" {
-  filter {
-    name   = "tag:Name"
-    values = ["*public*"]
-  }
-}
-
-resource "plural_service_context" "mgmt" {
-  name = "plrl/clusters/${var.cluster}"
-
-  configuration = jsonencode({
-    region          = var.region
-    cluster_name    = data.aws_eks_cluster.eks.name
-    vpc_id          = data.aws_vpc.selected.id
-    subnet_ids      = concat(data.aws_subnets.public.ids, data.aws_subnets.private.ids)
-    private_subnets = data.aws_subnets.private.ids
-    public_subnets  = data.aws_subnets.public.ids
-    vpc_cidr        = data.aws_vpc.selected.cidr_block
-    eks_cluster_oidc_issuer_url = data.aws_eks_cluster.eks.identity[0].oidc[0].issuer  
-  })
-}
-
 data "plural_service_context" "mgmt" {
-  name = "plrl/clusters/mgmt"
+  name = "plrl/clusters/${var.cluster}"
 }
 
 locals {
