@@ -43,20 +43,17 @@ spec:
     route requests to AWS Bedrock.
   configuration:
     - name: cluster
-      type: STRING
+      type: CLUSTER
       documentation: Handle of the cluster you want to deploy bedrock to.
     - name: stackCluster
-      type: STRING
-      documentation: Handle of the cluster used to run Infrastructure Stacks for provisioning the infrastructure. Defaults to the management cluster.
+      type: CLUSTER
+      documentation: Handle of the cluster used to run the stack to provision the bedrock IAM role, defaults to the management cluster.
       default: mgmt
     - name: cloud
       type: ENUM
       documentation: Cloud provider you want to deploy bedrock to.
       values:
         - aws
-    - name: region
-      type: STRING
-      documentation: The cloud provider region (e.g., us-east-1) you'll use for AWS Bedrock.
     # - name: hostname
     #   type: STRING
     #   documentation: The DNS name you'll route to bedrock-ingress (if using an ingress).

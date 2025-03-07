@@ -7,10 +7,6 @@ config:
 args:
   - --provider=bedrock
 
-env:
-  - name: AWS_REGION
-    value: {{ configuration.region | default: "us-east-1" }}
-
 serviceAccount:
   create: true
   name: ai-proxy
