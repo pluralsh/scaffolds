@@ -1,0 +1,17 @@
+{% raw %}
+{% assign imports_bedrock_key =  'bedrock-' | append: configuration.name | append: '-' |  append: configuration.cluster %}
+
+config:
+  provider: bedrock
+
+args:
+  - --provider=bedrock
+
+serviceAccount:
+  create: true
+  name: ai-proxy
+  namespace: bedrock
+  annotations: {
+    eks.amazonaws.com/role-arn:  {{ imports[imports_bedrock_key].bedrock }}
+  }
+{% endraw %}
