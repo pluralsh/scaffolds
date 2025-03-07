@@ -27,7 +27,6 @@ spec:
   #   namespace: infra
   configuration:
     cluster: {{ context.cluster }}
-    region: {{ context.region }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
