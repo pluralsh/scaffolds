@@ -11,6 +11,7 @@ args:
 serviceAccount:
   create: true
   name: ai-proxy
+  namespace: bedrock
   annotations: {
     eks.amazonaws.com/role-arn:  {{ imports[imports_bedrock_key].bedrock }}
   }
