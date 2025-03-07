@@ -6,7 +6,10 @@ config:
 
 args:
   - --provider=bedrock
-  - --provider-aws-region={{ configuration.region | default: "us-east-1" }}
+
+env:
+  - name: AWS_REGION
+    value: {{ configuration.region | default: "us-east-1" }}
 
 serviceAccount:
   create: true
