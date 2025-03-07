@@ -70,6 +70,6 @@ module "assumable_role_bedrock" {
   role_policy_arns = [aws_iam_policy.bedrock.arn]
 
   oidc_fully_qualified_subjects = [
-    "system:serviceaccount:bedrock:bedrock-sa",
+    "system:serviceaccount:bedrock:ai-proxy",
   ]
 }

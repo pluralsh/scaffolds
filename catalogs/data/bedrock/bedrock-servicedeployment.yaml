@@ -18,10 +18,6 @@ spec:
     version: 'x.x.x'
     valuesFiles:
     - bedrock.yaml.liquid
-    git:
-      folder: charts/ai-proxy
-      ref: john/prod-3002-data-catalog-ai-catalog-bedrock-openai-gateway
-      name: console
   imports:
   - stackRef:
       name: bedrock-{{ context.cluster }}
