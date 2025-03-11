@@ -22,8 +22,6 @@ spec:
   - stackRef:
       name: bedrock-proxy
       namespace: apps
-  configuration:
-    cluster: {{ context.cluster }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
