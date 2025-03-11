@@ -8,5 +8,5 @@ serviceAccount:
   name: ai-proxy
   namespace: bedrock
   annotations:
-    eks.amazonaws.com/role-arn:  {{ imports['bedrock-proxy'].bedrock_role_arn }}
+    eks.amazonaws.com/role-arn:  {{ imports[bedrock-proxy].bedrock_role_arn }}
 {% endraw %}
