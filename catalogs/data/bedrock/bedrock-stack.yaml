@@ -11,7 +11,7 @@ spec:
   actor: console@plural.sh
   git:
     ref: main
-    folder: terraform/apps/bedrock/{{ context.cluster }}
+    folder: terraform/apps/bedrock
   repositoryRef:
     name: infra
     namespace: infra
