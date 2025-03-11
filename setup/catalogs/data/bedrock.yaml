@@ -14,16 +14,16 @@ spec:
       folder: catalogs/data/bedrock
     templates:
       - source: helm
-        destination: helm/bedrock/{{ context.cluster }}
+        destination: helm/bedrock
         external: true
-      - source: terraform/{{ context.cloud }}
-        destination: "terraform/apps/bedrock/{{ context.cluster }}"
+      - source: terraform
+        destination: "terraform/apps/bedrock"
         external: true
       - source: bedrock-servicedeployment.yaml
-        destination: "bootstrap/apps/bedrock/{{ context.cluster }}/bedrock-servicedeployment.yaml"
+        destination: "bootstrap/apps/bedrock/bedrock-servicedeployment.yaml"
         external: true
       - source: bedrock-stack.yaml
-        destination: "bootstrap/apps/bedrock/{{ context.cluster }}/bedrock-stack.yaml"
+        destination: "bootstrap/apps/bedrock/bedrock-stack.yaml"
         external: true
       - source: README.md
         destination: documentation/bedrock/README.md
@@ -34,9 +34,9 @@ spec:
     name: data-engineering
   scmConnectionRef:
     name: plural  # Adjust to your existing SCM connection
-  title: "Setting up Bedrock on cluster {{ context.cluster }} for {{ context.cloud }}"
+  title: "Setting up Bedrock on cluster {{ context.cluster }}}"
   message: |
-    Set up AWS Bedrock on {{ context.cluster }} ({{ context.cloud }})
+    Set up AWS Bedrock on {{ context.cluster }}
 
     This will provision IAM roles/policies for Bedrock, generate secrets,
     and create ServiceDeployment + Ingress so that Plural can
@@ -49,4 +49,3 @@ spec:
       type: CLUSTER
       documentation: Handle of the cluster used to run the stack to provision the bedrock IAM role, defaults to the management cluster.
       default: mgmt
-      
