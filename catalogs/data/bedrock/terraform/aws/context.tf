@@ -4,5 +4,5 @@ data "plural_service_context" "mgmt" {
 
 locals {
   configuration    = jsondecode(data.plural_service_context.mgmt.configuration)
-  eks_cluster_name = lookup(local.configuration, "cluster_name", "default-cluster")
+  eks_cluster_name = lookup(local.configuration, "cluster_name")
 }

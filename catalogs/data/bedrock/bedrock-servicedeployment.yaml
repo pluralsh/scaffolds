@@ -20,7 +20,7 @@ spec:
     - bedrock.yaml.liquid
   imports:
   - stackRef:
-      name: bedrock-{{ context.cluster }}
+      name: bedrock-proxy
       namespace: apps
   configuration:
     cluster: {{ context.cluster }}
