@@ -4,7 +4,7 @@ metadata:
   name: bedrock
 spec:
   name: bedrock
-  icon: "https://github.com/pluralsh/plural-artifacts/blob/main/strapi/plural/icons/strapi.png" # placeholder, replace with a bedrock icon
+  icon: "https://github.com/pluralsh/plural-artifacts/blob/2fb69fb050aebd5c1d2993f7af94714c449efe1e/bedrock/plural/icons/bedrock.png"
   identifier: mgmt
   documentation: |
     Sets up AWS Bedrock within Plural for your chosen cloud and cluster.
