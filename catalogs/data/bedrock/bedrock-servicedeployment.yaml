@@ -22,9 +22,6 @@ spec:
   - stackRef:
       name: bedrock-{{ context.cluster }}
       namespace: apps
-  # configurationRef:
-  #   name: bedrock-access-token
-  #   namespace: infra
   configuration:
     cluster: {{ context.cluster }}
   clusterRef:

@@ -54,6 +54,4 @@ spec:
       documentation: Cloud provider you want to deploy bedrock to.
       values:
         - aws
-    # - name: hostname
-    #   type: STRING
-    #   documentation: The DNS name you'll route to bedrock-ingress (if using an ingress).
+        
