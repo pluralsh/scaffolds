@@ -1,0 +1,28 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: bedrock-proxy
+  namespace: apps
+spec:
+  namespace: bedrock
+  git:
+    folder: helm/bedrock
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    url: https://pluralsh.github.io/console
+    chart: ai-proxy
+    version: 'x.x.x'
+    valuesFiles:
+    - bedrock.yaml.liquid
+  imports:
+  - stackRef:
+      name: bedrock-proxy
+      namespace: apps
+  clusterRef:
+    kind: Cluster
+    name: {{ context.cluster }}
+    namespace: infra

@@ -1,0 +1,51 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: bedrock
+spec:
+  name: bedrock
+  icon: "https://github.com/pluralsh/plural-artifacts/blob/main/bedrock/plural/icons/bedrock.png?raw=true"
+  identifier: mgmt
+  documentation: |
+    Sets up AWS Bedrock within Plural for your chosen cloud and cluster.
+  creates:
+    git:
+      ref: john/prod-3002-data-catalog-ai-catalog-bedrock-openai-gateway
+      folder: catalogs/data/bedrock
+    templates:
+      - source: helm
+        destination: helm/bedrock
+        external: true
+      - source: terraform
+        destination: "terraform/apps/bedrock"
+        external: true
+      - source: bedrock-servicedeployment.yaml
+        destination: "bootstrap/apps/bedrock/bedrock-servicedeployment.yaml"
+        external: true
+      - source: bedrock-stack.yaml
+        destination: "bootstrap/apps/bedrock/bedrock-stack.yaml"
+        external: true
+      - source: README.md
+        destination: documentation/bedrock/README.md
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: data-engineering
+  scmConnectionRef:
+    name: plural  # Adjust to your existing SCM connection
+  title: "Setting up Bedrock on cluster {{ context.cluster }}}"
+  message: |
+    Set up AWS Bedrock on {{ context.cluster }}
+
+    This will provision IAM roles/policies for Bedrock, generate secrets,
+    and create ServiceDeployment + Ingress so that Plural can
+    route requests to AWS Bedrock.
+  configuration:
+    - name: cluster
+      type: CLUSTER
+      documentation: Handle of the cluster you want to deploy bedrock to.
+    - name: stackCluster
+      type: CLUSTER
+      documentation: Handle of the cluster used to run the stack to provision the bedrock IAM role, defaults to the management cluster.
+      default: mgmt

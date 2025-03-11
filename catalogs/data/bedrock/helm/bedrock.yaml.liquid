@@ -1,0 +1,12 @@
+{% raw %}
+
+config:
+  provider: bedrock
+
+serviceAccount:
+  create: true
+  name: ai-proxy
+  namespace: bedrock
+  annotations:
+    eks.amazonaws.com/role-arn:  {{ imports['bedrock-proxy'].bedrock_role_arn }}
+{% endraw %}
