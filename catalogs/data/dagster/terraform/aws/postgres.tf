@@ -6,12 +6,12 @@ resource "random_password" "password" {
   special     = false
 }
 
-data "plural_service_context" "mgmt" {
-  name = "plrl/clusters/mgmt"
+data "plural_service_context" "cluster" {
+  name = "plrl/clusters/${var.cluster_name}"
 }
 
 locals {
-  configuration = jsondecode(data.plural_service_context.mgmt.configuration)
+  configuration = jsondecode(data.plural_service_context.cluster.configuration)
 }
 
 module "db" {

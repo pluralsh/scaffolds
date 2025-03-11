@@ -12,4 +12,4 @@ serviceMonitor:
 server:
   global:
     external_labels:
-      cluster_id: {{ context.cluster }}
+      cluster_id: {% raw %}{{ context.cluster }}{% endraw %}
