@@ -61,6 +61,7 @@ spec:
     documentation: Cloud provider you want to deploy airbyte to.
     values:
     - aws
+    - azure
   - name: bucket
     type: STRING
     documentation: The name of the S3/GCS/Azure Blob bucket you'll use for airbyte logs. This must be globally unique.
