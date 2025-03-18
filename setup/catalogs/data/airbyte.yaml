@@ -71,3 +71,9 @@ spec:
   - name: region
     type: STRING
     documentation: The cloud provider region you're going to use to deploy cloud resources.
+  - name: resourceGroup
+    type: STRING
+    documentation: Azure resource group that you would like to use.
+  - name: storageAccount
+    type: STRING
+    documentation: Azure storage account that you would like to use. It has to belong to the resource group specified earlier.

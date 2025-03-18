@@ -8,8 +8,9 @@ global:
   airbyteUrl: {{ configuration.hostname }}
 
   storage:
-    type: S3
     storageSecretName: airbyte-airbyte-secrets
+    { % if configuration.cloud == 'aws' % }
+    type: S3
     s3:
       region: {{ configuration.region }}
       authenticationType: credentials
@@ -17,6 +18,12 @@ global:
       accessKeyIdSecretKey: AWS_ACCESS_KEY_ID
       secretAccessKey: {{ imports[imports_airbyte_key].secret_access_key }}
       secretAccessKeySecretKey: AWS_SECRET_ACCESS_KEY
+    {% elsif configuration.cloud == 'azure' %}
+    type: azure
+    azure:
+      connectionString: : {{ imports[imports_airbyte_key].connection_string }}
+    { % endif % }
+
     bucket:
       log: {{ configuration.bucket }}
       state: {{ configuration.bucket }}

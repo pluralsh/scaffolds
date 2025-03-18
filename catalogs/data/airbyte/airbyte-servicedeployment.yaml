@@ -30,6 +30,8 @@ spec:
     bucket: {{ context.bucket }}
     region: {{ context.region }}
     cloud: {{ context.cloud }}
+    resourceGroup: {{ context.resourceGroup }}
+    storageAccount: {{ context.storageAccount }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
