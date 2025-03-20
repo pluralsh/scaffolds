@@ -74,6 +74,14 @@ spec:
   - name: resourceGroup
     type: STRING
     documentation: Azure resource group that you would like to use.
+    condition:
+      field: cloud
+      operation: EQ
+      value: 'azure'
   - name: storageAccount
     type: STRING
     documentation: Azure storage account that you would like to use. It has to belong to the resource group specified earlier.
+    condition:
+      field: cloud
+      operation: EQ
+      value: 'azure'
