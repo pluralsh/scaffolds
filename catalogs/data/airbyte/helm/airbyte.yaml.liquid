@@ -23,7 +23,6 @@ global:
     azure:
       connectionString: : {{ imports[imports_airbyte_key].connection_string }}
     { % endif % }
-
     bucket:
       log: {{ configuration.bucket }}
       state: {{ configuration.bucket }}
