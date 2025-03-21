@@ -21,7 +21,7 @@ global:
     {% elsif configuration.cloud == 'azure' %}
     type: azure
     azure:
-      connectionString: : {{ imports[imports_airbyte_key].connection_string }}
+      connectionString: {{ imports[imports_airbyte_key].connection_string }}
     { % endif % }
     bucket:
       log: {{ configuration.bucket }}
