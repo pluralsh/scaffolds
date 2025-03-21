@@ -1,5 +1,6 @@
 output "connection_string" {
   value = data.azurerm_storage_account.airbyte.primary_connection_string
+  sensitive = true
 }
 
 output "postgres_host" {
