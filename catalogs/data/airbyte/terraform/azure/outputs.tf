@@ -7,7 +7,7 @@ output "postgres_host" {
 }
 
 output "postgres_password" {
-  value = random_password.db_password.result
+  value = azurerm_postgresql_flexible_server.postgres.administrator_password
   sensitive = true
 }
 

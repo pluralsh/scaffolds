@@ -10,32 +10,56 @@ resource "random_password" "db_password" {
   special     = false
 }
 
-data "azurerm_resource_group" "group" {
+data "azurerm_resource_group" "default" {
   name = var.resource_group_name
 }
 
 data "azurerm_storage_account" "airbyte" {
   name                = var.storage_account_name
-  resource_group_name = data.azurerm_resource_group.group.name
+  resource_group_name = data.azurerm_resource_group.default.name
+}
+
+resource "azurerm_virtual_network" "default" {
+  name                = var.network_name
+  address_space       = var.network_cidrs
+  location            = data.azurerm_resource_group.default.location
+  resource_group_name = data.azurerm_resource_group.default.name
+}
+
+
+resource "azurerm_subnet" "postgres" {
+  name                 = "${var.network_name}-postgres"
+  resource_group_name  = data.azurerm_resource_group.default.name
+  virtual_network_name = azurerm_virtual_network.default.name
+  address_prefixes     = var.postgres_cidrs
+  service_endpoints    = ["Microsoft.Storage"]
+  delegation {
+    name = "fs"
+    service_delegation {
+      name = "Microsoft.DBforPostgreSQL/flexibleServers"
+      actions = [
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+      ]
+    }
+  }
 }
 
 resource "azurerm_private_dns_zone" "postgres" {
   name                = var.db_dns_zone
-  resource_group_name = data.azurerm_resource_group.group.name
+  resource_group_name = data.azurerm_resource_group.default.name
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "postgres" {
   name                  = var.network_link_name
   private_dns_zone_name = azurerm_private_dns_zone.postgres[0].name
-  virtual_network_id    = azurerm_virtual_network.network.id
-  resource_group_name   = data.azurerm_resource_group.group.name
+  virtual_network_id    = azurerm_virtual_network.default.id
+  resource_group_name   = data.azurerm_resource_group.default.name
 }
-
 
 resource "azurerm_postgresql_flexible_server" "postgres" {
   name                   = var.db_name
-  resource_group_name    = var.resource_group_name
-  location               = data.azurerm_resource_group.group.location
+  resource_group_name    = data.azurerm_resource_group.default.name
+  location               = data.azurerm_resource_group.default.location
   version                = "13"
   delegated_subnet_id    = azurerm_subnet.postgres.id
   private_dns_zone_id    = azurerm_private_dns_zone.postgres[0].id
@@ -57,7 +81,7 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   depends_on = [ azurerm_subnet.postgres ]
 }
 
-resource "azurerm_postgresql_flexible_server_database" "console" {
+resource "azurerm_postgresql_flexible_server_database" "postgres" {
   name      = var.db_name
   server_id = azurerm_postgresql_flexible_server.postgres[0].id
   collation = "en_US.utf8"
