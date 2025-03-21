@@ -7,9 +7,9 @@ resource "random_password" "oidc_cookie" {
 }
 
 resource "plural_oidc_provider" "airbyte" {
-  name = "airbyte-{{ context.cluster }}"
+  name = "airbyte-${var.cluster_name}"
   auth_method = "BASIC"
   type = "PLURAL"
-  description = "OIDC provider for airbyte deployed to the {{ context.cluster }} cluster"
-  redirect_uris = ["https://{{ context.hostname }}/oauth2/callback"]
+  description = "OIDC provider for airbyte deployed to the ${var.cluster_name} cluster"
+  redirect_uris = ["https://${var.hostname}/oauth2/callback"]
 }

@@ -11,8 +11,6 @@ terraform {
   }
 }
 
-provider "plural" {}
-
 provider "azurerm" {
   features {
     resource_group {
@@ -20,3 +18,5 @@ provider "azurerm" {
     }
   }
 }
+
+provider "plural" {}
