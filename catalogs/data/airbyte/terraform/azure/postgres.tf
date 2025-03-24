@@ -30,7 +30,7 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   version                = "13"
   delegated_subnet_id    = local.configuration["subnet_id"]
   private_dns_zone_id    = local.configuration["dns_zone_id"]
-  administrator_login    = "console"
+  administrator_login    = "airbyte"
   administrator_password = random_password.db_password.result
   public_network_access_enabled = false
 
@@ -47,7 +47,7 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
 }
 
 resource "azurerm_postgresql_flexible_server_database" "postgres" {
-  name      = var.db_name
+  name      = "airbyte"
   server_id = azurerm_postgresql_flexible_server.postgres.id
   collation = "en_US.utf8"
   charset   = "utf8"
