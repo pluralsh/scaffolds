@@ -17,7 +17,7 @@ spec:
     namespace: infra
   configuration:
     version: '1.8'
-  {{ if eq .context.cloud "azure" }}
+  {% if context.cloud == 'azure' %}
   environment:
     - name: ARM_USE_OIDC
       value: "true"
@@ -42,7 +42,7 @@ spec:
     labels:
       azure.workload.identity/use: "true"
     serviceAccount: "stacks"
-  {{ end }}
+  {% endif %}
   clusterRef:
     name: {{ context.stackCluster }}
     namespace: infra
