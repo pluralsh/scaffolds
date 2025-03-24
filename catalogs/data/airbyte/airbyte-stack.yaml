@@ -28,17 +28,14 @@ spec:
     - name: ARM_CLIENT_ID
       secretKeyRef:
         name: stacks
-        namespace: plrl-deploy-operator
         key: client-id
     - name: ARM_TENANT_ID
       secretKeyRef:
         name: stacks
-        namespace: plrl-deploy-operator
         key: tenant-id
     - name: ARM_SUBSCRIPTION_ID
       secretKeyRef:
         name: stacks
-        namespace: plrl-deploy-operator
         key: subscription-id
   jobSpec:
     namespace: plrl-deploy-operator
