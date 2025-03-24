@@ -10,7 +10,7 @@ spec:
     Sets up an airbyte instance for a given cloud
   creates:
     git:
-      ref: main # TODO set to main
+      ref: marcin/prod-3112-airbyte-azure-setup # TODO set to main
       folder: catalogs/data/airbyte
     templates:
     - source: helm
