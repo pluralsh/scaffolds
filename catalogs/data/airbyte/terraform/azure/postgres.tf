@@ -23,25 +23,13 @@ data "azurerm_storage_account" "airbyte" {
   resource_group_name = data.azurerm_resource_group.default.name
 }
 
-resource "azurerm_private_dns_zone" "postgres" {
-  name                = var.db_dns_zone
-  resource_group_name = data.azurerm_resource_group.default.name
-}
-
-resource "azurerm_private_dns_zone_virtual_network_link" "postgres" {
-  name                  = var.network_link_name
-  private_dns_zone_name = azurerm_private_dns_zone.postgres.name
-  virtual_network_id    = local.configuration["network_id"]
-  resource_group_name   = data.azurerm_resource_group.default.name
-}
-
 resource "azurerm_postgresql_flexible_server" "postgres" {
   name                   = var.db_name
   resource_group_name    = data.azurerm_resource_group.default.name
   location               = data.azurerm_resource_group.default.location
   version                = "13"
   delegated_subnet_id    = local.configuration["subnet_id"]
-  private_dns_zone_id    = azurerm_private_dns_zone.postgres.id
+  private_dns_zone_id    = local.configuration["dns_zone_id"]
   administrator_login    = "console"
   administrator_password = random_password.db_password.result
   public_network_access_enabled = false
