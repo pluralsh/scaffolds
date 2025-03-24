@@ -17,6 +17,32 @@ spec:
     namespace: infra
   configuration:
     version: '1.8'
+  {{ if eq .context.cloud "azure" }}
+  environment:
+    - name: ARM_USE_OIDC
+      value: "true"
+    - name: ARM_USE_CLI
+      value: "false"
+    - name: ARM_OIDC_TOKEN_FILE_PATH
+      value: "/var/run/secrets/azure/tokens/azure-identity-token"
+    - name: ARM_CLIENT_ID
+      secretKeyRef:
+        name: stacks
+        key: client-id
+    - name: ARM_TENANT_ID
+      secretKeyRef:
+        name: stacks
+        key: tenant-id
+    - name: ARM_SUBSCRIPTION_ID
+      secretKeyRef:
+        name: stacks
+        key: subscription-id
+  jobSpec:
+    namespace: plrl-deploy-operator
+    labels:
+      azure.workload.identity/use: "true"
+    serviceAccount: "stacks"
+  {{ end }}
   clusterRef:
     name: {{ context.stackCluster }}
     namespace: infra
