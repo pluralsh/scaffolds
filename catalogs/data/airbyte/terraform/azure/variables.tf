@@ -31,11 +31,3 @@ variable "db_sku" {
   type = string
   default = "GP_Standard_D4s_v3"
 }
-
-variable "db_dns_zone" {
-  default = "airbyte.postgres.database.azure.com"
-}
-
-variable "network_link_name" {
-  default = "plrl.postgres.com"
-}
