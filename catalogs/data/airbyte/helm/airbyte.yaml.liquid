@@ -9,7 +9,7 @@ global:
 
   storage:
     storageSecretName: airbyte-airbyte-secrets
-    { % if configuration.cloud == 'aws' % }
+    {% if configuration.cloud == 'aws' %}
     type: S3
     s3:
       region: {{ configuration.region }}
@@ -22,7 +22,7 @@ global:
     type: azure
     azure:
       connectionString: {{ imports[imports_airbyte_key].connection_string }}
-    { % endif % }
+    {% endif %}
     bucket:
       log: {{ configuration.bucket }}
       state: {{ configuration.bucket }}
