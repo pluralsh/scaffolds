@@ -46,6 +46,12 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   }
 }
 
+resource "azurerm_postgresql_flexible_server_configuration" "default" {
+  name      = "azure.extensions"
+  server_id = azurerm_postgresql_flexible_server.postgres.id
+  value     = "BTREE_GIN"
+}
+
 resource "azurerm_postgresql_flexible_server_database" "postgres" {
   name      = "airbyte"
   server_id = azurerm_postgresql_flexible_server.postgres.id
