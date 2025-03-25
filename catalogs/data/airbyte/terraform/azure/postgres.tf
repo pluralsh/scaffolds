@@ -1,9 +1,9 @@
-data "plural_service_context" "pg" {
-  name = "plrl/subnets/pg"
+data "plural_service_context" "dev_network" {
+  name = "plrl/network/dev"
 }
 
 locals {
-  configuration = jsondecode(data.plural_service_context.pg.configuration)
+  configuration = jsondecode(data.plural_service_context.dev_network.configuration)
 }
 
 resource "random_password" "db_password" {
@@ -28,7 +28,7 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   resource_group_name    = data.azurerm_resource_group.default.name
   location               = data.azurerm_resource_group.default.location
   version                = "13"
-  delegated_subnet_id    = local.configuration["subnet_id"]
+  delegated_subnet_id    = local.configuration["pg_subnet_id"]
   private_dns_zone_id    = local.configuration["dns_zone_id"]
   administrator_login    = "airbyte"
   administrator_password = random_password.db_password.result
