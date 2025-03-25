@@ -15,7 +15,7 @@ spec:
     name: plural
   title: "Updating {{ context.fleet }} {{ context.pipeline.stage.name }} clusters to {{ context.version }}"
   message: "Updating {{ context.fleet }} {{ context.pipeline.stage.name }} clusters to {{ context.version }}"
-  identifier: pluralsh/fleet
+  identifier: mgmt
   configuration:
   - name: fleet
     type: STRING
