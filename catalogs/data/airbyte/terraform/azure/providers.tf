@@ -31,7 +31,7 @@ provider "azurerm" {
   use_cli = false
   use_oidc = true
   oidc_token_file_path = "/var/run/secrets/azure/tokens/azure-identity-token"
-  subscription_id = local.identity["subscription_id"]
-  tenant_id = local.identity["tenant_id"]
-  client_id = local.identity["client_id"]
+  subscription_id = local.identity["subscription-id"]
+  tenant_id = local.identity["tenant-id"]
+  client_id = local.identity["client-id"]
 }
