@@ -18,7 +18,7 @@ data "plural_service_context" "identity" {
 }
 
 locals {
-  configuration = jsondecode(data.plural_service_context.identity.configuration)
+  identity = jsondecode(data.plural_service_context.identity.configuration)
 }
 
 provider "azurerm" {
@@ -31,7 +31,7 @@ provider "azurerm" {
   use_cli = false
   use_oidc = true
   oidc_token_file_path = "/var/run/secrets/azure/tokens/azure-identity-token"
-  subscription_id = local.configuration["subscription_id"]
-  tenant_id = local.configuration["tenant_id"]
-  client_id = local.configuration["client_id"]
+  subscription_id = local.identity["subscription_id"]
+  tenant_id = local.identity["tenant_id"]
+  client_id = local.identity["client_id"]
 }
