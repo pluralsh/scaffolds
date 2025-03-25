@@ -18,25 +18,6 @@ spec:
   configuration:
     version: '1.8'
   {% if context.cloud == 'azure' %}
-  environment:
-    - name: ARM_USE_OIDC
-      value: "true"
-    - name: ARM_USE_CLI
-      value: "false"
-    - name: ARM_OIDC_TOKEN_FILE_PATH
-      value: "/var/run/secrets/azure/tokens/azure-identity-token"
-    - name: ARM_CLIENT_ID
-      secretKeyRef:
-        name: apps-credentials
-        key: client-id
-    - name: ARM_TENANT_ID
-      secretKeyRef:
-        name: apps-credentials
-        key: tenant-id
-    - name: ARM_SUBSCRIPTION_ID
-      secretKeyRef:
-        name: apps-credentials
-        key: subscription-id
   jobSpec:
     namespace: plrl-deploy-operator
     labels:
