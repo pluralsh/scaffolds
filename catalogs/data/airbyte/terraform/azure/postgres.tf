@@ -1,5 +1,13 @@
+data "plural_cluster" "cluster" {
+  handle = var.cluster_name
+}
+
+locals {
+  tier = lookup(data.plural_cluster.cluster.tags, "tier", "dev")
+}
+
 data "plural_service_context" "dev_network" {
-  name = "plrl/network/dev"
+  name = "plrl/network/${local.tier}"
 }
 
 locals {
