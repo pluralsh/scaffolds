@@ -1,7 +1,3 @@
-data "plural_cluster" "cluster" {
-  handle = var.cluster_name
-}
-
 locals {
   tier = lookup(data.plural_cluster.cluster.tags, "tier", "dev")
 }
