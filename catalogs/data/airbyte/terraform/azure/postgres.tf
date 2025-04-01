@@ -1,6 +1,6 @@
 locals {
   tags = data.plural_cluster.cluster.tags
-  tier = var.cluster_name == "mgmt" ? "mgmt" : try(lookup(local.tags, "tier", "dev"), "dev")
+  tier = var.cluster_name == "mgmt" ? "plural" : try(lookup(local.tags, "tier", "dev"), "dev")
 }
 
 data "plural_service_context" "dev_network" {
