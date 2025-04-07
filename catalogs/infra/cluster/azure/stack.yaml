@@ -1,0 +1,39 @@
+{% capture templated %}{{ context.fleet }}-{{ context.tier }}{% endcapture %}
+{% assign name = context.name | default: templated %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: cluster-{{ name }}
+spec:
+  name: cluster-{{ name }}
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  configuration:
+    version: '1.8'
+  repositoryRef:
+    name: infra
+    namespace: infra
+  clusterRef:
+    name: mgmt
+    namespace: infra
+  git:
+    ref: main
+    folder: terraform/modules/clusters/azure
+  variables:
+    cluster: {{ name }}
+    fleet: {{ context.fleet }}
+    tier: {{ context.tier }}
+    region: {{ context.region }}
+    {% raw %} 
+    kubernetes_version: "{{ configuration.kubernetesVersion }}"
+    {% endraw %}
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Cluster
+metadata:
+  name: {{ name }}
+spec:
+  handle: {{ name }}
