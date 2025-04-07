@@ -10,7 +10,7 @@ spec:
     Sets up a PR to add a new cluster to the provided fleet
   creates:
     git:
-      ref: marcin/prod-3389-azure-cluster-pr-automation # TODO main
+      ref: main
       folder: catalogs/infra/cluster
     templates:
       - source: '{{ context.cloud }}/stack.yaml'
