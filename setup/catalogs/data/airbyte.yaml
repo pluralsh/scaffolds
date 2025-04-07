@@ -10,7 +10,7 @@ spec:
     Sets up an airbyte instance for a given cloud
   creates:
     git:
-      ref: main # TODO set to main
+      ref: main
       folder: catalogs/data/airbyte
     templates:
     - source: helm
@@ -61,6 +61,7 @@ spec:
     documentation: Cloud provider you want to deploy airbyte to.
     values:
     - aws
+    - azure
   - name: bucket
     type: STRING
     documentation: The name of the S3/GCS/Azure Blob bucket you'll use for airbyte logs. This must be globally unique.
@@ -70,3 +71,17 @@ spec:
   - name: region
     type: STRING
     documentation: The cloud provider region you're going to use to deploy cloud resources.
+  - name: resourceGroup
+    type: STRING
+    documentation: Azure resource group that you would like to use.
+    condition:
+      field: cloud
+      operation: EQ
+      value: 'azure'
+  - name: storageAccount
+    type: STRING
+    documentation: Azure storage account that you would like to use. It has to belong to the resource group specified earlier.
+    condition:
+      field: cloud
+      operation: EQ
+      value: 'azure'
