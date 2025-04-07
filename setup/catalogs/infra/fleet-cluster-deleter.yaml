@@ -23,6 +23,7 @@ spec:
       documentation: Cloud where the clusters for this fleet should be created.
       values:
       - aws
+      - azure
     - name: fleet
       type: STRING
       documentation: Name for the fleet you want this cluster to belong to.
