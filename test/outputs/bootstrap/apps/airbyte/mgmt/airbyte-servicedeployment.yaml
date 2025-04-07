@@ -29,6 +29,9 @@ spec:
     hostname: airbyte.plural.sh
     bucket: plrl-airbyte-logs
     region: us-east-2
+    cloud: aws
+    resourceGroup: 
+    storageAccount: 
   clusterRef:
     kind: Cluster
     name: mgmt

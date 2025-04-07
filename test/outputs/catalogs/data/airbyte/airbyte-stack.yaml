@@ -17,6 +17,13 @@ spec:
     namespace: infra
   configuration:
     version: '1.8'
+  {% if context.cloud == 'azure' %}
+  jobSpec:
+    namespace: plrl-deploy-operator
+    labels:
+      azure.workload.identity/use: "true"
+    serviceAccount: "stacks"
+  {% endif %}
   clusterRef:
     name: {{ context.stackCluster }}
     namespace: infra
