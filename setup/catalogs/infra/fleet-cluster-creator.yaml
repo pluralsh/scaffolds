@@ -48,3 +48,10 @@ spec:
     - name: region
       type: STRING
       documentation: Region where the cluster should be created.
+    - name: resourceGroup
+      type: STRING
+      documentation: Azure resource group that you would like to use.
+      condition:
+        field: cloud
+        operation: EQ
+        value: 'azure'
