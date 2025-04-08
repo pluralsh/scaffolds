@@ -30,6 +30,7 @@ spec:
       documentation: Cloud where the clusters for this fleet should be created.
       values:
       - aws
+      - azure
     - name: fleet
       type: STRING
       documentation: Name for the fleet you want this cluster to belong to.
@@ -47,3 +48,10 @@ spec:
     - name: region
       type: STRING
       documentation: Region where the cluster should be created.
+    - name: resourceGroup
+      type: STRING
+      documentation: Azure resource group that you would like to use.
+      condition:
+        field: cloud
+        operation: EQ
+        value: 'azure'
