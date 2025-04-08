@@ -30,6 +30,7 @@ spec:
     {% raw %} 
     kubernetes_version: "{{ configuration.kubernetesVersion }}"
     {% endraw %}
+    resource_group_name: {{ context.resourceGroup }}
   jobSpec:
     namespace: plrl-deploy-operator
     labels:
