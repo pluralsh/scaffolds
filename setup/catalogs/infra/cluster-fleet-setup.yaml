@@ -10,7 +10,7 @@ spec:
     Sets up a PR to a new fleet, with a dev + prod cluster and a pipeline to control upgrades
   creates:
     git:
-      ref: main
+      ref: marcin/prod-3389-azure-cluster-pr-automation # TODO main
       folder: catalogs/infra/cluster
     templates:
       - source: pipeline.yaml
