@@ -1,0 +1,41 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: opentelemetry-ebpf
+spec:
+  name: opentelemetry-ebpf
+  icon: https://ebpf.io/static/logo-black-98b7a1413b4a74ed961d292cf83da82e.svg
+  identifier: mgmt
+  documentation: |
+    Sets up OpenTelemetry eBPF
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/otelebpf
+    templates:
+      - source: README.md
+        destination: "documentation/netobserv/README.md"
+        external: true
+      - source: netobserv.yaml
+        destination: "bootstrap/apps/netobserv/netobserv.yaml"
+        external: true
+      - source: flowcollector.yaml
+        destination: "bootstrap/apps/netobserv/flowcollector.yaml"
+        external: true
+      - source: services
+        destination: services/netobserv
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "OpenTelemetry eBPF setup for ({{ context.cluster }})"
+  message: |
+    Sets up OpenTelemetry eBPF on {{ context.cluster }} cluster.
+  configuration:
+    - name: tags
+      type: STRING
+      optional: true
+      documentation: "optional list of tags that should be applied to global service in a format: 'mytag=myvalue,mytag2=test"
