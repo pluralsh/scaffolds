@@ -10,7 +10,7 @@ spec:
     Sets up OpenTelemetry eBPF
   creates:
     git:
-      ref: main
+      ref: sebastian/prod-3387-opentelemetry-ebpf-network-setup # TODO: update to main before merge
       folder: catalogs/devops/otelebpf
     templates:
       - source: README.md
