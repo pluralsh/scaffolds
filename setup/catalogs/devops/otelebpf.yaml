@@ -14,16 +14,13 @@ spec:
       folder: catalogs/devops/otelebpf
     templates:
       - source: README.md
-        destination: "documentation/netobserv/README.md"
+        destination: "documentation/otelebpf/README.md"
         external: true
-      - source: netobserv.yaml
-        destination: "bootstrap/apps/netobserv/netobserv.yaml"
+      - source: opentelemetry-ebpf.yaml
+        destination: "bootstrap/apps/otelebpf/opentelemetry-ebpf.yaml"
         external: true
-      - source: flowcollector.yaml
-        destination: "bootstrap/apps/netobserv/flowcollector.yaml"
-        external: true
-      - source: services
-        destination: services/netobserv
+      - source: helm
+        destination: helm/otelebpf
         external: true
   repositoryRef:
     name: scaffolds
