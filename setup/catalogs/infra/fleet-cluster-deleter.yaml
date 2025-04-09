@@ -25,13 +25,13 @@ spec:
       - aws
     - name: fleet
       type: STRING
-      documentation: Name for the fleet you want this cluster to belong to.
+      documentation: Name for the fleet you this cluster to belongs to.
     - name: name
       type: CLUSTER
       documentation: the name for this cluster
     - name: tier
       type: ENUM
-      documentation: What tier to place this cluster in.
+      documentation: What tier to place this cluster lives in.
       values:
         - dev
         - prod
