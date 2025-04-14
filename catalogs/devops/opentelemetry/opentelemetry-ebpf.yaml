@@ -1,0 +1,30 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: opentelemetry-ebpf
+  namespace: apps
+spec:
+    {% if context.tags %}
+  tags:
+    {% assign tags_list = context.tags | split: ',' %}
+    {% for tag in tags_list %}
+    {% assign key_value = tag | split: '=' %}
+    {{ key_value[0] }}: {{ key_value[1] }}
+    {% endfor %}
+    {% endif %}
+  template:
+    name: opentelemetry-ebpf
+    namespace: monitoring
+    git:
+      ref: main
+      folder: helm/opentelemetry
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra
+    helm:
+      url: https://open-telemetry.github.io/opentelemetry-helm-charts
+      chart: opentelemetry-ebpf
+      version: 'x.x.x'
+      valuesFiles:
+        - opentelemetry-ebpf.yaml.liquid

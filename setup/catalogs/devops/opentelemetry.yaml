@@ -1,0 +1,46 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: opentelemetry
+spec:
+  name: opentelemetry
+  icon: https://ebpf.io/static/logo-black-98b7a1413b4a74ed961d292cf83da82e.svg
+  identifier: mgmt
+  documentation: |
+    Sets up OpenTelemetry stack.
+  creates:
+    git:
+      ref: sebastian/prod-3387-opentelemetry-ebpf-network-setup # TODO: update to main before merge
+      folder: catalogs/devops/opentelemetry
+    templates:
+      - source: README.md
+        destination: "documentation/opentelemetry/README.md"
+        external: true
+      - source: opentelemetry-ebpf.yaml
+        destination: "bootstrap/apps/opentelemetry/opentelemetry-ebpf.yaml"
+        external: true
+      - source: opentelemetry-collector.yaml
+        destination: "bootstrap/apps/opentelemetry/opentelemetry-collector.yaml"
+        external: true
+      - source: helm
+        destination: helm/opentelemetry
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "OpenTelemetry stack setup"
+  message: |
+    Sets up OpenTelemetry stack that includes eBPF and collector components.
+  configuration:
+    - name: tags
+      type: STRING
+      optional: true
+      documentation: "Optional list of tags that should be applied to global service in a format: 'mytag=myvalue,mytag2=test"
+    - name: metricsEndpoint
+      type: STRING
+      optional: false
+      default: "http://vmagent-vm-agent-victoria-metrics-k8s-stack.monitoring.svc.cluster.local:8429/opentelemetry/v1/metrics"
+      documentation: "Metrics endpoint used to push metrics from the collector. It requires an OpenTelemetry compatible receiver."
