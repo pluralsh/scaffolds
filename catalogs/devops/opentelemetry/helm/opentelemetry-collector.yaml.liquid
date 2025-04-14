@@ -1,3 +1,4 @@
+{% raw %}
 mode: deployment
 
 image:
@@ -32,3 +33,4 @@ config:
         receivers: [otlp]
         processors: [deltatocumulative]
         exporters: [otlphttp/victoriametrics]
+{% endraw %}
