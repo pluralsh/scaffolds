@@ -1,0 +1,36 @@
+{% raw %}
+mode: deployment
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: latest
+
+presets:
+  kubernetesAttributes:
+    enabled: true
+
+config:
+  # deltatocumulative processor is needed to convert metrics with delta temporality to cumulative temporality.
+  # VictoriaMetrics doesn't support delta temporality. Skip this processor if you don't use delta temporality.
+  processors:
+    deltatocumulative:
+      max_stale: 5m
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+  exporters:
+    otlphttp/victoriametrics:
+      compression: gzip
+      encoding: proto
+      metrics_endpoint: http://vmagent-vm-agent-victoria-metrics-k8s-stack.monitoring.svc.cluster.local:8429/opentelemetry/v1/metrics
+  service:
+    pipelines:
+      metrics:
+        receivers: [otlp]
+        processors: [deltatocumulative]
+        exporters: [otlphttp/victoriametrics]
+{% endraw %}
