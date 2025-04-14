@@ -43,4 +43,4 @@ spec:
       type: STRING
       optional: false
       default: "http://vmagent-vm-agent-victoria-metrics-k8s-stack.monitoring.svc.cluster.local:8429/opentelemetry/v1/metrics"
-      documentation: "Metrics endpoint used to push metrics from the collector. It requires an OpenTelemetry compatible receiver."
+      documentation: "Metrics endpoint used to push metrics from the collector. It requires an OpenTelemetry compatible receiver. It should use cluster internal endpoint. Default value is based on victoria metrics k8s chart deployment."
