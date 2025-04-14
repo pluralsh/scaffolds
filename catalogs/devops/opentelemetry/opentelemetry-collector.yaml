@@ -4,14 +4,14 @@ metadata:
   name: opentelemetry-collector
   namespace: apps
 spec:
-    {% if context.tags %}
+  {% if context.tags and context.tags != "" %}
   tags:
     {% assign tags_list = context.tags | split: ',' %}
     {% for tag in tags_list %}
     {% assign key_value = tag | split: '=' %}
     {{ key_value[0] }}: {{ key_value[1] }}
     {% endfor %}
-    {% endif %}
+  {% endif %}
   template:
     name: opentelemetry-collector
     namespace: monitoring
@@ -30,4 +30,4 @@ spec:
       valuesFiles:
         - opentelemetry-collector.yaml.liquid
     configuration:
-      metricsEndpoint: {{ context.metricsEndpoint }}
+      metricsEndpoint: {{context.metricsEndpoint}}
