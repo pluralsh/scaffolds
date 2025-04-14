@@ -26,7 +26,7 @@ config:
     otlphttp/victoriametrics:
       compression: gzip
       encoding: proto
-      metrics_endpoint: {{ configuration.metricsEndpoint }}
+      metrics_endpoint: http://vmagent-vm-agent-victoria-metrics-k8s-stack.monitoring.svc.cluster.local:8429/opentelemetry/v1/metrics
   service:
     pipelines:
       metrics:

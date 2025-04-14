@@ -29,5 +29,3 @@ spec:
       version: 'x.x.x'
       valuesFiles:
         - opentelemetry-collector.yaml.liquid
-    configuration:
-      metricsEndpoint: {{context.metricsEndpoint}}
