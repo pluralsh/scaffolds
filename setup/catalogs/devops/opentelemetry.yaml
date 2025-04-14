@@ -10,7 +10,7 @@ spec:
     Sets up OpenTelemetry stack.
   creates:
     git:
-      ref: sebastian/prod-3387-opentelemetry-ebpf-network-setup # TODO: update to main before merge
+      ref: main
       folder: catalogs/devops/opentelemetry
     templates:
       - source: README.md
