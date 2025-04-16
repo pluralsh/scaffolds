@@ -15,6 +15,11 @@ config:
   processors:
     deltatocumulative:
       max_stale: 5m
+    resource:
+      attributes:
+      - key: cluster
+        value: "{{ cluster.handle }}"
+        action: upsert
   receivers:
     otlp:
       protocols:
@@ -31,6 +36,6 @@ config:
     pipelines:
       metrics:
         receivers: [otlp]
-        processors: [deltatocumulative]
+        processors: [deltatocumulative, resource]
         exporters: [otlphttp/victoriametrics]
 {% endraw %}
