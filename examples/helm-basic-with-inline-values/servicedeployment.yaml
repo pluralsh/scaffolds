@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: plrl-01-grafana
+  namespace: examples
+spec:
+  helm:
+    url: https://grafana.github.io/helm-charts
+    chart: grafana
+    version: x.x.x
+    values:
+      ingress:
+        enabled: true
+        annotations:
+          cert-manager.io/cluster-issuer: plural
+        ingressClassName: nginx
+        hosts:
+          - grafana-test.plrl-dev-aws.onplural.sh
+        tls:
+          - hosts:
+              - grafana-test.plrl-dev-aws.onplural.sh
+            secretName: grafana-tls
+  clusterRef:
+    kind: Cluster
+    name: mgmt
+    namespace: examples

@@ -1,0 +1,13 @@
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: plural
+  ingressClassName: nginx
+
+  hosts:
+    - grafana-test.plrl-dev-aws.onplural.sh
+
+  tls:
+    - hosts:
+        - grafana-test.plrl-dev-aws.onplural.sh
+      secretName: grafana-tls
