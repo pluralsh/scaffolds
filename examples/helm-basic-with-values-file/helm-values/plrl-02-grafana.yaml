@@ -5,9 +5,9 @@ ingress:
   ingressClassName: nginx
 
   hosts:
-    - grafana-test.plrl-dev-aws.onplural.sh
+    - grafana-test.your-domain.com
 
   tls:
     - hosts:
-        - grafana-test.plrl-dev-aws.onplural.sh
+        - grafana-test.your-domain.com
       secretName: grafana-tls
