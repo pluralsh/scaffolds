@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: init-command
+          image: alpine
+          command: ["/bin/sh", "-c"]
+          args: ["echo WORDPRESS_SVC: $WORDPRESS_SERVICE, MYSQL_SVC: $MYSQL_SERVICE"]
+          env:
+            - name: WORDPRESS_SERVICE
+              value: placeholder
+            - name: MYSQL_SERVICE
+              value: placeholder
+      containers:
+        - name: wordpress
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: placeholder
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: password

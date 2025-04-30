@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: plrl-04-wordpress
+  namespace: examples
+spec:
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  git:
+    folder: helm-values
+    ref: main
+  helm:
+    url: oci://registry-1.docker.io/bitnamicharts
+    chart: wordpress
+    release: wordpress
+    version: 24.x.x
+    valuesFiles:
+      - plrl-04-wordpress.yaml.liquid
+  configurationRef:
+    name: wordpress-config
+    namespace: examples
+  clusterRef:
+    name: mgmt
+    namespace: examples
