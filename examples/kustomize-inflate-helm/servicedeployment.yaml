@@ -1,7 +1,7 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: plrl-04-wordpress
+  name: plrl-05-wordpress
   namespace: examples
 spec:
   repositoryRef:
@@ -9,18 +9,14 @@ spec:
     name: infra
     namespace: infra
   git:
-    folder: helm-values
+    folder: services/examples/kustomize-inflate-helm
     ref: main
-  helm:
-    url: oci://registry-1.docker.io/bitnamicharts
-    chart: wordpress
-    release: wordpress
-    version: 24.x.x
-    valuesFiles:
-      - plrl-04-wordpress.yaml.liquid
+  kustomize:
+    path: '.'
+    enableHelm: true
   configurationRef:
-    name: plrl-04-wordpress-config
+    name: plrl-05-wordpress-config
     namespace: examples
   clusterRef:
-    name: mgmt
+    name: floreks-kind
     namespace: examples

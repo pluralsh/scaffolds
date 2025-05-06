@@ -12,7 +12,7 @@ spec:
     folder: services/examples/helm-with-kustomize
     ref: main
   configurationRef:
-    name: wordpress-config
+    name: plrl-04-wordpress-config
     namespace: examples
   clusterRef:
     name: mgmt

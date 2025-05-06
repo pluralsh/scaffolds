@@ -1,0 +1,12 @@
+resources:
+  - secret.yaml
+
+helmGlobals:
+  chartHome: .
+
+helmCharts:
+  # Must match the directory name with the unpacked chart
+  - name: wordpress
+    releaseName: wordpress
+    namespace: examples
+    valuesFile: values.yaml
