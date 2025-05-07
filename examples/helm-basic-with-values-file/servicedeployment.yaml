@@ -1,0 +1,25 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: plrl-02-grafana
+  namespace: examples
+spec:
+  repositoryRef:
+    kind: GitRepository
+    name: example
+    namespace: examples
+  git:
+    folder: helm-values
+    ref: main
+  helm:
+    url: https://grafana.github.io/helm-charts
+    chart: grafana
+    version: x.x.x
+    valuesFiles:
+      - plrl-02-grafana.yaml.liquid
+  configuration:
+    host: 'grafana-test.your-domain.com'
+  clusterRef:
+    kind: Cluster
+    name: mgmt
+    namespace: examples

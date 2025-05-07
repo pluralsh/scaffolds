@@ -1,0 +1,13 @@
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: plural
+  ingressClassName: nginx
+
+  hosts:
+    - {{ configuration.host }}
+
+  tls:
+    - hosts:
+        - {{ configuration.host }}
+      secretName: grafana-tls
