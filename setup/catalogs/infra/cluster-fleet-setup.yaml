@@ -59,6 +59,7 @@ spec:
     - name: resourceGroup
       type: STRING
       documentation: Azure resource group that you would like to use.
+      optional: true
       condition:
         field: cloud
         operation: EQ
