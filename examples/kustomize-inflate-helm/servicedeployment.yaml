@@ -1,7 +1,7 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: plrl-05-wordpress
+  name: plrl-04-wordpress
   namespace: examples
 spec:
   repositoryRef:
@@ -15,7 +15,7 @@ spec:
     path: '.'
     enableHelm: true
   configurationRef:
-    name: plrl-05-wordpress-config
+    name: plrl-04-wordpress-config
     namespace: examples
   clusterRef:
     name: floreks-kind
