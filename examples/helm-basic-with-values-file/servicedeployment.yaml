@@ -16,7 +16,9 @@ spec:
     chart: grafana
     version: x.x.x
     valuesFiles:
-      - plrl-02-grafana.yaml
+      - plrl-02-grafana.yaml.liquid
+  configuration:
+    host: 'grafana-test.your-domain.com'
   clusterRef:
     kind: Cluster
     name: mgmt

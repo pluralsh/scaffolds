@@ -5,9 +5,9 @@ ingress:
   ingressClassName: nginx
 
   hosts:
-    - grafana-test.your-domain.com
+    - {{ configuration.host }}
 
   tls:
     - hosts:
-        - grafana-test.your-domain.com
+        - {{ configuration.host }}
       secretName: grafana-tls
