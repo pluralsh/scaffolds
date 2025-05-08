@@ -1,0 +1,7 @@
+service:
+  type: ClusterIP
+
+  auth:
+    database: {{ configuration.dbName }}
+    username: {{ configuration.dbUser }}
+    existingSecret: {{ configuration.dbSecret }}
