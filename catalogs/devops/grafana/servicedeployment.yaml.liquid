@@ -25,6 +25,7 @@ spec:
       namespace: apps
   configuration:
     cluster: {{ context.cluster }}
+    stackName: grafana-{{ context.cluster }}
   clusterRef:
     kind: Cluster
     name: mgmt

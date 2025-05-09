@@ -1,6 +1,4 @@
 {% raw %}
-{% assign imports_mlflow_key =  'mlflow-' | append: configuration.cluster %}
-
 tracking:
   enabled: true
   podAnnotations:
@@ -14,19 +12,19 @@ tracking:
 
 externalDatabase:
   dialectDriver: "postgresql"
-  host: {{ imports[imports_mlflow_key].postgres_host }}
+  host: {{ imports[configuration.stackName].postgres_host }}
   port: 5432
   user: 'mlflow'
   database: 'mlflow'
   authDatabase: 'mlflow_auth'
-  password: {{ imports[imports_mlflow_key].postgres_password }}
+  password: {{ imports[configuration.stackName].postgres_password }}
 
 externalS3:
   host: {{ configuration.region }}.amazonaws.com
   port: 443
   useCredentialsInSecret: true
-  accessKeyID: {{imports[imports_mlflow_key].access_key_id}}
-  accessKeySecret: {{imports[imports_mlflow_key].secret_access_key}}
+  accessKeyID: {{imports[configuration.stackName].access_key_id}}
+  accessKeySecret: {{imports[configuration.stackName].secret_access_key}}
   existingSecret: ~
   existingSecretAccessKeyIDKey: AWS_ACCESS_KEY_ID
   existingSecretKeySecretKey: AWS_SECRET_ACCESS_KEY

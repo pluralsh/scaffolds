@@ -26,6 +26,7 @@ spec:
         namespace: apps
   configuration:
     cluster: {{ context.cluster }}
+    stackName: mlflow-{{ context.cluster }}
     hostname: {{ context.hostname }}
     bucket: {{ context.bucket }}
     region: {{ context.region }}

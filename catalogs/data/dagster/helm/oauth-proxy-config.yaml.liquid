@@ -1,6 +1,4 @@
 {% raw %}
-{% assign imports_dagster_key =  'dagster-' | append: configuration.cluster %}
-
 service:
   name: dagster-oauth2-proxy
   selector:
@@ -8,9 +6,9 @@ service:
     component: dagster-webserver
 
 secret:
-  clientID: {{ imports[imports_dagster_key].oidc_client_id }}
-  clientSecret: {{ imports[imports_dagster_key].oidc_client_secret }}
-  cookieSecret: {{ imports[imports_dagster_key].oidc_cookie_secret }}
+  clientID: {{ imports[configuration.stackName].oidc_client_id }}
+  clientSecret: {{ imports[configuration.stackName].oidc_client_secret }}
+  cookieSecret: {{ imports[configuration.stackName].oidc_cookie_secret }}
   issuer: https://oidc.plural.sh/
   upstream: http://localhost:80
   name: dagster-proxy-config

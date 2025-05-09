@@ -1,6 +1,4 @@
 {% raw %}
-{% assign imports_dagster_key =  'dagster-' | append: configuration.cluster %}
-
 dagsterWebserver:
   annotations:
     security.plural.sh/oauth-env-secret: dagster-proxy-config
@@ -14,9 +12,9 @@ dagsterWebserver:
 
 postgresql:
   enabled: false
-  postgresqlHost: {{ imports[imports_dagster_key].postgres_host }}
+  postgresqlHost: {{ imports[configuration.stackName].postgres_host }}
   postgresqlUsername: dagster
-  postgresqlPassword: {{ imports[imports_dagster_key].postgres_password }}
+  postgresqlPassword: {{ imports[configuration.stackName].postgres_password }}
   postgresqlDatabase: dagster
   postgresqlParams:
     sslmode: require

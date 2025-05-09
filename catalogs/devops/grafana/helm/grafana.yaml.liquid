@@ -1,10 +1,5 @@
-{% raw %}
-{% assign import_key =  'grafana-' | append: cluster.handle %}
-
 admin:
   existingSecret: grafana-credentials
-{% endraw %}
-
 
 ingress:
   enabled: true
@@ -41,7 +36,7 @@ grafana.ini:
     allow_sign_up: true
     api_url: https://oidc.plural.sh/userinfo
     auth_url: https://oidc.plural.sh/oauth2/auth
-    client_id: {% raw %}{{ imports[import_key].oidc_client_id }}{% endraw %}
+    client_id: {% raw %}{{ imports[configuration.stackName].oidc_client_id }}{% endraw %}
     enabled: true
     groups_attribute_path: groups
     name: Plural
@@ -59,13 +54,13 @@ extraObjects:
   metadata:
     name: grafana-env
   stringData:
-    GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: {% raw %}{{ imports[import_key].oidc_client_secret }}{% endraw %}
-    GF_DATABASE_HOST: {% raw %}{{ imports[import_key].postgres_host }}{% endraw %}
-    GF_DATABASE_PASSWORD: {% raw %}{{ imports[import_key].postgres_password }}{% endraw %}
+    GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: {% raw %}{{ imports[configuration.stackName].oidc_client_secret }}{% endraw %}
+    GF_DATABASE_HOST: {% raw %}{{ imports[configuration.stackName].postgres_host }}{% endraw %}
+    GF_DATABASE_PASSWORD: {% raw %}{{ imports[configuration.stackName].postgres_password }}{% endraw %}
 - apiVersion: v1
   kind: Secret
   metadata:
     name: grafana-credentials
   stringData:
     admin-user: admin
-    admin-password: {% raw %}{{ imports[import_key].admin_password }}{% endraw %}
+    admin-password: {% raw %}{{ imports[configuration.stackName].admin_password }}{% endraw %}
