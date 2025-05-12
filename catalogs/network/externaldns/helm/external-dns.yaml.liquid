@@ -1,0 +1,37 @@
+provider: aws
+
+{% raw %}
+txtOwnerId: plrl-{{ cluster.handle }} # templating in the cluster handle, which is unique, to be the external-dns owner id
+{% endraw %}
+policy: upsert-only
+
+domainFilters:
+- {{ context.dnsZone }} # check terraform/modules/clusters/aws/plural.tf for where this is set
+
+{% if context.cloud == 'aws' %}
+{% raw %}
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: {{ cluster.metadata.iam.external_dns }} 
+{% endif %}
+{% endraw %}
+
+{% if context.cloud == 'azure' %}
+{% raw %}
+serviceAccount:
+  annotations:
+    azure.workload.identity/client-id: {{ cluster.metadata.iam.external_dns }}
+  labels:
+    azure.workload.identity/use: "true"
+{% endif %}
+{% endraw %}
+
+{% if context.cloud == 'gcp' %}
+{% raw %}
+serviceAccount:
+  annotations:
+    iam.gke.io/gcp-service-account: {{ cluster.metadata.iam.external_dns }}
+  labels:
+    azure.workload.identity/use: "true"
+{% endif %}
+{% endraw %}

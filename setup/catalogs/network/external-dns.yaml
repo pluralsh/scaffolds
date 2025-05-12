@@ -1,0 +1,40 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: external-dns
+spec:
+  name: external-dns
+  icon: https://kubernetes-sigs.github.io/external-dns/v0.15.0/docs/img/external-dns.png
+  identifier: mgmt
+  documentation: Sets up external-dns for all workload clusters in a given cloud
+  creates:
+    git:
+      ref: main
+      folder: catalogs/network/external-dns
+    templates:
+    - source: helm/external-dns.yaml.liquid
+      destination: helm/external-dns.yaml.liquid
+      external: true
+    - source: globalservice.yaml
+      destination: bootstrap/components/external-dns.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: network
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up external-dns on our fleet"
+  message: |
+    Set up external-dns for all workload clusters.
+  configuration:
+  - name: cloud
+    type: ENUM
+    documentation: Cloud provider you are using
+    values:
+    - aws
+    - azure
+    - gcp
+  - name: dnsZone
+    type: STRING
+    documentation: The DNS zone name for external-dns to write to.

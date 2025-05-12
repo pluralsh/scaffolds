@@ -1,0 +1,30 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: ingress-nginx
+spec:
+  name: ingress-nginx
+  icon: https://github.com/pluralsh/plural-artifacts/blob/main/ingress-nginx/plural/icons/nginx.png?raw=true
+  identifier: mgmt
+  documentation: Sets up ingress-nginx for all workload clusters
+  creates:
+    git:
+      ref: main
+      folder: catalogs/network/ingress-nginx
+    templates:
+    - source: helm/ingress-nginx.yaml
+      destination: helm/ingress-nginx.yaml
+      external: true
+    - source: globalservice.yaml
+      destination: bootstrap/components/ingress-nginx.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: network
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up ingress-nginx on our fleet"
+  message: |
+    Set up ingress-nginx for all workload clusters.
+  configuration: []
