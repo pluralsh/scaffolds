@@ -1,0 +1,49 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: postgres
+spec:
+  name: postgres
+  icon: https://wiki.postgresql.org/images/3/30/PostgreSQL_logo.3colors.120x120.png
+  identifier: mgmt
+  documentation: |
+    Sets up postgres using Plural
+  creates:
+    git:
+      ref: sebastian/prod-3558-add-postgres-app
+      folder: catalogs/datastores/postgres
+    templates:
+      - source: stack.yaml
+        destination: "bootstrap/apps/postgres/{{ context.name }}/stack.yaml"
+        external: true
+      - source: "terraform/{{ context.cloud }}"
+        destination: terraform/apps/postgres/{{ context.name }}
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: datastores
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up postgres on cluster {{ context.cluster }} for {{ context.cloud }}"
+  message: |
+    Set up postgres on {{ context.cluster }} ({{ context.cloud }})
+
+    Will set up a postgres deployment
+  configuration:
+    - name: name
+      type: STRING
+      documentation: Name of the created database.
+    - name: cloud
+      type: ENUM
+      documentation: Cloud provider you want to deploy postgres to.
+      values:
+        - aws
+        - gcp
+        - azure
+    - name: network
+      type: ENUM
+      documentation: Preexisting network type you want to use to connect the postgres to.
+      values:
+        - dev
+        - prod

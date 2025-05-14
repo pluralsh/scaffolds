@@ -1,0 +1,22 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: postgres-{{ context.name }}
+  namespace: apps
+spec:
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/postgres/{{ context.name }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  variables:
+    network: {{ context.network }}
+  clusterRef:
+    name: mgmt
+    namespace: infra
