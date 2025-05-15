@@ -1,5 +1,6 @@
 data "google_compute_network" "network" {
   name = local.ctx_network.network
+  project = local.ctx_mgmt.project_id
 
   depends_on = [
     data.plural_service_context.network
