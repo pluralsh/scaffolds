@@ -1,6 +1,9 @@
-output "db_pg" {
-  value     = module.pg
-  sensitive = true
+output "private_ip_address" {
+  value = module.pg.private_ip_address
+}
+
+output "public_ip_address" {
+  value = module.pg.public_ip_address
 }
 
 output "db_name" {
