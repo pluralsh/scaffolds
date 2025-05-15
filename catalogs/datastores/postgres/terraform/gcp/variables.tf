@@ -11,7 +11,7 @@ variable "database_version" {
 }
 
 variable "tier" {
-  default = "db-standard-2"
+  default = "db-perf-optimized-N-2"
 }
 
 variable "availability_type" {
