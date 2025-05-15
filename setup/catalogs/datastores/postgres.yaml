@@ -10,7 +10,7 @@ spec:
     Sets up postgres using Plural
   creates:
     git:
-      ref: sebastian/prod-3558-add-postgres-app
+      ref: sebastian/prod-3558-add-postgres-app # TODO: change to main before merge
       folder: catalogs/datastores/postgres
     templates:
       - source: stack.yaml
@@ -36,7 +36,7 @@ spec:
       documentation: Name of the created database.
     - name: cloud
       type: ENUM
-      documentation: Cloud provider you want to deploy postgres to.
+      documentation: Cloud provider of your mgmt cluster.
       values:
         - aws
         - gcp
