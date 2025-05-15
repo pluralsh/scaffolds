@@ -1,5 +1,5 @@
 data "google_compute_network" "network" {
-  name = data.plural_service_context.network.network
+  name = local.ctx_network.network
 
   depends_on = [
     data.plural_service_context.network
@@ -12,7 +12,7 @@ resource "google_compute_global_address" "private_ip_alloc" {
   address_type  = "INTERNAL"
   prefix_length = 16
   network       = data.google_compute_network.network.id
-  project       = data.plural_service_context.mgmt.project_id
+  project       = local.ctx_mgmt.project_id
 }
 
 

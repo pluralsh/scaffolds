@@ -12,9 +12,9 @@ module "pg" {
 
   name                 = var.name
   random_instance_name = false
-  project_id           = data.plural_service_context.mgmt.project_id
+  project_id           = local.ctx_mgmt.project_id
   database_version     = "POSTGRES_14"
-  region               = data.plural_service_context.mgmt.region
+  region               = local.ctx_mgmt.region
 
   // Master configurations
   tier                            = var.size
