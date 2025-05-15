@@ -1,5 +1,6 @@
 output "db_pg" {
-  value       = module.pg
+  value     = module.pg
+  sensitive = true
 }
 
 output "db_name" {
@@ -19,6 +20,6 @@ output "db_password" {
 }
 
 output "db_url" {
-  value = local.db_url
+  value     = local.db_url
   sensitive = true
 }
