@@ -7,7 +7,6 @@ resource "random_password" "password" {
 }
 
 module "pg" {
-  create_db_instance = var.create_db
   source = "terraform-aws-modules/rds/aws"
   version = "~> 6.3"
 
@@ -20,8 +19,8 @@ module "pg" {
   instance_class       = var.db_instance_class
   allocated_storage    = var.db_storage
 
-  db_name  = "console"
-  username = "console"
+  db_name  = var.name
+  username = "admin"
   password = random_password.password.result
   manage_master_user_password = false
 
@@ -36,7 +35,7 @@ module "pg" {
   multi_az = true
 
   create_db_subnet_group = true
-  subnet_ids             = data.vpc.private_subnets
+  subnet_ids             = local.ctx_network.private_subnets
   vpc_security_group_ids = [module.security_group.security_group_id]
 
   parameters = [
@@ -60,7 +59,7 @@ module "security_group" {
 
   name        = "${local.db_name}-db-security-group"
   description = "security group for your plural console db"
-  vpc_id      = data.vpc.vpc_id
+  vpc_id      = local.ctx_network.vpc_id
 
   ingress_with_cidr_blocks = [
     {
@@ -68,7 +67,7 @@ module "security_group" {
       to_port     = 5432
       protocol    = "tcp"
       description = "PostgreSQL access from within VPC"
-      cidr_blocks = data.vpc.vpc_cidr_block
+      cidr_blocks = local.ctx_network.vpc_cidr
     },
   ]
 }

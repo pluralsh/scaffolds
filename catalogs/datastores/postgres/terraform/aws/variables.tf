@@ -6,10 +6,6 @@ variable "name" {
   description = "Name of the postgres db"
 }
 
-variable "create_db" {
-  type    = bool
-  default = true
-}
 
 variable "postgres_vsn" {
   type = string
