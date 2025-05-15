@@ -18,7 +18,7 @@ spec:
   configuration:
     version: '1.8'
   clusterRef:
-    name: {{ context.stackCluster }}
+    name: mgmt
     namespace: infra
 ---
 apiVersion: deployments.plural.sh/v1alpha1
@@ -50,6 +50,7 @@ spec:
     stackName: dagster-{{ context.cluster }}
     hostname: {{ context.hostname }}
     bucket: {{ context.bucket }}
+    cloud: {{ context.cloud }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}

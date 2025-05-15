@@ -1,0 +1,19 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: cluster-issuers
+  namespace: infra
+spec:
+  cascade:
+    delete: true
+  tags:
+    role: workload
+  template:
+    name: cluster-issuers
+    namespace: cert-manager
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+    git:
+      ref: main
+      folder: services/cert-manager/issuers
