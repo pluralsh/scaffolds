@@ -57,7 +57,7 @@ module "security_group" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "~> 5.0"
 
-  name        = "${local.db_name}-db-security-group"
+  name        = "${var.name}-db-security-group"
   description = "security group for your plural console db"
   vpc_id      = local.ctx_network.vpc_id
 
