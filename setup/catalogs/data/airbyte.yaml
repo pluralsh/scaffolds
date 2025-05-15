@@ -77,7 +77,6 @@ spec:
       value: 'azure'
   - name: storageAccount
     type: STRING
-    optional: true
     documentation: Azure storage account that you would like to use. It has to belong to the resource group specified earlier.
     optional: true
     condition:
