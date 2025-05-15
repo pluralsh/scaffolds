@@ -8,6 +8,16 @@ variable "tier" {
   default = "{{ context.tier }}"
 }
 
+variable "resource_group_name" {
+  type = string
+  default = "{{ context.resourceGroupName }}"
+}
+
+variable "storage_account_name" {
+  type = string
+  default = "{{ context.storageAccountName }}"
+}
+
 variable "cluster_name" {
   type = string
   default = "{{ context.cluster }}"
@@ -32,20 +42,12 @@ variable "postgres_vsn" {
   default = "14"
 }
 
-variable "db_storage" {
-  default = 20
-}
-
-variable "deletion_protection" {
-  type    = bool
-  default = true
-}
-
-variable "backup_retention_period" {
+variable "db_disk" {
   type = number
-  default = 7
+  default = 32768
 }
 
-variable "db_instance_class" {
-  default = "db.t4g.large"
+variable "db_sku" {
+  type = string
+  default = "GP_Standard_D4s_v3"
 }

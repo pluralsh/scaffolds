@@ -50,12 +50,8 @@ spec:
     Will set up an airbyte deployment, including object storage and postgres setup
   configuration:
   - name: cluster
-    type: STRING
+    type: CLUSTER
     documentation: Handle of the cluster you want to deploy airbyte to.
-  - name: stackCluster
-    type: STRING
-    documentation: Handle of the cluster used to run Infrastructure Stacks for provisioning the infrastructure. Defaults to the management cluster.
-    default: mgmt
   - name: cloud
     type: ENUM
     documentation: Cloud provider you want to deploy airbyte to.
@@ -74,14 +70,15 @@ spec:
   - name: resourceGroup
     type: STRING
     documentation: Azure resource group that you would like to use.
+    optional: true
     condition:
       field: cloud
       operation: EQ
       value: 'azure'
   - name: storageAccount
     type: STRING
-    optional: true
     documentation: Azure storage account that you would like to use. It has to belong to the resource group specified earlier.
+    optional: true
     condition:
       field: cloud
       operation: EQ

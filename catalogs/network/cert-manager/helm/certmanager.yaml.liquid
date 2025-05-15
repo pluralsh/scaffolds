@@ -1,0 +1,31 @@
+global:
+  commonLabels:
+    azure.workload.identity/use: "true"
+
+installCRDs: true
+serviceAccount:
+  name: cert-manager
+  {% if context.cloud == 'aws' %}
+  {% raw %}
+  annotations:
+    eks.amazonaws.com/role-arn: {{ cluster.metadata.iam.cert_manager }}
+  {% endraw %}
+  {% endif %}
+
+  {% if context.cloud == 'azure' %}
+  {% raw %}
+  annotations:
+    azure.workload.identity/client-id: {{ cluster.metadata.iam.cert_manager }}
+  {% endraw %}
+  {% endif %}
+
+  {% if context.cloud == 'gcp' %}
+  {% raw %}
+  annotations:
+    iam.gke.io/gcp-service-account: {{ cluster.metadata.iam.cert_manager }}
+  {% endraw %}
+  {% endif %}
+
+securityContext:
+  fsGroup: 1000
+  runAsNonRoot: true

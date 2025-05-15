@@ -37,6 +37,18 @@ spec:
 apiVersion: deployments.plural.sh/v1alpha1
 kind: Catalog
 metadata:
+  name: network
+spec:
+  name: network
+  category: network
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Sets up Kubernetes networking infrastructure using Plural, including cert management, load balancing and DNS
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
   name: infra
 spec:
   name: infra

@@ -43,12 +43,14 @@ spec:
   message: Sets up Dagster on {{ context.cluster }} cluster.
   configuration:
     - name: cluster
-      type: STRING
+      type: CLUSTER
       documentation: The cluster you want to deploy to.
-    - name: stackCluster
-      type: STRING
-      documentation: Handle of the cluster used to run Infrastructure Stacks for provisioning the infrastructure. Defaults to the management cluster.
-      default: mgmt
+    - name: tier
+      type: ENUM
+      documentation: The tier you want to deploy to.
+      values:
+        - dev
+        - prod
     - name: cloud
       type: ENUM
       documentation: The cloud you want to deploy to.
@@ -63,4 +65,20 @@ spec:
     - name: hostname
       type: STRING
       documentation: The DNS name you want to host Dagster under.
+    - name: resourceGroupName
+      type: STRING
+      documentation: The name of the resource group you want to use.
+      optional: true
+      condition:
+        field: cloud
+        operation: EQ
+        value: 'azure'
+    - name: storageAccountName
+      type: STRING
+      documentation: The name of the storage account you want to use.
+      optional: true
+      condition:
+        field: cloud
+        operation: EQ
+        value: 'azure'
 

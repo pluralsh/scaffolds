@@ -1,6 +1,4 @@
 
-{% assign imports_airbyte_key =  'airbyte-' | append: configuration.cluster %}
-
 global:
   deploymentMode: oss
   edition: community
@@ -14,14 +12,14 @@ global:
     s3:
       region: {{ configuration.region }}
       authenticationType: credentials
-      accessKeyId: {{ imports[imports_airbyte_key].access_key_id }}
+      accessKeyId: {{ imports[configuration.stackName].access_key_id }}
       accessKeyIdSecretKey: AWS_ACCESS_KEY_ID
-      secretAccessKey: {{ imports[imports_airbyte_key].secret_access_key }}
+      secretAccessKey: {{ imports[configuration.stackName].secret_access_key }}
       secretAccessKeySecretKey: AWS_SECRET_ACCESS_KEY
     {% elsif configuration.cloud == 'azure' %}
     type: azure
     azure:
-      connectionString: {{ imports[imports_airbyte_key].connection_string }}
+      connectionString: {{ imports[configuration.stackName].connection_string }}
     {% endif %}
     bucket:
       log: {{ configuration.bucket }}
@@ -31,12 +29,12 @@ global:
   database:
     type: external
     database: airbyte
-    host: {{ imports[imports_airbyte_key].postgres_host }}
+    host: {{ imports[configuration.stackName].postgres_host }}
     port: "5432"
     secretName: airbyte-airbyte-secrets
     user: airbyte
     userSecretKey: DATABASE_USER
-    password: {{ imports[imports_airbyte_key].postgres_password }}
+    password: {{ imports[configuration.stackName].postgres_password }}
     passwordSecretKey: DATABASE_PASSWORD
 
 postgresql:
@@ -44,10 +42,10 @@ postgresql:
 
 externalDatabase:
   database: airbyte
-  host: {{ imports[imports_airbyte_key].postgres_host }}
+  host: {{ imports[configuration.stackName].postgres_host }}
   user: airbyte
   existingSecret: ~
-  password: {{ imports[imports_airbyte_key].postgres_password }}
+  password: {{ imports[configuration.stackName].postgres_password }}
   port: 5432
 
 webapp:

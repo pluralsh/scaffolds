@@ -1,0 +1,63 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: cert-manager
+spec:
+  name: cert-manager
+  icon: https://cert-manager.io/images/cert-manager-logo-icon.svg
+  identifier: mgmt
+  documentation: Sets up cert manager for a kubernetes fleet in the given cloud
+  creates:
+    git:
+      ref: main
+      folder: catalogs/network/cert-manager
+    templates:
+    - source: helm/cert-manager.yaml.liquid
+      destination: helm/cert-manager.yaml.liquid
+      external: true
+    - source: globalservice.yaml
+      destination: bootstrap/components/cert-manager.yaml
+      external: true
+    - source: issuers.yaml
+      destination: bootstrap/components/cluster-issuers.yaml
+      external: true
+    - source: issuers
+      destination: services/cert-manager/issuers
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: network
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up cert manager on our fleet"
+  message: |
+    Set up cert manager for all workload clusters.  This also provisions a base dns01 issuer for reliable issuance relative
+    to the http01 solver.
+  configuration:
+  - name: cloud
+    type: ENUM
+    documentation: Cloud provider you want to deploy airbyte to.
+    values:
+    - aws
+    - azure
+    - gcp
+  - name: email
+    type: STRING
+    documentation: The email address to register with letsencrypt.  Cert issuance emails will be sent to this address.
+  - name: dnsZone
+    type: STRING
+    documentation: The DNS zone name to use for the cert manager issuer.
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: 'azure'
+  - name: resourceGroupName
+    type: STRING
+    documentation: The resource group name to use for the cert manager issuer.
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: 'azure'

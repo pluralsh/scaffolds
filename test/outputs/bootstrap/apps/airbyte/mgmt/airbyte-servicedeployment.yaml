@@ -26,6 +26,7 @@ spec:
       namespace: apps
   configuration:
     cluster: mgmt
+    stackName: airbyte-mgmt
     hostname: airbyte.plural.sh
     bucket: plrl-airbyte-logs
     region: us-east-2

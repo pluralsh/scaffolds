@@ -1,0 +1,32 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: dns01
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: {{ context.email }}
+
+    privateKeySecretRef:
+      name: dns01-private-key
+
+    # ACME DNS-01 provider configurations to verify domain
+    solvers:
+    - dns01:
+        {% if context.cloud == 'aws' %}
+        route53:
+          region: {{ context.region }}
+        {% endif %}
+        {% if context.cloud == 'azure' %}
+        azureDNS:
+          hostedZoneName: {{ context.dnsZone }}
+          resourceGroupName: {{ context.resourceGroupName }}
+          subscriptionID: {% raw %}{{ cluster.metadataa.subscription_id }}{% endraw %}
+          environment: AzurePublicCloud
+        {% endif %}
+        {% if context.cloud == 'gcp' %}
+        {% raw %}
+        cloudDNS:
+          project: {{ cluster.metadata.project }}
+        {% endraw %}
+        {% endif %}

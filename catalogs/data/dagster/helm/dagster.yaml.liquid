@@ -1,12 +1,16 @@
 {% raw %}
 dagsterWebserver:
   annotations:
+    {% if configuration.cloud == 'azure' %}
+    azure.workload.identity/client-id: {{ imports[configuration.stack_name].blobstore_client_id }}
+    {% endif %}
     security.plural.sh/oauth-env-secret: dagster-proxy-config
     {% if configuration["basicAuth"] %}
     security.plural.sh/htpasswd-secret: httpaswd-users
     {% endif %}
   labels:
     security.plural.sh/inject-oauth-sidecar: "true"
+    azure.workload.identity/use: "true"
   envSecrets:
     - name: dagster-aws-env
 
@@ -19,11 +23,31 @@ postgresql:
   postgresqlParams:
     sslmode: require
 
+{% if configuration.cloud == 'aws' %}
 computeLogManager:
   type: S3ComputeLogManager
   config:
     s3ComputeLogManager:
       bucket: {{ configuration.bucket }}
+{% endif %}
+
+{% if configuration.cloud == 'azure' %}
+computeLogManager:
+  type: AzureBlobComputeLogManager
+  config:
+    azureBlobComputeLogManager:
+      storageAccount: {{ imports[configuration.stackName].storage_account_name }}
+      container: {{ imports[configuration.stackName].container_name  }}
+      defaultAzureCredential:
+        exclude_environment_credential: false
+        exclude_managed_identity_credential: true
+        exclude_cli_credential: true
+        exclude_powershell_credential: true
+        exclude_developer_cli_credential: true
+        exclude_visual_studio_code_credential: true
+        exclude_shared_token_cache_credential: true
+        workload_identity_client_id: {{ imports[configuration.stackName].blobstore_client_id }} # when this actually works, enable it
+{% endif %}
 
 ingress:
   enabled: true
