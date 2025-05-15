@@ -13,23 +13,21 @@ module "pg" {
   name                 = var.name
   random_instance_name = false
   project_id           = local.ctx_mgmt.project_id
-  database_version     = "POSTGRES_14"
+  database_version     = var.database_version
   region               = local.ctx_mgmt.region
 
   // Master configurations
-  tier                            = var.size
-  availability_type               = "REGIONAL"
-  maintenance_window_day          = 7
-  maintenance_window_hour         = 12
-  maintenance_window_update_track = "stable"
+  tier                            = var.tier
+  availability_type               = var.availability_type
+  maintenance_window_day          = var.maintenance_window_day
+  maintenance_window_hour         = var.maintenance_window_hour
+  maintenance_window_update_track = var.maintenance_window_update_track
 
-  deletion_protection = false
+  deletion_protection = var.deletion_protection
 
-  database_flags = [{ name = "autovacuum", value = "on" }]
+  database_flags = [var.database_flags]
 
-  insights_config = {
-    query_plans_per_minute = 5
-  }
+  insights_config = var.insights_config
 
   ip_configuration = {
     ipv4_enabled                  = true
@@ -54,7 +52,7 @@ module "pg" {
   db_charset   = "UTF8"
   db_collation = "en_US.UTF8"
 
-  user_name     = "admin"
+  user_name     = var.user_name
   user_password = random_password.password.result
 
   depends_on = [
