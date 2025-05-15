@@ -25,11 +25,11 @@ spec:
     name: datastores
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
-  title: "Setting up postgres on cluster {{ context.cluster }} for {{ context.cloud }}"
+  title: "Setting up postgres db {{ context.name }} on {{ context.cloud }}"
   message: |
-    Set up postgres on {{ context.cluster }} ({{ context.cloud }})
+    Set up postgres db {{ context.name }} on ({{ context.cloud }})
 
-    Will set up a postgres deployment
+    Will set up a postgres database in the cloud provider.
   configuration:
     - name: name
       type: STRING
