@@ -17,6 +17,7 @@ spec:
     namespace: infra
   variables:
     network: {{ context.network }}
+    name: {{ context.name }}
   clusterRef:
     name: mgmt
     namespace: infra
