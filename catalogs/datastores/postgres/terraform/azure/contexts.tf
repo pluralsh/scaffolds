@@ -3,7 +3,7 @@ data "plural_service_context" "identity" {
 }
 
 data "plural_service_context" "network" {
-  name = "plrl/vpc/${var.network}"
+  name = "plrl/network/${var.network}"
 }
 
 data "plural_service_context" "cluster" {
