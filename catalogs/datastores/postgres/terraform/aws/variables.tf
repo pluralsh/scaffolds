@@ -35,3 +35,7 @@ variable "monitoring_role" {
   type = string
   default = ""
 }
+
+variable "user_name" {
+  default = "plural"
+}
