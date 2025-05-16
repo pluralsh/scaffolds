@@ -9,7 +9,7 @@ output "db_name" {
 
 output "db_user" {
   description = "The database user"
-  value       = "admin"
+  value       = var.user_name
 }
 
 output "db_password" {

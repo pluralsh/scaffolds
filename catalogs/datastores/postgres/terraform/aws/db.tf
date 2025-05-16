@@ -20,7 +20,7 @@ module "pg" {
   allocated_storage    = var.db_storage
 
   db_name  = var.name
-  username = "plural"
+  username = var.user_name
   password = random_password.password.result
   manage_master_user_password = false
 
