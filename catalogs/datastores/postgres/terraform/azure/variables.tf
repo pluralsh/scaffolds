@@ -1,3 +1,11 @@
+variable "network" {
+  description = "Network that database should belong to"
+}
+
+variable "db_name" {
+  description = "Name of the database"
+}
+
 variable "db_disk" {
   type = number
   default = 32768

@@ -13,10 +13,6 @@ terraform {
 
 provider "plural" {}
 
-locals {
-
-}
-
 provider "azurerm" {
   features {
     resource_group {
