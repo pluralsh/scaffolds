@@ -17,7 +17,7 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   version                = "13"
   delegated_subnet_id    = local.network_context["pg_subnet_id"]
   private_dns_zone_id    = local.network_context["dns_zone_id"]
-  administrator_login    = "admin"
+  administrator_login    = var.db_username
   administrator_password = random_password.db_password.result
   public_network_access_enabled = false
 
