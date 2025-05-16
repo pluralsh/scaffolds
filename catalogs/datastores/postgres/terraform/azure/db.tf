@@ -11,7 +11,7 @@ data "azurerm_resource_group" "default" {
 }
 
 resource "azurerm_postgresql_flexible_server" "postgres" {
-  name                   = var.db_name
+  name                   = var.name
   resource_group_name    = data.azurerm_resource_group.default.name
   location               = data.azurerm_resource_group.default.location
   version                = "13"
@@ -40,7 +40,7 @@ resource "azurerm_postgresql_flexible_server_configuration" "default" {
 }
 
 resource "azurerm_postgresql_flexible_server_database" "postgres" {
-  name      = var.db_name
+  name      = var.name
   server_id = azurerm_postgresql_flexible_server.postgres.id
   collation = "en_US.utf8"
   charset   = "utf8"

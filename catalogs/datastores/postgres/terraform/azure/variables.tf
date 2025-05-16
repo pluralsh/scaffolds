@@ -2,7 +2,7 @@ variable "network" {
   description = "Network that database should belong to"
 }
 
-variable "db_name" {
+variable "name" {
   description = "Name of the database"
 }
 
