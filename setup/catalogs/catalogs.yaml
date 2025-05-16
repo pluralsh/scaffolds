@@ -57,3 +57,15 @@ spec:
   author: Plural
   description: |
     Sets up infrastructure using Plural
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
+  name: datastores
+spec:
+  name: datastores
+  category: datastore
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Sets up data store using Plural
