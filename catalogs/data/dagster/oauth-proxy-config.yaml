@@ -24,6 +24,7 @@ spec:
       namespace: apps
   configuration:
     cluster: {{ context.cluster }}
+    stackName: dagster-{{ context.cluster }}
     hostname: {{ context.hostname }}
   clusterRef:
     kind: Cluster
