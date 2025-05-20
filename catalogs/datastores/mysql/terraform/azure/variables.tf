@@ -6,6 +6,11 @@ variable "name" {
   description = "Name of the database"
 }
 
+variable "db_version" {
+  type = string
+  default = "5.7"
+}
+
 variable "db_disk" {
   type = number
   default = 32768
