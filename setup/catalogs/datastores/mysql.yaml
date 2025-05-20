@@ -1,0 +1,48 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: mysql
+spec:
+  name: mysql
+  icon: https://upload.wikimedia.org/wikipedia/en/d/dd/MySQL_logo.svg
+  identifier: mgmt
+  documentation: Sets up MySQL using Plural
+  creates:
+    git:
+      ref: marcin/prod-3592-mysql-datastore-catalog-entry # TODO: change to main before merge
+      folder: catalogs/datastores/mysql
+    templates:
+      - source: stack.yaml
+        destination: "bootstrap/apps/mysql/{{ context.name }}/stack.yaml"
+        external: true
+      - source: "terraform/{{ context.cloud }}"
+        destination: terraform/apps/mysql/{{ context.name }}
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: datastores
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up MySQL database {{ context.name }} on {{ context.cloud }}"
+  message: |
+    Set up MySQL database {{ context.name }} on ({{ context.cloud }})
+
+    Will set up a MySQL database in the cloud provider.
+  configuration:
+    - name: name
+      type: STRING
+      documentation: Name of the created database.
+    - name: cloud
+      type: ENUM
+      documentation: Cloud provider of your mgmt cluster.
+      values:
+        - aws
+        - gcp
+        - azure
+    - name: network
+      type: ENUM
+      documentation: Preexisting network type you want to use to connect the MySQL to.
+      values:
+        - dev
+        - prod
