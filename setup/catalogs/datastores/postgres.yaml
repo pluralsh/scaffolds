@@ -10,7 +10,7 @@ spec:
     Sets up postgres using Plural
   creates:
     git:
-      ref: sebastian/prod-3558-add-postgres-app # TODO: change to main before merge
+      ref: main
       folder: catalogs/datastores/postgres
     templates:
       - source: stack.yaml
