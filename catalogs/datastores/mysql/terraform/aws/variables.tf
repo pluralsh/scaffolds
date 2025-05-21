@@ -9,7 +9,7 @@ variable "name" {
 
 variable "mysql_vsn" {
   type = string
-  default = "8.0.35"
+  default = "8.0"
 }
 
 variable "db_instance_class" {
