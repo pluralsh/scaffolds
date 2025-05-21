@@ -8,7 +8,7 @@ variable "name" {
 
 variable "db_version" {
   type = string
-  default = "5.7"
+  default = "5.0"
   description = "The version of the MySQL Flexible Server to use. Possible values are 5.7, and 8.0.21. Changing this forces a new MySQL Flexible Server to be created."
 }
 
@@ -20,7 +20,7 @@ variable "db_size_gb" {
 
 variable "db_sku" {
   type = string
-  default = "B_Gen5_2"
+  default = "Starndard_B1ms"
   description = "The SKU Name for the MySQL Flexible Server."
 }
 
