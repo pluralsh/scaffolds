@@ -18,7 +18,6 @@ resource "azurerm_mysql_flexible_server" "mysql" {
   private_dns_zone_id           = local.network_context["dns_zone_id"]
   administrator_login           = var.db_username
   administrator_password        = random_password.db_password.result
-  public_network_access_enabled = false
 
   sku_name   = var.db_sku
   version    = var.db_version
