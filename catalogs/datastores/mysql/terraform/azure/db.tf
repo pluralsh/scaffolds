@@ -41,5 +41,5 @@ resource "azurerm_mysql_flexible_database" "mysql" {
   resource_group_name = data.azurerm_resource_group.default.name
   server_name         = azurerm_mysql_flexible_server.mysql.name
   charset             = "utf8"
-  collation           = "en_US.utf8"
+  collation           = "utf8_unicode_ci"
 }
