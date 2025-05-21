@@ -14,7 +14,7 @@ resource "azurerm_mysql_flexible_server" "mysql" {
   name                          = var.name
   resource_group_name           = data.azurerm_resource_group.default.name
   location                      = data.azurerm_resource_group.default.location
-  delegated_subnet_id           = local.network_context["pg_subnet_id"]
+  delegated_subnet_id           = local.network_context["mysql_subnet_id"]
   private_dns_zone_id           = local.network_context["dns_zone_id"]
   administrator_login           = var.db_username
   administrator_password        = random_password.db_password.result
