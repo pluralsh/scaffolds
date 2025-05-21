@@ -20,7 +20,7 @@ variable "db_size_gb" {
 
 variable "db_sku" {
   type = string
-  default = "D_Standard_D2ads_v5"
+  default = "GP_Standard_D2ads_v5"
   description = "The SKU Name for the MySQL Flexible Server."
 }
 
