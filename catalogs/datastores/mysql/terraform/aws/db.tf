@@ -49,8 +49,11 @@ module "mysql" {
     }
   ]
 
+  create_db_option_group    = false
+  create_db_parameter_group = false
   deletion_protection = var.deletion_protection
 }
+
 
 module "security_group" {
   source  = "terraform-aws-modules/security-group/aws"
