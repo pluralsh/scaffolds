@@ -21,11 +21,15 @@ resource "azurerm_mysql_flexible_server" "mysql" {
   public_network_access_enabled = false
 
   sku_name   = var.db_sku
-  storage_mb = var.db_disk
   version    = var.db_version
 
   high_availability {
     mode = "ZoneRedundant"
+  }
+
+  storage {
+    auto_grow_enabled = true
+    size_gb = var.db_size_gb
   }
 
   lifecycle {
