@@ -8,7 +8,7 @@ variable "name" {
 
 variable "db_version" {
   type = string
-  default = "5.0"
+  default = "5.7"
   description = "The version of the MySQL Flexible Server to use. Possible values are 5.7, and 8.0.21. Changing this forces a new MySQL Flexible Server to be created."
 }
 
