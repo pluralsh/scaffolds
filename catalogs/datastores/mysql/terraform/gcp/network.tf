@@ -17,7 +17,7 @@ resource "google_compute_global_address" "private_ip_alloc" {
 }
 
 
-resource "google_service_networking_connection" "postgres" {
+resource "google_service_networking_connection" "mysql" {
   network                 = data.google_compute_network.network.id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_ip_alloc.name]

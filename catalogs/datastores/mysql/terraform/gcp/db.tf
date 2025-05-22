@@ -51,6 +51,7 @@ resource "google_sql_database_instance" "mysql" {
   depends_on = [
     data.plural_service_context.cluster,
     data.plural_service_context.network,
+    google_service_networking_connection.mysql,
   ]
 }
 
