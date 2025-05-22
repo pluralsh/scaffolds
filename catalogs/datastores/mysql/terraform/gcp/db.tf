@@ -47,6 +47,11 @@ resource "google_sql_database_instance" "mysql" {
   }
 
   deletion_protection = false
+
+  depends_on = [
+    data.plural_service_context.cluster,
+    data.plural_service_context.network,
+  ]
 }
 
 resource "google_sql_database" "database" {
