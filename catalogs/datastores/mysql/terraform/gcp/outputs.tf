@@ -3,11 +3,6 @@ output "private_ip_address" {
   description = "The private IP address of the MySQL instance"
 }
 
-output "public_ip_address" {
-  value = google_sql_database_instance.mysql.public_ip_address
-  description = "The private IP address of the MySQL instance"
-}
-
 output "db_name" {
   value = google_sql_database.database.name
   description = "The name of the database"
