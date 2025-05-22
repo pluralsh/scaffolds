@@ -58,5 +58,6 @@ module "pg" {
   depends_on = [
     data.plural_service_context.mgmt,
     data.plural_service_context.network,
+    google_service_networking_connection.postgres,
   ]
 }
