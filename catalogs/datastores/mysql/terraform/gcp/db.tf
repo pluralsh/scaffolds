@@ -8,9 +8,9 @@ resource "random_password" "password" {
 
 resource "google_sql_database_instance" "mysql" {
   name             = var.name
-  project          = local.cluster_context.project_id
   database_version = var.db_version
-  region           = local.network_context.region
+  project          = local.cluster_context.project_id
+  region           = local.cluster_context.region
 
   settings {
     tier              = var.db_tier
