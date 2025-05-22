@@ -51,6 +51,7 @@ resource "google_sql_database_instance" "mysql" {
 
 resource "google_sql_database" "database" {
   name      = var.name
+  project   = local.cluster_context.project_id
   instance  = google_sql_database_instance.mysql.name
   charset   = "utf8mb4"
   collation = "utf8mb4_unicode_ci"
@@ -58,6 +59,7 @@ resource "google_sql_database" "database" {
 
 resource "google_sql_user" "user" {
   name     = var.db_username
+  project  = local.cluster_context.project_id
   instance = google_sql_database_instance.mysql.name
   password = random_password.password.result
 }
