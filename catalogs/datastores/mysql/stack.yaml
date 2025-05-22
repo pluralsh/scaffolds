@@ -1,0 +1,30 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: mysql-{{ context.name }}
+  namespace: apps
+spec:
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/mysql/{{ context.name }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  variables:
+    network: {{ context.network }}
+    name: {{ context.name }}
+  {% if context.cloud == 'azure' %}
+  jobSpec:
+    namespace: plrl-deploy-operator
+    labels:
+      azure.workload.identity/use: "true"
+    serviceAccount: "stacks"
+  {% endif %}
+  clusterRef:
+    name: mgmt
+    namespace: infra

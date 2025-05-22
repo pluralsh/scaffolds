@@ -25,6 +25,7 @@ spec:
   configuration:
     cluster: mgmt
     hostname: airbyte.plural.sh
+    stackName: airbyte-mgmt
   clusterRef:
     kind: Cluster
     name: mgmt
