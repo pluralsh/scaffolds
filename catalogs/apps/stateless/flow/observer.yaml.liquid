@@ -1,0 +1,26 @@
+{% raw %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Observer
+metadata:
+  name: {{ configuration.name }}-flow-observer
+spec:
+  crontab: "*/5 * * * *"
+  target:
+    order: SEMVER
+    type: OCI
+    oci:
+      url: {{ configuration.registry }}
+      provider: BASIC
+  actions:
+  - type: PIPELINE
+    configuration:
+      pipeline:
+        pipelineRef:
+          name: {{ configuration.name }}
+          namespace: {{ configuration.name }}
+        context:
+          flow: {{ configuration.name }}
+          tag: $value
+{% endraw %}
+
+

@@ -1,0 +1,11 @@
+{% raw %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Flow
+metadata:
+  name: {{ configuration.name }}
+spec:
+  name: {{ configuration.name }}
+  bindings:
+    write:
+    - groupName: {{ configuration.group }}
+{% endraw %}

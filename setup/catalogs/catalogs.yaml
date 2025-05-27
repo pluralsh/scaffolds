@@ -49,6 +49,18 @@ spec:
 apiVersion: deployments.plural.sh/v1alpha1
 kind: Catalog
 metadata:
+  name: apps
+spec:
+  name: apps
+  category: devops
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Manage applicationdeployments using Plural
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
   name: infra
 spec:
   name: infra

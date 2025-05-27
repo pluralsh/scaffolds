@@ -1,0 +1,32 @@
+{% raw %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Pipeline
+metadata:
+  name: {{ configuration.name }}
+spec:
+  flowRef:
+    name: {{ configuration.name }}
+  stages:
+    - name: dev
+      services:
+        - serviceRef:
+            name: {{ configuration.name}}-dev
+            namespace: {{ configuration.name }}
+          criteria:
+            prAutomationRef:
+              name: stateless-flow-upgrade-pra
+    - name: prod
+      services:
+        - serviceRef:
+            name: {{ configuration.name }}-prod
+            namespace: {{ configuration.name }}
+          criteria:
+            prAutomationRef:
+              name: stateless-flow-upgrade-pra
+  edges:
+  - from: dev
+    to: prod
+    gates:
+    - name: approval-gate
+      type: APPROVAL
+{% endraw %}
