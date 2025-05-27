@@ -21,8 +21,8 @@ spec:
     - source: stateless-flow-upgrade-pra.yaml
       destination: "bootstrap/pr-automation/stateless-flow-upgrade-pra.yaml"
       external: true
-    - source: stateless/helm/stateless.values.yaml
-      destination: "helm/flows/stateless.values.yaml"
+    - source: stateless/helm/stateless.values.yaml.liquid
+      destination: "helm/flows/stateless.values.yaml.liquid"
       external: true
   repositoryRef:
     name: scaffolds
@@ -42,6 +42,10 @@ spec:
   - name: name
     type: STRING
     documentation: The name of the flow this will create.
+  - name: group
+    type: STRING
+    documentation: The Plural user group to give write access to this flow.
+    default: "sre"
   - name: devCluster
     type: CLUSTER
     documentation: Handle of the dev cluster you want to deploy to.
