@@ -39,6 +39,9 @@ spec:
     registry: {{ context.registry }}
     tag: {{ context.tag }}
   configuration:
+  - name: name
+    type: STRING
+    documentation: The name of the flow this will create.
   - name: devCluster
     type: CLUSTER
     documentation: Handle of the dev cluster you want to deploy to.
