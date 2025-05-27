@@ -9,7 +9,7 @@ spec:
   documentation: Sets up a Plural Flow to manage the deployment of a basic stateless application
   creates:
     git:
-      ref: main
+      ref: mjg/prod-3559-add-flow-setup-catalog-app
       folder: catalogs/apps
     templates:
     - source: stateless/flow
