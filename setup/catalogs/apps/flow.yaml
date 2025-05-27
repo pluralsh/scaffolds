@@ -4,7 +4,7 @@ metadata:
   name: flow-stateless
 spec:
   name: flow-stateless
-  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d79a69b7-dfcd-480a-a51d-518865fd6e7c/airbyte.png
+  icon: https://docs.plural.sh/favicon-128.png
   identifier: mgmt
   documentation: Sets up a Plural Flow to manage the deployment of a basic stateless application
   creates:
