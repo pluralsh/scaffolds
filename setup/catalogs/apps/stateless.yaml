@@ -9,11 +9,11 @@ spec:
   documentation: Sets up a Plural Flow to manage the deployment of a basic stateless application
   creates:
     git:
-      ref: mjg/prod-3559-add-flow-setup-catalog-app
+      ref: main
       folder: catalogs/apps
     templates:
     - source: stateless/flow
-      destination: "services/flow"
+      destination: "services/flows/stateless"
       external: true
     - source: stateless/setup.yaml
       destination: "bootstrap/flows/{{ context.name }}.yaml"
@@ -23,6 +23,9 @@ spec:
       external: true
     - source: stateless/helm/stateless.values.yaml.liquid
       destination: "helm/flows/stateless.values.yaml.liquid"
+      external: true
+    - source: README.md
+      destination: "documentation/flows/README.md"
       external: true
   repositoryRef:
     name: scaffolds

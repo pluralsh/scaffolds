@@ -1,4 +1,4 @@
-
+{% raw %}
 apiVersion: deployments.plural.sh/v1alpha1
 kind: PrAutomation
 metadata:
@@ -25,3 +25,4 @@ spec:
   - name: tag
     type: STRING
     documentation: The new image tag to use
+{% endraw %}
