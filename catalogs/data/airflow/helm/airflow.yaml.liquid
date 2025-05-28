@@ -1,0 +1,90 @@
+airflow:
+  image:
+    repository: apache/airflow # extend and customize this image with your own airflow build to import dags
+    tag: 2.8.4-python3.9
+
+  config:
+    AIRFLOW__WEBSERVER__BASE_URL: https://{{ configuration.hostname }}
+    AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER: "s3://{{ configuration.bucket }}/airflow/logs"
+
+  connections:
+  - id: plural
+    type: aws
+    description: connection to aws s3 logs (via workflow identity)
+
+web:
+  baseUrl: {{ configuration.hostname }}
+
+  externalDatabase:
+    type: postgres
+    host: {{ imports[configuration.stackName].postgres_host }}
+    port: 5432
+    database: airflow
+    user: airflow
+    password: {{ imports[configuration.stackName].postgres_password }}
+    # use this for any extra connection-string settings, e.g. ?sslmode=disable
+    properties: "?sslmode=allow"
+
+
+  webserverSecretKey: {{ imports[configuration.stackName].flask_secret }}
+
+  webserverConfig:
+    stringOverride: |-
+      from airflow import configuration as conf
+      from airflow.www.fab_security.manager import AUTH_OAUTH
+
+      AUTH_TYPE = AUTH_OAUTH
+
+      # registration configs
+      AUTH_USER_REGISTRATION = True  # allow users who are not already in the FAB DB
+      AUTH_USER_REGISTRATION_ROLE = "Admin"  # this role will be given in addition to any AUTH_ROLES_MAPPING
+
+      # the list of providers which the user can choose from
+      OAUTH_PROVIDERS = [
+          {
+              'name': 'plural',
+              'icon': 'fa-square-p',
+              'token_key': 'access_token',
+              'remote_app': {
+                  'client_id': '{{ imports[configuration.stackName].oidc_client_id }}',
+                  'client_secret': '{{ imports[configuration.stackName].oidc_client_secret }}',
+                  'api_base_url': 'https://oidc.plural.sh/',
+                  'client_kwargs': {
+                      'scope': 'openid profile offline_access'
+                  },
+                  "access_token_url": "https://oidc.plural.sh/oauth2/token",
+                  "server_metadata_url": "https://oidc.plural.sh/.well-known/openid-configuration",
+                  'redirect_uri': 'https://{{ configuration.hostname }}/oauth-authorized/plural',
+                  'authorize_url': 'https://oidc.plural.sh/oauth2/auth'
+              }
+          }
+      ]
+
+      # force users to re-auth after 30min of inactivity (to keep roles in sync)
+      PERMANENT_SESSION_LIFETIME = 1800
+ingress:
+  web:
+    host: {{ configuration.hostname }}
+
+fernetKey: {{ imports[configuration.stackName].fernet_key }}
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: "{{ imports[configuration.stackName].logs_role_arn }}"
+
+###################################
+## CONFIG | Airflow DAGs
+###################################
+dags:
+  ## the airflow dags folder
+  path: /opt/airflow/dags
+
+  ## configs for the dags PVC
+  ## [FAQ] https://github.com/airflow-helm/charts/blob/main/charts/airflow/docs/faq/dags/load-dag-definitions.md
+  persistence:
+    enabled: false
+
+  ## configs for the git-sync sidecar
+  ## [FAQ] https://github.com/airflow-helm/charts/blob/main/charts/airflow/docs/faq/dags/load-dag-definitions.md
+  gitSync:
+    enabled: false
