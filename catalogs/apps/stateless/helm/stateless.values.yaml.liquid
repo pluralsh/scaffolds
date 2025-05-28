@@ -1,0 +1,21 @@
+{% raw %}
+image:
+  repository: {{ configuration.flowRegistry }}
+  tag: {{ configuration.flowTag }}
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+  - host: {{ configuration.flowDomain }}
+    paths:
+    - path: /
+      pathType: ImplementationSpecific
+  tls:
+  - secretName: {{ configuration.flowName }}-tls
+    hosts:
+      - {{ configuration.flowDomain }}
+{% endraw %}

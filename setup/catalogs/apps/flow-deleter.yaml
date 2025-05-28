@@ -1,0 +1,27 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: flow-delete
+spec:
+  name: flow-delete
+  icon: https://docs.plural.sh/favicon-128.png
+  identifier: mgmt
+  documentation: Generates a PR to delete a previously created Plural Flow
+  deletes:
+    files:
+    - "bootstrap/flows/{{ context.name }}.yaml"
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: apps
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Deleting flow {{ context.name }}"
+  message: |
+    Deleting flow {{ context.name }}
+
+    This will clean up all services, observers and piplines registered to this flow.
+  configuration:
+  - name: name
+    type: STRING
+    documentation: The name of the flow this will create.

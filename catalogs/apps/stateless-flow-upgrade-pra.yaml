@@ -1,0 +1,28 @@
+{% raw %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: stateless-flow-upgrade-pra
+spec:
+  name: stateless-flow-upgrade-pra
+  documentation: Upgrades image versions for a specific microservice
+  updates:
+    yamlOverlays:
+    - file: "bootstrap/flows/{{ context.flow }}.yaml"
+      yaml: |
+        spec:
+          configuration:
+            {{ context.pipeline.stage.name}}Tag: {{ context.tag }}
+  scmConnectionRef:
+    name: plural
+  title: "Updating {{ context.flow }} {{ context.pipeline.stage.name }} service to use {{ context.tag }}"
+  message: "Updating {{ context.flow }} {{ context.pipeline.stage.name }} service to use {{ context.tag }}"
+  identifier: mgmt
+  configuration:
+  - name: flow
+    type: STRING
+    documentation: "the flow to update"
+  - name: tag
+    type: STRING
+    documentation: The new image tag to use
+{% endraw %}

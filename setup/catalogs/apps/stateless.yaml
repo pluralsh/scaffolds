@@ -1,0 +1,69 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: flow-stateless
+spec:
+  name: flow-stateless
+  icon: https://docs.plural.sh/favicon-128.png
+  identifier: mgmt
+  documentation: Sets up a Plural Flow to manage the deployment of a basic stateless application
+  creates:
+    git:
+      ref: main
+      folder: catalogs/apps
+    templates:
+    - source: stateless/flow
+      destination: "services/flows/stateless"
+      external: true
+    - source: stateless/setup.yaml
+      destination: "bootstrap/flows/{{ context.name }}.yaml"
+      external: true
+    - source: stateless-flow-upgrade-pra.yaml
+      destination: "bootstrap/pr-automation/stateless-flow-upgrade-pra.yaml"
+      external: true
+    - source: stateless/helm/stateless.values.yaml.liquid
+      destination: "helm/flows/stateless.values.yaml.liquid"
+      external: true
+    - source: README.md
+      destination: "documentation/flows/README.md"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: apps
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up a stateless application {{ context.name }} from clusters {{ context.devCluster }} to {{ context.prodCluster }}"
+  message: |
+    Setting up a stateless application {{ context.name }}
+
+    dev cluster: {{ context.devCluster }}
+    prod cluster: {{ context.prodCluster }}
+    registry: {{ context.registry }}
+    tag: {{ context.tag }}
+  configuration:
+  - name: name
+    type: STRING
+    documentation: The name of the flow this will create.
+  - name: group
+    type: STRING
+    documentation: The Plural user group to give write access to this flow.
+    default: "sre"
+  - name: devCluster
+    type: CLUSTER
+    documentation: Handle of the dev cluster you want to deploy to.
+  - name: prodCluster
+    type: CLUSTER
+    documentation: Handle of the prod cluster you want to deploy to.
+  - name: registry
+    type: STRING
+    documentation: The name of the docker image registry you'll use to deploy the application.
+  - name: tag
+    type: STRING
+    documentation: The docker tag you'll use to deploy the application.
+  - name: devDomain
+    type: STRING
+    documentation: The domain name you'll use to access the application in the dev cluster.
+  - name: prodDomain
+    type: STRING
+    documentation: The domain name you'll use to access the application in the prod cluster.

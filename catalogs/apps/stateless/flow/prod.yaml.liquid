@@ -1,0 +1,33 @@
+{% raw %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: {{ configuration.name }}-prod
+spec:
+  namespace: {{ configuration.name }}
+  name: {{ configuration.name }}
+  flowRef:
+    name: {{ configuration.name }}
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  git:
+    ref: main
+    folder: helm/flows
+  helm:
+    version: x.x.x
+    url: https://pluralsh.github.io/bootstrap
+    chart: stateless
+    valuesFiles:
+    - stateless.values.yaml
+  configuration:
+    flowName: {{ configuration.name }}
+    flowDomain: {{ configuration.prodDomain }}
+    flowRegistry: {{ configuration.registry }}
+    flowTag: {{ configuration.prodTag }}
+  clusterRef:
+    kind: Cluster
+    name: {{ configuration.prodCluster }}
+    namespace: infra
+{% endraw %}
