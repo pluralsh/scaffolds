@@ -1,0 +1,29 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: airflow-{{ context.cluster }}
+  namespace: apps
+spec:
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/airflow/{{ context.cluster }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  configuration:
+    version: '1.8'
+  {% if context.cloud == 'azure' %}
+  jobSpec:
+    namespace: plrl-deploy-operator
+    labels:
+      azure.workload.identity/use: "true"
+    serviceAccount: "stacks"
+  {% endif %}
+  clusterRef:
+    name: mgmt
+    namespace: infra
