@@ -1,23 +1,22 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: PrAutomation
 metadata:
-  name: postgres
+  name: mysql
 spec:
-  name: postgres
-  icon: https://wiki.postgresql.org/images/3/30/PostgreSQL_logo.3colors.120x120.png
+  name: mysql
+  icon: https://upload.wikimedia.org/wikipedia/en/d/dd/MySQL_logo.svg
   identifier: mgmt
-  documentation: |
-    Sets up postgres using Plural
+  documentation: Sets up MySQL using Plural
   creates:
     git:
       ref: main
-      folder: catalogs/datastores/postgres
+      folder: catalogs/datastores/mysql
     templates:
       - source: stack.yaml
-        destination: "bootstrap/apps/postgres/{{ context.name }}/stack.yaml"
+        destination: "bootstrap/apps/mysql/{{ context.name }}/stack.yaml"
         external: true
       - source: "terraform/{{ context.cloud }}"
-        destination: terraform/apps/postgres/{{ context.name }}
+        destination: terraform/apps/mysql/{{ context.name }}
         external: true
   repositoryRef:
     name: scaffolds
@@ -25,11 +24,11 @@ spec:
     name: datastores
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
-  title: "Setting up postgres db {{ context.name }} on {{ context.cloud }}"
+  title: "Setting up MySQL database {{ context.name }} on {{ context.cloud }}"
   message: |
-    Set up postgres db {{ context.name }} on ({{ context.cloud }})
+    Set up MySQL database {{ context.name }} on ({{ context.cloud }})
 
-    Will set up a postgres database in the cloud provider.
+    Will set up a MySQL database in the cloud provider.
   configuration:
     - name: name
       type: STRING
@@ -43,7 +42,7 @@ spec:
         - azure
     - name: network
       type: ENUM
-      documentation: Preexisting network type you want to use to connect the postgres to.
+      documentation: Preexisting network type you want to use to connect the MySQL to.
       values:
         - dev
         - prod
