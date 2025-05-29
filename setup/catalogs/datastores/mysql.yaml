@@ -9,7 +9,7 @@ spec:
   documentation: Sets up MySQL using Plural
   creates:
     git:
-      ref: marcin/prod-3592-mysql-datastore-catalog-entry # TODO: change to main before merge
+      ref: main
       folder: catalogs/datastores/mysql
     templates:
       - source: stack.yaml
