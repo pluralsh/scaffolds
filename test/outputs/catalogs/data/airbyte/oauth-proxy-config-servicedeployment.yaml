@@ -25,6 +25,7 @@ spec:
   configuration:
     cluster: {{ context.cluster }}
     hostname: {{ context.hostname }}
+    stackName: airbyte-{{ context.cluster }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
