@@ -1,3 +1,16 @@
+locals {
+  tags = data.plural_cluster.cluster.tags
+  tier = var.cluster_name == "mgmt" ? "plural" : try(lookup(local.tags, "tier", "dev"), "dev")
+}
+
+data "plural_service_context" "network" {
+  name = "plrl/vpc/${local.tier}"  // TODO plural context is missing
+}
+
+locals {
+  configuration = jsondecode(data.plural_service_context.network.configuration)
+}
+
 resource "random_password" "password" {
   length      = 20
   min_lower   = 1
