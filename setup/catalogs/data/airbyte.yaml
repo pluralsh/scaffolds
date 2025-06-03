@@ -58,6 +58,7 @@ spec:
     values:
     - aws
     - azure
+    - gcp
   - name: bucket
     type: STRING
     documentation: The name of the S3/GCS/Azure Blob bucket you'll use for airbyte logs. This must be globally unique.
