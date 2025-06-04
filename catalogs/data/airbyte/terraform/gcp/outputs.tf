@@ -1,6 +1,5 @@
 output "project_id" {
-  value = "" // TODO
-  sensitive = true
+  value = local.cluster_context.project_id
 }
 
 output "credentials_json" {
