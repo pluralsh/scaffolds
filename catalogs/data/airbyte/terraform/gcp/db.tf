@@ -1,16 +1,3 @@
-locals {
-  tags = data.plural_cluster.cluster.tags
-  tier = var.cluster_name == "mgmt" ? "plural" : try(lookup(local.tags, "tier", "dev"), "dev")
-}
-
-data "plural_service_context" "network" {
-  name = "plrl/vpc/${local.tier}"  // TODO plural context is missing
-}
-
-locals {
-  configuration = jsondecode(data.plural_service_context.network.configuration)
-}
-
 resource "random_password" "password" {
   length      = 20
   min_lower   = 1
@@ -25,9 +12,9 @@ module "pg" {
 
   name                 = var.db_name
   random_instance_name = false
-  project_id           = local.ctx_mgmt.project_id
   database_version     = var.database_version
-  region               = local.ctx_mgmt.region
+  project_id           = local.project_id
+  region = local.region
 
   // Master configurations
   tier                            = var.tier
@@ -43,12 +30,12 @@ module "pg" {
   insights_config = var.insights_config
 
   ip_configuration = {
-    ipv4_enabled                  = true
-    private_network               = data.google_compute_network.network.id
-    psc_enabled                   = false
-    require_ssl                   = false
-    allocated_ip_range            = google_compute_global_address.private_ip_alloc.name
-    ssl_mode                      = "ENCRYPTED_ONLY"
+    ipv4_enabled       = true
+    private_network    = data.google_compute_network.network.id
+    psc_enabled        = false
+    require_ssl        = false
+    allocated_ip_range = google_compute_global_address.private_ip_alloc.name
+    ssl_mode           = "ENCRYPTED_ONLY"
   }
 
   backup_configuration = {
@@ -69,7 +56,7 @@ module "pg" {
   user_password = random_password.password.result
 
   depends_on = [
-    data.plural_service_context.mgmt,
+    data.plural_service_context.cluster,
     data.plural_service_context.network,
     google_service_networking_connection.postgres,
   ]
