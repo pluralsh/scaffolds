@@ -20,7 +20,6 @@ global:
     type: azure
     azure:
       connectionString: {{ imports[configuration.stackName].connection_string }}
-    {% endif %}
     {% elsif configuration.cloud == 'gcp' %}
     type: gcs
     gcs:
