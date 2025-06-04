@@ -55,5 +55,5 @@ variable "insights_config" {
 }
 
 variable "user_name" {
-  default = "admin"
+  default = "airbyte"
 }

@@ -48,7 +48,7 @@ module "pg" {
     retention_unit                 = "COUNT"
   }
 
-  db_name      = var.db_name
+  db_name      = "airbyte"
   db_charset   = "UTF8"
   db_collation = "en_US.UTF8"
 
