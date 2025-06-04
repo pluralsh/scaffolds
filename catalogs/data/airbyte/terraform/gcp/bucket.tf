@@ -30,7 +30,7 @@ resource "google_storage_bucket" "airbyte" {
 }
 
 resource "google_storage_bucket_iam_member" "default" {
-  bucket = var.airbyte_bucket
+  bucket = google_storage_bucket.airbyte.name
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.airbyte.email}"
 }
