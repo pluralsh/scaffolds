@@ -21,6 +21,12 @@ global:
     azure:
       connectionString: {{ imports[configuration.stackName].connection_string }}
     {% endif %}
+    {% elsif configuration.cloud == 'gcp' %}
+    type: gcs
+    gcs:
+      projectId: {{ imports[ configuration.stackName ].project_id }}
+      credentialsJson: {{ imports[ configuration.stackName ].credentials_json }}
+    {% endif %}
     bucket:
       log: {{ configuration.bucket }}
       state: {{ configuration.bucket }}
