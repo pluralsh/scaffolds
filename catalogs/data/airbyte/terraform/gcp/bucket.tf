@@ -1,5 +1,6 @@
 resource "google_service_account" "airbyte" {
   account_id = "airbyte-sa"
+  project = local.project_id
 }
 
 resource "google_service_account_key" "default" {
