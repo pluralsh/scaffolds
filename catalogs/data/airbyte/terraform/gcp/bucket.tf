@@ -25,12 +25,6 @@ resource "google_storage_bucket" "airbyte" {
       age = 30
     }
   }
-
-  timeouts {
-    create = "30m"
-    update = "30m"
-    delete = "30m"
-  }
 }
 
 resource "google_storage_bucket_iam_member" "default" {
