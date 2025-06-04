@@ -1,6 +1,6 @@
 resource "google_service_account" "airbyte" {
   account_id = "airbyte-sa"
-  project = local.project_id
+  project    = local.project_id
 }
 
 resource "google_service_account_key" "default" {
@@ -9,6 +9,7 @@ resource "google_service_account_key" "default" {
 
 resource "google_storage_bucket" "airbyte" {
   name          = var.airbyte_bucket
+  project       = local.project_id
   location      = local.region
   force_destroy = var.force_destroy_bucket
 
