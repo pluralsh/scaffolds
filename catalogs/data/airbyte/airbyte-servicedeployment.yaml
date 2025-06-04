@@ -31,8 +31,10 @@ spec:
     bucket: {{ context.bucket }}
     region: {{ context.region }}
     cloud: {{ context.cloud }}
+    {% if context.cloud == 'azure' %}
     resourceGroup: {{ context.resourceGroup }}
     storageAccount: {{ context.storageAccount }}
+    {% endif %}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
