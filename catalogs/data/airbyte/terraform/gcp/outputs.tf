@@ -7,7 +7,7 @@ output "credentials_json" {
   sensitive = true
 }
 
-output "credentials_json_b64" {
+output "credentials_json_decoded" {
   value = base64decode(google_service_account_key.default.private_key)
   sensitive = true
 }
