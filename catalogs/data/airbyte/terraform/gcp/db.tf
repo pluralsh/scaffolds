@@ -17,7 +17,7 @@ module "pg" {
   region = local.region
 
   // Master configurations
-  edition                         = "ENTERPRISE"
+  edition                         = "ENTERPRISE_PLUS"
   tier                            = var.tier
   availability_type               = var.availability_type
   maintenance_window_day          = var.maintenance_window_day
