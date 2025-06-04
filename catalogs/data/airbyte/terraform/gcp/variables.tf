@@ -8,6 +8,11 @@ variable "airbyte_bucket" {
   default = "{{ context.bucket }}"
 }
 
+variable "force_destroy_bucket" {
+  type        = bool
+  default     = true
+}
+
 variable "db_name" {
   default = "plrl-{{ context.cluster }}-airbyte"
 }
