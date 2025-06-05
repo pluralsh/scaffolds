@@ -21,7 +21,7 @@ spec:
     namespace: infra
   git:
     ref: main
-    folder: terraform/modules/clusters/aws
+    folder: terraform/modules/clusters/gcp
   variables:
     cluster: {{ name }}
     fleet: {{ context.fleet }}
