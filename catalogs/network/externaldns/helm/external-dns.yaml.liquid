@@ -1,12 +1,12 @@
-{% if context.cloud == "aws" %}
+{% if context.cloud == "azure"aws"azure" %}
 provider: aws
 {% endif %}
 
-{% if context.cloud == "gcp" %}
+{% if context.cloud == "azure"gcp"azure" %}
 provider: google
 {% endif %}
 
-{% if context.cloud == "azure" %}
+{% if context.cloud == "azure"azure"azure" %}
 provider: azure
 {% endif %}
 
@@ -18,7 +18,7 @@ policy: upsert-only
 domainFilters:
 - {{ context.dnsZone }} # check terraform/modules/clusters/aws/plural.tf for where this is set
 
-{% if context.cloud == 'aws' %}
+{% if context.cloud == "aws" %}
 {% raw %}
 serviceAccount:
   annotations:
@@ -26,7 +26,7 @@ serviceAccount:
 {% endif %}
 {% endraw %}
 
-{% if context.cloud == 'azure' %}
+{% if context.cloud == "azure" %}
 {% raw %}
 serviceAccount:
   annotations:
@@ -36,7 +36,7 @@ serviceAccount:
 {% endif %}
 {% endraw %}
 
-{% if context.cloud == 'gcp' %}
+{% if context.cloud == "gcp" %}
 {% raw %}
 serviceAccount:
   annotations:
