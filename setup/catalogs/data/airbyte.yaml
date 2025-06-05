@@ -10,7 +10,7 @@ spec:
     Sets up an airbyte instance for a given cloud
   creates:
     git:
-      ref: marcin/prod-3111-airbyte-gcp-setup # TODO main
+      ref: main
       folder: catalogs/data/airbyte
     templates:
     - source: helm
