@@ -13,7 +13,7 @@ output "credentials_json_decoded" {
 }
 
 output "postgres_host" {
-  value = module.pg.instance_ip_address
+  value = module.pg.private_ip_address
 }
 
 output "postgres_password" {
