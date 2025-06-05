@@ -1,4 +1,14 @@
+{% if context.cloud == "aws" %}
 provider: aws
+{% endif %}
+
+{% if context.cloud == "gcp" %}
+provider: google
+{% endif %}
+
+{% if context.cloud == "azure" %}
+provider: azure
+{% endif %}
 
 {% raw %}
 txtOwnerId: plrl-{{ cluster.handle }} # templating in the cluster handle, which is unique, to be the external-dns owner id
