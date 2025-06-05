@@ -15,8 +15,6 @@ spec:
   repositoryRef:
     name: infra
     namespace: infra
-  configuration:
-    version: '1.8'
   
   clusterRef:
     name: mgmt

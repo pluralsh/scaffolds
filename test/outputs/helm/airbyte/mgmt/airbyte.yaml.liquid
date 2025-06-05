@@ -24,7 +24,7 @@ global:
     type: gcs
     gcs:
       projectId: {{ imports[configuration.stackName].project_id }}
-      credentialsJson: {{ imports[configuration.stackName].credentials_json }}
+      credentialsJson: '{{ imports[configuration.stackName].credentials_json_minified | quote }}'
     {% endif %}
     bucket:
       log: {{ configuration.bucket }}
