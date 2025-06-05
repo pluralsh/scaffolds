@@ -13,7 +13,7 @@ spec:
     name: infra
     namespace: infra
   helm:
-    version: "1.x.x"
+    version: "1.6.2"
     chart: airbyte
     release: airbyte
     ignoreHooks: false
@@ -31,8 +31,7 @@ spec:
     bucket: plrl-airbyte-logs
     region: us-east-2
     cloud: aws
-    resourceGroup: 
-    storageAccount: 
+    
   clusterRef:
     kind: Cluster
     name: mgmt
