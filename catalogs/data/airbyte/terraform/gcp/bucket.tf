@@ -1,5 +1,5 @@
 resource "google_service_account" "airbyte" {
-  account_id = "airbyte-sa"
+  account_id = "airbyte-${var.cluster_name}-${var.airbyte_bucket}"
   project    = local.project_id
 }
 
