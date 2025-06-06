@@ -59,7 +59,6 @@ spec:
       values:
         - aws
         - gcp
-        - azure
     - name: region
       type: STRING
       documentation: The cloud provider region you want to use to deploy cloud resources.
