@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: dagster-aws-env
+  name: dagster-env
   namespace: dagster
 stringData:
   AWS_ACCESS_KEY_ID: {{ imports[imports_dagster_key].access_key_id }}

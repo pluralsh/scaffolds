@@ -1,4 +1,8 @@
 {% raw %}
+
+global:
+  serviceAccountName: {{ imports[configuration.stack_name].service_account_name }}
+
 dagsterWebserver:
   annotations:
     {% if configuration.cloud == 'azure' %}
@@ -11,8 +15,10 @@ dagsterWebserver:
   labels:
     security.plural.sh/inject-oauth-sidecar: "true"
     azure.workload.identity/use: "true"
+  {% if configuration.cloud == 'aws' %}
   envSecrets:
-    - name: dagster-aws-env
+    - name: dagster-env
+  {% endif %}
 
 postgresql:
   enabled: false
@@ -49,6 +55,15 @@ computeLogManager:
         workload_identity_client_id: {{ imports[configuration.stackName].blobstore_client_id }} # when this actually works, enable it
 {% endif %}
 
+{% if configuration.cloud == 'gcp' %}
+computeLogManager:
+  type: GCSComputeLogManager
+  config:
+    gcsComputeLogManager:
+      bucket: {{ configuration.bucket }}
+      # jsonCredentialsEnvvar: ~
+{% endif %}
+
 ingress:
   enabled: true
   ingressClassName: nginx
@@ -71,11 +86,13 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/use-regex: "true"
 
+{% if configuration.cloud == 'aws' %}
 runLauncher:
   config:
     k8sRunLauncher:
       envSecrets:
-        - name: dagster-aws-env
+        - name: dagster-env
+{% endif %}
 
 dagster-user-deployments:
   enabled: true
