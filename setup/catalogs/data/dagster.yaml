@@ -4,12 +4,12 @@ metadata:
   name: dagster
 spec:
   name: dagster
-  icon: https://dagster.io/images/brand/logos/dagster-primary-mark.png
+  icon: https://raw.githubusercontent.com/pluralsh/scaffolds/refs/heads/sebastian/prod-3652-onboard-dagster-for-gcp/catalogs/data/dagster/assets/dagster-primary-mark.png
   identifier: mgmt
   documentation: Sets up Dagster instance for given cloud.
   creates:
     git:
-      ref: main # TODO set to main
+      ref: sebastian/prod-3652-onboard-dagster-for-gcp # TODO set to main
       folder: catalogs/data/dagster
     templates:
       - source: README.md
@@ -24,15 +24,17 @@ spec:
       - source: "terraform/{{ context.cloud }}"
         destination: "terraform/apps/dagster/{{ context.cluster }}"
         external: true
-      - source: dagster-aws-env.yaml
-        destination: "bootstrap/apps/dagster/{{ context.cluster }}/dagster-aws-env.yaml"
+      - source: dagster-env.yaml
+        destination: "bootstrap/apps/dagster/{{ context.cluster }}/dagster-env.yaml"
         external: true
+        condition: "context.cloud == `aws`"
       - source: oauth-proxy-config.yaml
         destination: "bootstrap/apps/dagster/{{ context.cluster }}/oauth-proxy-config.yaml"
         external: true
-      - source: services/dagster-aws-env.yaml.liquid
-        destination: services/apps/dagster/dagster-aws-env.yaml.liquid
+      - source: services/aws/dagster-env.yaml.liquid
+        destination: services/apps/dagster/dagster-env.yaml.liquid
         external: true
+        condition: "context.cloud == `aws`"
   repositoryRef:
     name: scaffolds
   catalogRef:
@@ -45,17 +47,12 @@ spec:
     - name: cluster
       type: CLUSTER
       documentation: The cluster you want to deploy to.
-    - name: tier
-      type: ENUM
-      documentation: The tier you want to deploy to.
-      values:
-        - dev
-        - prod
     - name: cloud
       type: ENUM
       documentation: The cloud you want to deploy to.
       values:
         - aws
+        - gcp
     - name: region
       type: STRING
       documentation: The cloud provider region you want to use to deploy cloud resources.

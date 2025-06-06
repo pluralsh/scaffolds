@@ -1,7 +1,7 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: dagster-aws-env-{{ context.cluster }}
+  name: dagster-env-{{ context.cluster }}
   namespace: apps
 spec:
   namespace: dagster

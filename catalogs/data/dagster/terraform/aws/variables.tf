@@ -1,13 +1,3 @@
-variable "namespace" {
-  type = string
-  default = "dagster"
-}
-
-variable "tier" {
-  type = string
-  default = "{{ context.tier }}"
-}
-
 variable "cluster_name" {
   type = string
   default = "{{ context.cluster }}"
