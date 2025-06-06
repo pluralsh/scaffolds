@@ -1,5 +1,5 @@
 {% raw %}
-{% assign imports_dagster_key =  'dagster-' | append: configuration.cluster %}
+{% capture imports_dagster_key %}dagster-{{ configuration.cluster }}{% endcapture %}
 
 global:
   serviceAccountName: {{ imports[imports_dagster_key].service_account_name }}

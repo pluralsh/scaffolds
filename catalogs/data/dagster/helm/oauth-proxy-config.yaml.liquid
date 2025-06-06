@@ -1,5 +1,5 @@
 {% raw %}
-{% assign imports_dagster_key =  'dagster-' | append: configuration.cluster %}
+{% capture imports_dagster_key %}dagster-{{ configuration.cluster }}{% endcapture %}
 service:
   name: dagster-oauth2-proxy
   selector:
