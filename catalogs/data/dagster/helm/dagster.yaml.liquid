@@ -1,12 +1,13 @@
 {% raw %}
+{% assign imports_dagster_key =  'dagster-' | append: configuration.cluster %}
 
 global:
-  serviceAccountName: {{ imports[configuration.stack_name].service_account_name }}
+  serviceAccountName: {{ imports[imports_dagster_key].service_account_name }}
 
 dagsterWebserver:
   annotations:
     {% if configuration.cloud == 'azure' %}
-    azure.workload.identity/client-id: {{ imports[configuration.stack_name].blobstore_client_id }}
+    azure.workload.identity/client-id: {{ imports[imports_dagster_key].blobstore_client_id }}
     {% endif %}
     security.plural.sh/oauth-env-secret: dagster-proxy-config
     {% if configuration["basicAuth"] %}
@@ -22,9 +23,9 @@ dagsterWebserver:
 
 postgresql:
   enabled: false
-  postgresqlHost: {{ imports[configuration.stackName].postgres_host }}
+  postgresqlHost: {{ imports[imports_dagster_key].postgres_host }}
   postgresqlUsername: dagster
-  postgresqlPassword: {{ imports[configuration.stackName].postgres_password }}
+  postgresqlPassword: {{ imports[imports_dagster_key].postgres_password }}
   postgresqlDatabase: dagster
   postgresqlParams:
     sslmode: require
@@ -42,8 +43,8 @@ computeLogManager:
   type: AzureBlobComputeLogManager
   config:
     azureBlobComputeLogManager:
-      storageAccount: {{ imports[configuration.stackName].storage_account_name }}
-      container: {{ imports[configuration.stackName].container_name  }}
+      storageAccount: {{ imports[imports_dagster_key].storage_account_name }}
+      container: {{ imports[imports_dagster_key].container_name  }}
       defaultAzureCredential:
         exclude_environment_credential: false
         exclude_managed_identity_credential: true
@@ -52,7 +53,7 @@ computeLogManager:
         exclude_developer_cli_credential: true
         exclude_visual_studio_code_credential: true
         exclude_shared_token_cache_credential: true
-        workload_identity_client_id: {{ imports[configuration.stackName].blobstore_client_id }} # when this actually works, enable it
+        workload_identity_client_id: {{ imports[imports_dagster_key].blobstore_client_id }} # when this actually works, enable it
 {% endif %}
 
 {% if configuration.cloud == 'gcp' %}
