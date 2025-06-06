@@ -21,5 +21,5 @@ locals {
   project_id   = local.cluster_context.project_id
   region       = local.cluster_context.region
   cluster_name = local.cluster_context.cluster_name
-  network      = var.cluster_handle == "mgmt" ? local.cluster_context.network : local.network_context.network
+  network      = split("/", var.cluster_handle == "mgmt" ? local.cluster_context.network : local.network_context.network)[-1]
 }
