@@ -16,9 +16,9 @@ resource "kubernetes_service_account" "service_account" {
 }
 
 resource "google_service_account" "gcp_service_account" {
-  account_id   = "dagster-${var.cluster_name}"
-  display_name = "dagster-${var.cluster_name}"
-  description  = "Service account for dagster in ${var.cluster_name} cluster"
+  account_id   = "dagster-${local.cluster_name}"
+  display_name = "dagster-${local.cluster_name}"
+  description  = "Service account for dagster in ${local.cluster_name} cluster"
 }
 
 resource "google_service_account_iam_binding" "workload_identity_binding" {

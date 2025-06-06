@@ -11,8 +11,8 @@ resource "azurerm_postgresql_flexible_server" "postgres" {
   resource_group_name    = data.azurerm_resource_group.resource_group.name
   location               = data.azurerm_resource_group.resource_group.location
   version                = var.postgres_vsn
-  delegated_subnet_id    = local.network_configuration["pg_subnet_id"]
-  private_dns_zone_id    = local.network_configuration["dns_zone_id"]
+  delegated_subnet_id    = local.network_context["pg_subnet_id"]
+  private_dns_zone_id    = local.network_context["dns_zone_id"]
   administrator_login    = "dagster"
   administrator_password = random_password.db_password.result
   public_network_access_enabled = false

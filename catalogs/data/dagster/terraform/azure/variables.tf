@@ -1,13 +1,3 @@
-variable "namespace" {
-  type = string
-  default = "dagster"
-}
-
-variable "tier" {
-  type = string
-  default = "{{ context.tier }}"
-}
-
 variable "resource_group_name" {
   type = string
   default = "{{ context.resourceGroupName }}"
