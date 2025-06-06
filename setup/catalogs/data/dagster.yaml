@@ -47,12 +47,6 @@ spec:
     - name: cluster
       type: CLUSTER
       documentation: The cluster you want to deploy to.
-    - name: tier
-      type: ENUM
-      documentation: The tier you want to deploy to.
-      values:
-        - dev
-        - prod
     - name: cloud
       type: ENUM
       documentation: The cloud you want to deploy to.
