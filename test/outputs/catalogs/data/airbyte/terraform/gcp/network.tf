@@ -7,8 +7,14 @@ data "google_compute_network" "network" {
   ]
 }
 
+resource "random_string" "airbyte_address_suffix" {
+  length  = 6
+  special = false
+  upper   = false
+}
+
 resource "google_compute_global_address" "private_ip_alloc" {
-  name          = "airbyte-pg-${var.cluster_name}"
+  name          = "airbyte-${var.cluster_name}-${random_string.airbyte_address_suffix.result}"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 16
