@@ -27,14 +27,14 @@ spec:
       - source: dagster-env.yaml
         destination: "bootstrap/apps/dagster/{{ context.cluster }}/dagster-env.yaml"
         external: true
-        condition: "{{ context.cloud }} == 'aws'"
+        condition: "context.cloud == 'aws'"
       - source: oauth-proxy-config.yaml
         destination: "bootstrap/apps/dagster/{{ context.cluster }}/oauth-proxy-config.yaml"
         external: true
       - source: services/aws/dagster-env.yaml.liquid
         destination: services/apps/dagster/dagster-env.yaml.liquid
         external: true
-        condition: "{{ context.cloud }} == 'aws'"
+        condition: "context.cloud == 'aws'"
   repositoryRef:
     name: scaffolds
   catalogRef:
