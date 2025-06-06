@@ -1,5 +1,11 @@
+resource "random_string" "airbyte_sa_suffix" {
+  length  = 6
+  special = false
+  upper   = false
+}
+
 resource "google_service_account" "airbyte" {
-  account_id = "airbyte-${var.cluster_name}-${var.airbyte_bucket}"
+  account_id = "airbyte-${var.cluster_name}-${random_string.airbyte_sa_suffix.result}"
   project    = local.project_id
 }
 
