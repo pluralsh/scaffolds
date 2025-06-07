@@ -13,6 +13,4 @@ terraform {
 
 provider "plural" {}
 
-provider "aws" {
-  region = "{{ context.region }}"
-}
+provider "aws" {}

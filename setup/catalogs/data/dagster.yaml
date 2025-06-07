@@ -4,7 +4,7 @@ metadata:
   name: dagster
 spec:
   name: dagster
-  icon: https://dagster.io/images/brand/logos/dagster-primary-mark.png
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/809ae45c-8ccf-44e2-8240-3df890557ad8/dagster-primary-mark.png?v=63870177093
   identifier: mgmt
   documentation: Sets up Dagster instance for given cloud.
   creates:

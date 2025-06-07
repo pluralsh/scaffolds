@@ -4,8 +4,6 @@ metadata:
   name: ingress-nginx
   namespace: infra
 spec:
-  tags:
-    role: workload
   template:
     namespace: ingress-nginx
     git:
