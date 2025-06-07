@@ -1,0 +1,58 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: airflow
+spec:
+  name: airflow
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/eb88ca01-21d6-464f-8fd5-f481b385c166/airflow.png?v=63864802544
+  identifier: mgmt
+  documentation: Sets up an airflow instance for a given cloud
+  creates:
+    git:
+      ref: setup-airflow-aws
+      folder: catalogs/data/airflow
+    templates:
+    - source: helm
+      destination: helm/airflow/{{ context.cluster }}
+      external: true
+    - source: "terraform/{{ context.cloud }}"
+      destination: "terraform/apps/airflow/{{ context.cluster }}"
+      external: true
+    - source: airflow-servicedeployment.yaml
+      destination: "bootstrap/apps/airflow/{{ context.cluster }}/airflow-servicedeployment.yaml"
+      external: true
+    - source: airflow-stack.yaml
+      destination: "bootstrap/apps/airflow/{{ context.cluster }}/airflow-stack.yaml"
+      external: true
+    - source: README.md
+      destination: documentation/airflow/README.md
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: data-engineering
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up airflow on cluster {{ context.cluster }} for {{ context.cloud }}"
+  message: |
+    Set up airflow on {{ context.cluster }} ({{ context.cloud }})
+
+    Will set up an airflow deployment, including object storage for logs and managed postgres setup
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: Handle of the cluster you want to deploy airflow to.
+  - name: cloud
+    type: ENUM
+    documentation: Cloud provider you want to deploy airflow to.
+    values:
+    - aws
+  - name: bucket
+    type: STRING
+    documentation: The name of the S3/GCS/Azure Blob bucket you'll use for airflow logs. This must be globally unique.
+  - name: hostname
+    type: STRING
+    documentation: The DNS name you'll host airflow under.
+  - name: region
+    type: STRING
+    documentation: The cloud provider region you're going to use to deploy cloud resources
