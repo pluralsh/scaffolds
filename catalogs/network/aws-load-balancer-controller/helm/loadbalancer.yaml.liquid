@@ -1,9 +1,17 @@
+{% raw %}
 clusterName: {{ cluster.handle }}
 createIngressClassResource: false
 
+{% if cluster.metadata.vpc_id %}
+vpcId: {{ cluster.metadata.vpc_id }}
+{% endif %}
+
+{% if cluster.metadata.iam and cluster.metadata.iam.load_balancer %}
 serviceAccount:
   create: true
   name: aws-load-balancer-controller-sa
   annotations:
     client.lifecycle.config.k8s.io/deletion: detach
     eks.amazonaws.com/role-arn: {{ cluster.metadata.iam.load_balancer }} # notice this is also from terraform/modules/aws/plural.tf
+{% endif %}
+{% endraw %}

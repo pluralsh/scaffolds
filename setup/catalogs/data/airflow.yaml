@@ -9,7 +9,7 @@ spec:
   documentation: Sets up an airflow instance for a given cloud
   creates:
     git:
-      ref: setup-airflow-aws
+      ref: main
       folder: catalogs/data/airflow
     templates:
     - source: helm
@@ -53,6 +53,3 @@ spec:
   - name: hostname
     type: STRING
     documentation: The DNS name you'll host airflow under.
-  - name: region
-    type: STRING
-    documentation: The cloud provider region you're going to use to deploy cloud resources

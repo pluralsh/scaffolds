@@ -3,13 +3,13 @@ kind: PrAutomation
 metadata:
   name: aws-load-balancer-controller
 spec:
-  name: aws
+  name: aws-load-balancer-controller
   icon: https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/assets/images/aws_load_balancer_icon.svg
   identifier: mgmt
   documentation: Sets up the aws load balancer controller on all EKS clusters
   creates:
     git:
-      ref: setup-airflow-aws
+      ref: main
       folder: catalogs/network/aws-load-balancer-controller
     templates:
     - source: helm/loadbalancer.yaml.liquid

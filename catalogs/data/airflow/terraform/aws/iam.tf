@@ -39,12 +39,12 @@ resource "aws_iam_policy_attachment" "airflow-user" {
   policy_arn = aws_iam_policy.airflow.arn
 }
 
-module "assumable_role_bedrock" {
+module "assumable_role_airflow" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-assumable-role-with-oidc"
   version = "5.52.2"
 
   create_role      = true
-  role_name        = "${local.eks_cluster_name}-bedrock"
+  role_name        = "${local.eks_cluster_name}-airflow"
   provider_url     = replace(data.aws_eks_cluster.cluster.identity[0].oidc[0].issuer, "https://", "")
   role_policy_arns = [aws_iam_policy.airflow.arn]
 

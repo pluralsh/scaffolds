@@ -1,3 +1,4 @@
+{% raw %}
 airflow:
   image:
     repository: apache/airflow # extend and customize this image with your own airflow build to import dags
@@ -6,11 +7,22 @@ airflow:
   config:
     AIRFLOW__WEBSERVER__BASE_URL: https://{{ configuration.hostname }}
     AIRFLOW__LOGGING__REMOTE_BASE_LOG_FOLDER: "s3://{{ configuration.bucket }}/airflow/logs"
+    AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX: "True"
+
+    ## dags
+    AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: "30"
+
+    ## remote log storage
+    AIRFLOW__LOGGING__REMOTE_LOGGING: "True"
+    AIRFLOW__LOGGING__REMOTE_LOG_CONN_ID: "plural"
 
   connections:
   - id: plural
     type: aws
     description: connection to aws s3 logs (via workflow identity)
+
+flower:
+  enabled: false
 
 web:
   baseUrl: {{ configuration.hostname }}
@@ -26,14 +38,48 @@ web:
     properties: "?sslmode=allow"
 
 
-  webserverSecretKey: {{ imports[configuration.stackName].flask_secret }}
+  webserverSecretKey: {{ imports[configuration.stackName].flask_secret | quote }}
 
   webserverConfig:
     stringOverride: |-
+      import base64
+      import json
       from airflow import configuration as conf
+      from airflow.www.security import AirflowSecurityManager
       from airflow.www.fab_security.manager import AUTH_OAUTH
 
       AUTH_TYPE = AUTH_OAUTH
+
+      class PluralSecurityManager(AirflowSecurityManager):
+          def _get_oauth_user_info(self, provider, response):
+              if provider == "plural":
+                  jwt = response["id_token"]
+                  parts = jwt.split('.')
+                  if len(parts) != 3:
+                      raise ValueError("Invalid JWT format")
+
+                  payload_b64 = parts[1]
+                  
+                  # Pad base64 string if necessary
+                  padding = '=' * (-len(payload_b64) % 4)
+                  payload_b64 += padding
+                  payload_json = base64.urlsafe_b64decode(payload_b64).decode('utf-8')
+                  me = json.loads(payload_json)
+
+                  split_name = me["name"].split()
+                  return {
+                      "username": me["email"],
+                      "name": me["name"],
+                      "first_name": split_name[0],
+                      "last_name": " ".join(split_name[1:]),
+                      "email": me["email"],
+                      "role_keys": [],
+                  }
+              else:
+                  return {}
+          oauth_user_info = _get_oauth_user_info
+
+      SECURITY_MANAGER_CLASS = PluralSecurityManager
 
       # registration configs
       AUTH_USER_REGISTRATION = True  # allow users who are not already in the FAB DB
@@ -63,10 +109,20 @@ web:
       # force users to re-auth after 30min of inactivity (to keep roles in sync)
       PERMANENT_SESSION_LIFETIME = 1800
 ingress:
+  enabled: true
   web:
+    ingressClassName: nginx
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+
     host: {{ configuration.hostname }}
 
-fernetKey: {{ imports[configuration.stackName].fernet_key }}
+    tls:
+      enabled: true
+      secretName: airflow-tls
+
+fernetKey: {{ imports[configuration.stackName].fernet_key | quote }}
 
 serviceAccount:
   annotations:
@@ -88,3 +144,4 @@ dags:
   ## [FAQ] https://github.com/airflow-helm/charts/blob/main/charts/airflow/docs/faq/dags/load-dag-definitions.md
   gitSync:
     enabled: false
+{% endraw %}
