@@ -10,7 +10,7 @@ txtOwnerId: plrl-{{ cluster.handle }} # templating in the cluster handle, which 
 policy: upsert-only
 
 domainFilters:
-- {{ context.dnsZone }} # check terraform/modules/clusters/aws/plural.tf for where this is set
+- {{ context.dnsZone }} 
 
 {% if context.cloud == "aws" %}
 {% raw %}

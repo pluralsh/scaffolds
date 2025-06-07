@@ -1,0 +1,30 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: aws-load-balancer-controller
+spec:
+  name: aws
+  icon: https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/assets/images/aws_load_balancer_icon.svg
+  identifier: mgmt
+  documentation: Sets up the aws load balancer controller on all EKS clusters
+  creates:
+    git:
+      ref: setup-airflow-aws
+      folder: catalogs/network/aws-load-balancer-controller
+    templates:
+    - source: helm/loadbalancer.yaml.liquid
+      destination: helm/loadbalancer.yaml.liquid
+      external: true
+    - source: globalservice.yaml
+      destination: bootstrap/components/aws-load-balancer-controller.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: network
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up aws load balancer controller on our fleet"
+  message: |
+    Set up the aws load balancer controller on all EKS clusters
+  configuration: []
