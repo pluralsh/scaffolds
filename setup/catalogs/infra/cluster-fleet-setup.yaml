@@ -49,6 +49,7 @@ spec:
       documentation: Cloud where the clusters for this fleet should be created.
       values:
       - aws
+      - gcp
       - azure
     - name: fleet
       type: STRING

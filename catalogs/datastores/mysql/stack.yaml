@@ -1,7 +1,7 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
-  name: airbyte-{{ context.cluster }}
+  name: mysql-{{ context.name }}
   namespace: apps
 spec:
   detach: false
@@ -11,10 +11,13 @@ spec:
   actor: console@plural.sh
   git:
     ref: main
-    folder: terraform/apps/airbyte/{{ context.cluster }}
+    folder: terraform/apps/mysql/{{ context.name }}
   repositoryRef:
     name: infra
     namespace: infra
+  variables:
+    network: {{ context.network }}
+    name: {{ context.name }}
   {% if context.cloud == 'azure' %}
   jobSpec:
     namespace: plrl-deploy-operator

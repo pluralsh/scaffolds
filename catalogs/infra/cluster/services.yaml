@@ -12,7 +12,7 @@ spec:
     name: infra
     namespace: infra
   configuration:
-    kubernetesVersion: '1.29' # dev
+    kubernetesVersion: '1.32' # dev
   clusterRef:
     name: mgmt
     namespace: infra
@@ -31,7 +31,7 @@ spec:
     name: infra
     namespace: infra
   configuration:
-    kubernetesVersion: '1.29' # prod
+    kubernetesVersion: '1.32' # prod
   clusterRef:
     name: mgmt
     namespace: infra
