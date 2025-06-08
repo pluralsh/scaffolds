@@ -1,13 +1,7 @@
-{% if context.cloud == "azure"aws"azure" %}
-provider: aws
-{% endif %}
-
-{% if context.cloud == "azure"gcp"azure" %}
+{% if context.cloud == "gcp" %}
 provider: google
-{% endif %}
-
-{% if context.cloud == "azure"azure"azure" %}
-provider: azure
+{% else %}
+provider: {{ context.cloud }}
 {% endif %}
 
 {% raw %}
@@ -16,15 +10,15 @@ txtOwnerId: plrl-{{ cluster.handle }} # templating in the cluster handle, which 
 policy: upsert-only
 
 domainFilters:
-- {{ context.dnsZone }} # check terraform/modules/clusters/aws/plural.tf for where this is set
+- {{ context.dnsZone }} 
 
 {% if context.cloud == "aws" %}
 {% raw %}
 serviceAccount:
   annotations:
     eks.amazonaws.com/role-arn: {{ cluster.metadata.iam.external_dns }} 
-{% endif %}
 {% endraw %}
+{% endif %}
 
 {% if context.cloud == "azure" %}
 {% raw %}
@@ -33,8 +27,8 @@ serviceAccount:
     azure.workload.identity/client-id: {{ cluster.metadata.iam.external_dns }}
   labels:
     azure.workload.identity/use: "true"
-{% endif %}
 {% endraw %}
+{% endif %}
 
 {% if context.cloud == "gcp" %}
 {% raw %}
@@ -43,5 +37,5 @@ serviceAccount:
     iam.gke.io/gcp-service-account: {{ cluster.metadata.iam.external_dns }}
   labels:
     azure.workload.identity/use: "true"
-{% endif %}
 {% endraw %}
+{% endif %}

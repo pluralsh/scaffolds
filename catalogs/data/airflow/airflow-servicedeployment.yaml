@@ -1,0 +1,36 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: airflow-{{ context.cluster }}
+  namespace: apps
+spec:
+  namespace: airflow
+  git:
+    folder: helm/airflow/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "8.9.0"
+    chart: airflow
+    release: airflow
+    ignoreHooks: false
+    url: https://airflow-helm.github.io/charts
+    valuesFiles:
+    - airflow.yaml.liquid
+  imports:
+  - stackRef:
+      name: airflow-{{ context.cluster }}
+      namespace: apps
+  configuration:
+    cluster: {{ context.cluster }}
+    stackName: airflow-{{ context.cluster }}
+    hostname: {{ context.hostname }}
+    bucket: {{ context.bucket }}
+    cloud: {{ context.cloud }}
+  clusterRef:
+    kind: Cluster
+    name: {{ context.cluster }}
+    namespace: infra

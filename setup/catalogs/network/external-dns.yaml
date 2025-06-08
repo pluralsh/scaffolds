@@ -10,7 +10,7 @@ spec:
   creates:
     git:
       ref: main
-      folder: catalogs/network/external-dns
+      folder: catalogs/network/externaldns
     templates:
     - source: helm/external-dns.yaml.liquid
       destination: helm/external-dns.yaml.liquid
