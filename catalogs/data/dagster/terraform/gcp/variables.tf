@@ -3,11 +3,6 @@ variable "cluster_handle" {
   default = "{{ context.cluster }}"
 }
 
-variable "dagster_bucket" {
-  type = string
-  default = "{{ context.bucket }}"
-}
-
 variable "force_destroy_bucket" {
   type        = bool
   default     = true
@@ -15,7 +10,7 @@ variable "force_destroy_bucket" {
 }
 
 variable "db_name" {
-  default = "plrl-dagster"
+  default = "dagster"
 }
 
 variable "database_version" {

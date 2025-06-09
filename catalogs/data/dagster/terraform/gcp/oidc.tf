@@ -7,7 +7,7 @@ resource "random_password" "oidc_cookie" {
 }
 
 resource "plural_oidc_provider" "dagster" {
-  name = "dagster-${local.cluster_name}"
+  name = "${local.cluster_name}-dagster"
   auth_method = "BASIC"
   type = "PLURAL"
   description = "OIDC provider for Dagster deployed to the ${local.cluster_name} cluster"

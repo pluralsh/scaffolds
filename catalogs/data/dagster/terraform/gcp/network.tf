@@ -8,7 +8,7 @@ data "google_compute_network" "network" {
 }
 
 resource "google_compute_global_address" "private_ip_alloc" {
-  name          = "dagster-pg-${local.cluster_name}"
+  name          = "${local.cluster_name}-dagster-pg"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 16

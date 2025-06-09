@@ -1,11 +1,6 @@
-variable "resource_group_name" {
-  type = string
-  default = "{{ context.resourceGroupName }}"
-}
-
 variable "storage_account_name" {
   type = string
-  default = "{{ context.storageAccountName }}"
+  default = "{{ context.storageAccount }}"
 }
 
 variable "cluster_handle" {
@@ -13,19 +8,8 @@ variable "cluster_handle" {
   default = "{{ context.cluster }}"
 }
 
-variable "dagster_bucket" {
-  type = string
-  default = "{{ context.bucket }}"
-}
-
-variable "force_destroy_bucket" {
-  type        = bool
-  default     = true
-  description = "If true, the bucket will be deleted even if it contains objects."
-}
-
 variable "db_name" {
-  default = "plrl-dagster"
+  default = "dagster"
 }
 
 variable "postgres_vsn" {

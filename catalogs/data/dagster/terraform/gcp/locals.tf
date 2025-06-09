@@ -12,16 +12,18 @@ data "plural_service_context" "network" {
 }
 
 data "plural_service_context" "cluster" {
-  name = "plrl/clusters/mgmt"
+  name = "plrl/clusters/${var.cluster_handle}"
 }
 
 locals {
   network_context = jsondecode(data.plural_service_context.network.configuration)
-  mgmt_context = jsondecode(data.plural_service_context.cluster.configuration)
-  project_id    = local.mgmt_context.project_id
-  region        = local.mgmt_context.region
-  cluster_name  = local.mgmt_context.cluster_name
-  network       = local.network_context.network
-  network_short = split("/", local.network)[length(split("/", local.network)) - 1]
-  db_name = "${var.db_name}-${local.cluster_name}"
+  cluster_context = jsondecode(data.plural_service_context.cluster.configuration)
+  project_id                = local.cluster_context.project_id
+  region                    = local.cluster_context.region
+  cluster_name              = local.cluster_context.cluster_name
+  network                   = local.network_context.network
+  network_short             = split("/", local.network)[length(split("/", local.network)) - 1]
+  db_name                   = "${var.db_name}-${local.cluster_name}"
+  service_account_namespace = "dagster"
+  service_account_name      = "dagster"
 }

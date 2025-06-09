@@ -10,7 +10,7 @@ module "db" {
   source = "terraform-aws-modules/rds/aws"
   version = "~> 6.3"
 
-  identifier = var.db_name
+  identifier = local.db_name
 
   engine               = "postgres"
   engine_version       = var.postgres_vsn
@@ -29,7 +29,7 @@ module "db" {
   backup_retention_period = var.backup_retention_period
 
   monitoring_interval    = "30"
-  monitoring_role_name   = "${substr(var.db_name, 0, 40)}-PluralRDSMonitoringRole"
+  monitoring_role_name   = "${substr(local.db_name, 0, 40)}-PluralRDSMonitoringRole"
   create_monitoring_role = true
   apply_immediately      = true
 
@@ -60,7 +60,7 @@ module "security_group" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "~> 5.0"
 
-  name        = "${var.db_name}-db-security-group"
+  name        = "${local.db_name}-db-security-group"
   description = "security group for your plural console db"
   vpc_id      = local.vpc_id
 

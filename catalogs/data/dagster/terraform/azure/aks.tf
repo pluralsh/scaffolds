@@ -6,8 +6,8 @@ resource "azurerm_kubernetes_cluster" "aks" {
 
 resource "kubernetes_service_account" "service_account" {
   metadata {
-    name      = "dagster"
-    namespace = "dagster"
+    name      = local.service_account_name
+    namespace = local.service_account_namespace
     annotations = {
       "azure.workload.identity/client-id" = azurerm_user_assigned_identity.dagster.client_id
     }

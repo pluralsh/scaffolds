@@ -45,10 +45,11 @@ spec:
       namespace: apps
   configuration:
     cluster: {{ context.cluster }}
-    stackName: dagster-{{ context.cluster }}
     hostname: {{ context.hostname }}
-    bucket: {{ context.bucket }}
     cloud: {{ context.cloud }}
+    {% if context.cloud == 'azure' %}
+    storageAccount: {{context.storageAccount}}
+    {% endif %}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}
