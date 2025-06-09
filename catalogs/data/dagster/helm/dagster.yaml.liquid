@@ -98,20 +98,27 @@ runLauncher:
 dagster-user-deployments:
   enabled: true
   deployments:
-    - name: "iris-analysis" # set to the name of your deployment
+    - name: "example-user-code"
       image:
-        repository: "iris_analysis" # set to the name of your Docker image
-        # When a tag is not supplied, it will default as the Helm chart version.
-        tag: 1 # set to the tag of your Docker image
-
-        # Only change this value if you are following the guide on your
-        # local machine. If you are pushing images to a registry,
-        # leave the value as Always
-        pullPolicy: IfNotPresent
-
-      port: 3030 # Adding the required port field
-
+        repository: "docker.io/dagster/user-code-example"
+        tag: "latest"
+        pullPolicy: Always
       dagsterApiGrpcArgs:
         - "--python-file"
-        - "/iris_analysis/definitions.py"
+        - "/example_project/example_repo/repo.py"
+      port: 3030
+      env:
+        - name: EXAMPLE_ENV_VAR
+          value: "example-value"
+      resources:
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+      nodeSelector:
+        disktype: ssd
+      annotations:
+        mykey: myvalue
 {% endraw %}
