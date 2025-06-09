@@ -3,22 +3,7 @@ output "project_id" {
 }
 
 output "service_account_name" {
-  value = kubernetes_service_account.service_account.metadata.0.name
-}
-
-output "credentials_json" {
-  value = google_service_account_key.default.private_key
-  sensitive = true
-}
-
-output "credentials_json_decoded" {
-  value = base64decode(google_service_account_key.default.private_key)
-  sensitive = true
-}
-
-output "credentials_json_minified" {
-  value = jsonencode(jsondecode(base64decode(google_service_account_key.default.private_key)))
-  sensitive = true
+  value = kubernetes_service_account.dagster.metadata.0.name
 }
 
 output "postgres_host" {
