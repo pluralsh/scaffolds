@@ -14,7 +14,7 @@ resource "azurerm_federated_identity_credential" "dagster" {
   name                = "${local.cluster_name}-dagster"
   resource_group_name = data.azurerm_resource_group.resource_group.name
   audience = ["api://AzureADTokenExchange"]
-  issuer              = data.azurerm_kubernetes_cluster.cluster.oidc_issuer_url
+  issuer              = data.azurerm_kubernetes_cluster.aks.oidc_issuer_url
   parent_id           = azurerm_user_assigned_identity.dagster.id
   subject             = "system:serviceaccount:${local.service_account_name}:${local.service_account_namespace}"
 }

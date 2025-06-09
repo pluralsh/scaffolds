@@ -1,5 +1,5 @@
-resource "azurerm_kubernetes_cluster" "aks" {
-  resource_group_name = var.resource_group_name
+data "azurerm_kubernetes_cluster" "aks" {
+  resource_group_name = local.resource_group_name
   name                = local.cluster_name
   location            = local.region
 }
