@@ -19,7 +19,6 @@ locals {
   network_context = jsondecode(data.plural_service_context.network.configuration)
   cluster_context = jsondecode(data.plural_service_context.cluster.configuration)
   cluster_name              = local.cluster_context.cluster_name
-  region                    = local.cluster_context.region
   resource_group_name       = local.cluster_context.resource_group_name
   pg_subnet_id              = local.network_context.pg_subnet_id
   dns_zone_id               = local.network_context.dns_zone_id
