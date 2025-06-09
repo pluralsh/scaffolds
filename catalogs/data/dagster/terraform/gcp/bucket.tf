@@ -1,5 +1,5 @@
 resource "google_service_account" "dagster" {
-  account_id = "dagster-sa"
+  account_id = "plrl-${local.cluster_name}-dagster"
   project    = local.project_id
 }
 
