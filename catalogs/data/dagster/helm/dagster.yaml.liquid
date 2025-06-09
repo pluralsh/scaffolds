@@ -16,6 +16,7 @@ dagsterWebserver:
   labels:
     security.plural.sh/inject-oauth-sidecar: "true"
     azure.workload.identity/use: "true"
+
   {% if configuration.cloud == 'aws' %}
   envSecrets:
     - name: dagster-env
@@ -62,7 +63,6 @@ computeLogManager:
   config:
     gcsComputeLogManager:
       bucket: {{ configuration.bucket }}
-      # jsonCredentialsEnvvar: ~
 {% endif %}
 
 ingress:
@@ -108,6 +108,8 @@ dagster-user-deployments:
         # local machine. If you are pushing images to a registry,
         # leave the value as Always
         pullPolicy: IfNotPresent
+
+      port: 3030 # Adding the required port field
 
       dagsterApiGrpcArgs:
         - "--python-file"
