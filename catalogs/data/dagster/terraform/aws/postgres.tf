@@ -6,14 +6,6 @@ resource "random_password" "password" {
   special     = false
 }
 
-data "plural_service_context" "cluster" {
-  name = "plrl/clusters/${var.cluster_name}"
-}
-
-locals {
-  configuration = jsondecode(data.plural_service_context.cluster.configuration)
-}
-
 module "db" {
   source = "terraform-aws-modules/rds/aws"
   version = "~> 6.3"
@@ -44,7 +36,7 @@ module "db" {
   multi_az = true
 
   create_db_subnet_group = true
-  subnet_ids             = local.configuration["subnet_ids"]
+  subnet_ids             = local.subnet_ids
   vpc_security_group_ids = [module.security_group.security_group_id]
 
   create_cloudwatch_log_group = true
@@ -70,7 +62,7 @@ module "security_group" {
 
   name        = "${var.db_name}-db-security-group"
   description = "security group for your plural console db"
-  vpc_id      = local.configuration["vpc_id"]
+  vpc_id      = local.vpc_id
 
   ingress_with_cidr_blocks = [
     {
@@ -78,7 +70,7 @@ module "security_group" {
       to_port     = 5432
       protocol    = "tcp"
       description = "PostgreSQL access from within VPC"
-      cidr_blocks = local.configuration["vpc_cidr"]
+      cidr_blocks = local.vpc_cidr
     },
   ]
 }

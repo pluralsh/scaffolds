@@ -15,7 +15,7 @@ variable "force_destroy_bucket" {
 }
 
 variable "db_name" {
-  default = "plrl-{{ context.cluster }}-dagster"
+  default = "plrl-dagster"
 }
 
 variable "database_version" {

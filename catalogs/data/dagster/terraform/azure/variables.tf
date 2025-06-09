@@ -8,7 +8,7 @@ variable "storage_account_name" {
   default = "{{ context.storageAccountName }}"
 }
 
-variable "cluster_name" {
+variable "cluster_handle" {
   type = string
   default = "{{ context.cluster }}"
 }
@@ -25,7 +25,7 @@ variable "force_destroy_bucket" {
 }
 
 variable "db_name" {
-  default = "plrl-{{ context.cluster }}-dagster"
+  default = "plrl-dagster"
 }
 
 variable "postgres_vsn" {

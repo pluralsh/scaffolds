@@ -1,7 +1,3 @@
-locals {
-  cluster_name = jsondecode(data.plural_service_context.mgmt.configuration)["cluster_name"]
-}
-
 data "aws_iam_policy_document" "dagster" {
   statement {
     sid    = "admin"
