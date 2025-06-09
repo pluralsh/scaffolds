@@ -1,12 +1,3 @@
-resource "google_service_account" "dagster" {
-  account_id = "plrl-${local.cluster_name}-dagster"
-  project    = local.project_id
-}
-
-resource "google_service_account_key" "default" {
-  service_account_id = google_service_account.dagster.name
-}
-
 resource "google_storage_bucket" "dagster" {
   name          = var.dagster_bucket
   project       = local.project_id
