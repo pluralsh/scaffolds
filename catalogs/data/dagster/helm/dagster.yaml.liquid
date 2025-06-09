@@ -97,8 +97,13 @@ dagster-user-deployments:
   deployments:
     - name: "iris-analysis"
       image:
+        repository: docker.io/dagster/user-code-example
         tag: latest
+        pullPolicy: IfNotPresent
+      port: 3030
       dagsterApiGrpcArgs:
         - "--python-file"
         - "/iris_analysis/definitions.py"
+      includeConfigInLaunchedRuns:
+        enabled: true
 {% endraw %}
