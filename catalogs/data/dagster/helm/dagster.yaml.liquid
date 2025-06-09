@@ -97,28 +97,4 @@ runLauncher:
 
 dagster-user-deployments:
   enabled: true
-  deployments:
-    - name: "example-user-code"
-      image:
-        repository: "docker.io/dagster/user-code-example"
-        tag: "latest"
-        pullPolicy: Always
-      dagsterApiGrpcArgs:
-        - "--python-file"
-        - "/example_project/example_repo/repo.py"
-      port: 3030
-      env:
-        - name: EXAMPLE_ENV_VAR
-          value: "example-value"
-      resources:
-        limits:
-          cpu: "500m"
-          memory: "512Mi"
-        requests:
-          cpu: "100m"
-          memory: "128Mi"
-      nodeSelector:
-        disktype: ssd
-      annotations:
-        mykey: myvalue
 {% endraw %}
