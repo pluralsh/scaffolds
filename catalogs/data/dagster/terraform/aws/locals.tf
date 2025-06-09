@@ -18,8 +18,10 @@ data "plural_service_context" "cluster" {
 locals {
   network_context = jsondecode(data.plural_service_context.network.configuration)
   mgmt_context = jsondecode(data.plural_service_context.cluster.configuration)
-  cluster_name  = local.mgmt_context.cluster_name
-  subnet_ids = local.network_context.subnet_ids
-  vpc_id = local.network_context.vpc_id
-  vpc_cidr = local.network_context.vpc_cidr
+  cluster_name              = local.mgmt_context.cluster_name
+  subnet_ids                = local.network_context.subnet_ids
+  vpc_id                    = local.network_context.vpc_id
+  vpc_cidr                  = local.network_context.vpc_cidr
+  service_account_namespace = "dagster"
+  service_account_name      = "dagster"
 }

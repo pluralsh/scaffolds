@@ -1,16 +1,3 @@
-output "iam_user" {
-  value = aws_iam_user.dagster
-}
-
-output "access_key_id" {
-  value = aws_iam_access_key.dagster.id
-}
-
-output "secret_access_key" {
-  value = aws_iam_access_key.dagster.secret
-  sensitive = true
-}
-
 output "postgres_host" {
   value = try(module.db.db_instance_address, "")
 }
