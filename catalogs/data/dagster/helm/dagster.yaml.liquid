@@ -6,9 +6,6 @@ global:
 
 dagsterWebserver:
   annotations:
-    {% if configuration.cloud == 'azure' %}
-    azure.workload.identity/client-id: {{ imports[imports_dagster_key].blobstore_client_id }}
-    {% endif %}
     security.plural.sh/oauth-env-secret: dagster-proxy-config
     {% if configuration["basicAuth"] %}
     security.plural.sh/htpasswd-secret: httpaswd-users
@@ -97,4 +94,11 @@ runLauncher:
 
 dagster-user-deployments:
   enabled: true
+  deployments:
+    - name: "iris-analysis"
+      image:
+        tag: latest
+      dagsterApiGrpcArgs:
+        - "--python-file"
+        - "/iris_analysis/definitions.py"
 {% endraw %}
