@@ -22,6 +22,6 @@ resource "google_storage_bucket" "dagster" {
 
 resource "google_storage_bucket_iam_member" "default" {
   bucket = google_storage_bucket.dagster.name
-  role   = "roles/storage.objectAdmin"
+  role   = "roles/storage.admin"
   member = "serviceAccount:${google_service_account.dagster.email}"
 }
