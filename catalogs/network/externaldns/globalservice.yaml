@@ -5,8 +5,13 @@ metadata:
   name: external-dns
   namespace: infra
 spec:
-  tags:
-    role: workload
+  {% if context.cloud == "aws" %}
+  distro: EKS
+  {% elsif context.cloud == "gcp" %}
+  distro: GKE
+  {% elsif context.cloud == "azure" %}
+  distro: AKS
+  {% endif %}
   template:
     name: external-dns
     namespace: external-dns # note this for later
