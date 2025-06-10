@@ -9,7 +9,7 @@ spec:
   documentation: Sets up Dagster instance for given cloud.
   creates:
     git:
-      ref: sebastian/prod-3652-onboard-dagster-for-gcp # TODO set to main
+      ref: main
       folder: catalogs/data/dagster
     templates:
       - source: README.md
