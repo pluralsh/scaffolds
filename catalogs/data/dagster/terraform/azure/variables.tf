@@ -8,6 +8,11 @@ variable "cluster_handle" {
   default = "{{ context.cluster }}"
 }
 
+variable "hostname" {
+  type = string
+  default = "{{ context.hostname }}"
+}
+
 variable "db_name" {
   default = "dagster"
 }

@@ -3,6 +3,11 @@ variable "cluster_handle" {
   default = "{{ context.cluster }}"
 }
 
+variable "hostname" {
+  type = string
+  default = "{{ context.hostname }}"
+}
+
 variable "force_destroy_bucket" {
   type        = bool
   default     = true

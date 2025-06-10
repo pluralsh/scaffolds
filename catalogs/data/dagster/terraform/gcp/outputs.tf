@@ -6,6 +6,10 @@ output "service_account_name" {
   value = kubernetes_service_account.dagster.metadata.0.name
 }
 
+output "storage_bucket_name" {
+  value = google_storage_bucket.dagster.name
+}
+
 output "postgres_host" {
   value = module.pg.private_ip_address
 }

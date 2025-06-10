@@ -1,5 +1,3 @@
-data "azurerm_subscription" "primary" {}
-
 resource "azurerm_user_assigned_identity" "dagster" {
   name                = "${local.cluster_name}-dagster"
   resource_group_name = data.azurerm_resource_group.resource_group.name
@@ -7,7 +5,7 @@ resource "azurerm_user_assigned_identity" "dagster" {
 }
 
 resource "azurerm_role_assignment" "dagster" {
-  scope                = data.azurerm_subscription.primary.id
+  scope                = data.azurerm_resource_group.resource_group.id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_user_assigned_identity.dagster.principal_id
 }

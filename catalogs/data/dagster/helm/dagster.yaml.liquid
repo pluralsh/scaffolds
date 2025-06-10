@@ -1,8 +1,6 @@
 {% raw %}
-{% capture imports_dagster_key %}dagster-{{ configuration.cluster }}{% endcapture %}
-
 global:
-  serviceAccountName: {{ imports[imports_dagster_key].service_account_name }}
+  serviceAccountName: {{ imports[configuration.stackName].service_account_name }}
 
 dagsterWebserver:
   annotations:
@@ -12,7 +10,9 @@ dagsterWebserver:
     {% endif %}
   labels:
     security.plural.sh/inject-oauth-sidecar: "true"
+    {% if configuration.cloud == 'azure' %}
     azure.workload.identity/use: "true"
+    {% endif %}
 
   {% if configuration.cloud == 'aws' %}
   envSecrets:
@@ -21,9 +21,9 @@ dagsterWebserver:
 
 postgresql:
   enabled: false
-  postgresqlHost: {{ imports[imports_dagster_key].postgres_host }}
+  postgresqlHost: {{ imports[configuration.stackName].postgres_host }}
   postgresqlUsername: dagster
-  postgresqlPassword: {{ imports[imports_dagster_key].postgres_password }}
+  postgresqlPassword: {{ imports[configuration.stackName].postgres_password }}
   postgresqlDatabase: dagster
   postgresqlParams:
     sslmode: require
@@ -33,7 +33,7 @@ computeLogManager:
   type: S3ComputeLogManager
   config:
     s3ComputeLogManager:
-      bucket: {{ configuration.bucket }}
+      bucket: {{ imports[configuration.stackName].bucket_name }}
 {% endif %}
 
 {% if configuration.cloud == 'azure' %}
@@ -41,17 +41,10 @@ computeLogManager:
   type: AzureBlobComputeLogManager
   config:
     azureBlobComputeLogManager:
-      storageAccount: {{ imports[imports_dagster_key].storage_account_name }}
-      container: {{ imports[imports_dagster_key].container_name  }}
+      storageAccount: {{ imports[configuration.stackName].storage_account_name }}
+      container: {{ imports[configuration.stackName].container_name  }}
       defaultAzureCredential:
         exclude_environment_credential: false
-        exclude_managed_identity_credential: true
-        exclude_cli_credential: true
-        exclude_powershell_credential: true
-        exclude_developer_cli_credential: true
-        exclude_visual_studio_code_credential: true
-        exclude_shared_token_cache_credential: true
-        workload_identity_client_id: {{ imports[imports_dagster_key].blobstore_client_id }} # when this actually works, enable it
 {% endif %}
 
 {% if configuration.cloud == 'gcp' %}
@@ -59,7 +52,7 @@ computeLogManager:
   type: GCSComputeLogManager
   config:
     gcsComputeLogManager:
-      bucket: {{ configuration.bucket }}
+      bucket: {{ imports[configuration.stackName].storage_bucket_name }}
 {% endif %}
 
 ingress:
@@ -96,6 +89,10 @@ dagster-user-deployments:
   enabled: true
   deployments:
     - name: "iris-analysis"
+      {% if configuration.cloud == 'azure' %}
+      labels:
+        azure.workload.identity/use: "true"
+      {% endif %}
       image:
         repository: docker.io/dagster/user-code-example
         tag: latest

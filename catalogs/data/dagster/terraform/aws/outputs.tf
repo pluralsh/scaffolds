@@ -1,3 +1,7 @@
+output "bucket_name" {
+  value = aws_s3_bucket.dagster.bucket
+}
+
 output "postgres_host" {
   value = try(module.db.db_instance_address, "")
 }

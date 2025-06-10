@@ -51,7 +51,6 @@ spec:
       type: ENUM
       documentation: The cloud you want to deploy to.
       values:
-        - aws
         - gcp
         - azure
     - name: hostname
