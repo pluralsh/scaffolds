@@ -54,7 +54,7 @@ spec:
     cluster: {{ context.cluster }}
     hostname: {{ context.hostname }}
     cloud: {{ context.cloud }}
-    stackName: dagster-{{ context.cluster }}"
+    stackName: dagster-{{ context.cluster }}
     {% if context.cloud == 'azure' %}
     storageAccount: {{context.storageAccount}}
     {% endif %}
