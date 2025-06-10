@@ -15,6 +15,13 @@ spec:
   repositoryRef:
     name: infra
     namespace: infra
+  {% if context.cloud == 'azure' %}
+  jobSpec:
+    namespace: plrl-deploy-operator
+    labels:
+      azure.workload.identity/use: "true"
+    serviceAccount: "stacks"
+  {% endif %}
   clusterRef:
     name: mgmt
     namespace: infra
