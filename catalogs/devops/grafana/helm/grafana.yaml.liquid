@@ -19,6 +19,17 @@ ingress:
 persistence:
   enabled: false
 
+{% if context.pluralCloud %}
+datasources:
+- name: prometheus
+  type: prometheus
+  url: {{ contexts["plrl/cloud/observability"].vmetrics.query_url }}
+  access: proxy
+  isDefault: true
+  basicAuth: true
+  basicAuthUser: {{ contexts["plrl/cloud/observability"].vmetrics.user }}
+  basicAuthPassword: {{ contexts["plrl/cloud/observability"].vmetrics.password }}
+{% endif %}
 
 envFromSecrets:
 - name: grafana-env
