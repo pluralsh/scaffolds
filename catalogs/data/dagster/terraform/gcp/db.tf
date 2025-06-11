@@ -10,7 +10,7 @@ module "pg" {
   source  = "terraform-google-modules/sql-db/google//modules/postgresql"
   version = "~> 25.2"
 
-  name                 = var.db_name
+  name                 = local.db_name
   random_instance_name = false
   database_version     = var.database_version
   project_id           = local.project_id
@@ -49,7 +49,7 @@ module "pg" {
     retention_unit                 = "COUNT"
   }
 
-  db_name      = "airbyte"
+  db_name      = "dagster"
   db_charset   = "UTF8"
   db_collation = "en_US.UTF8"
 

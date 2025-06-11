@@ -1,18 +1,23 @@
 {% raw %}
+global:
+  serviceAccountName: {{ imports[configuration.stackName].service_account_name }}
+
 dagsterWebserver:
   annotations:
-    {% if configuration.cloud == 'azure' %}
-    azure.workload.identity/client-id: {{ imports[configuration.stack_name].blobstore_client_id }}
-    {% endif %}
     security.plural.sh/oauth-env-secret: dagster-proxy-config
     {% if configuration["basicAuth"] %}
     security.plural.sh/htpasswd-secret: httpaswd-users
     {% endif %}
   labels:
     security.plural.sh/inject-oauth-sidecar: "true"
+    {% if configuration.cloud == 'azure' %}
     azure.workload.identity/use: "true"
+    {% endif %}
+
+  {% if configuration.cloud == 'aws' %}
   envSecrets:
-    - name: dagster-aws-env
+    - name: dagster-env
+  {% endif %}
 
 postgresql:
   enabled: false
@@ -28,7 +33,7 @@ computeLogManager:
   type: S3ComputeLogManager
   config:
     s3ComputeLogManager:
-      bucket: {{ configuration.bucket }}
+      bucket: {{ imports[configuration.stackName].bucket_name }}
 {% endif %}
 
 {% if configuration.cloud == 'azure' %}
@@ -40,13 +45,14 @@ computeLogManager:
       container: {{ imports[configuration.stackName].container_name  }}
       defaultAzureCredential:
         exclude_environment_credential: false
-        exclude_managed_identity_credential: true
-        exclude_cli_credential: true
-        exclude_powershell_credential: true
-        exclude_developer_cli_credential: true
-        exclude_visual_studio_code_credential: true
-        exclude_shared_token_cache_credential: true
-        workload_identity_client_id: {{ imports[configuration.stackName].blobstore_client_id }} # when this actually works, enable it
+{% endif %}
+
+{% if configuration.cloud == 'gcp' %}
+computeLogManager:
+  type: GCSComputeLogManager
+  config:
+    gcsComputeLogManager:
+      bucket: {{ imports[configuration.stackName].storage_bucket_name }}
 {% endif %}
 
 ingress:
@@ -71,22 +77,30 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/use-regex: "true"
 
+{% if configuration.cloud == 'aws' %}
 runLauncher:
   config:
     k8sRunLauncher:
       envSecrets:
-        - name: dagster-aws-env
+        - name: dagster-env
+{% endif %}
 
 dagster-user-deployments:
   enabled: true
   deployments:
-    - name: "k8s-example-user-code-1"
+    - name: "iris-analysis"
+      {% if configuration.cloud == 'azure' %}
+      labels:
+        azure.workload.identity/use: "true"
+      {% endif %}
       image:
-        repository: "docker.io/dagster/user-code-example"
+        repository: docker.io/dagster/user-code-example
         tag: latest
-        pullPolicy: Always
+        pullPolicy: IfNotPresent
+      port: 3030
       dagsterApiGrpcArgs:
         - "--python-file"
-        - "/example_project/example_repo/repo.py"
-      port: 3030
+        - "/iris_analysis/definitions.py"
+      includeConfigInLaunchedRuns:
+        enabled: true
 {% endraw %}

@@ -9,7 +9,7 @@ spec:
   documentation: Sets up Dagster instance for given cloud.
   creates:
     git:
-      ref: main # TODO set to main
+      ref: main
       folder: catalogs/data/dagster
     templates:
       - source: README.md
@@ -24,15 +24,17 @@ spec:
       - source: "terraform/{{ context.cloud }}"
         destination: "terraform/apps/dagster/{{ context.cluster }}"
         external: true
-      - source: dagster-aws-env.yaml
-        destination: "bootstrap/apps/dagster/{{ context.cluster }}/dagster-aws-env.yaml"
+      - source: dagster-env.yaml
+        destination: "bootstrap/apps/dagster/{{ context.cluster }}/dagster-env.yaml"
         external: true
+        condition: "context.cloud == `aws`"
       - source: oauth-proxy-config.yaml
         destination: "bootstrap/apps/dagster/{{ context.cluster }}/oauth-proxy-config.yaml"
         external: true
-      - source: services/dagster-aws-env.yaml.liquid
-        destination: services/apps/dagster/dagster-aws-env.yaml.liquid
+      - source: services/aws/dagster-env.yaml.liquid
+        destination: services/apps/dagster/dagster-env.yaml.liquid
         external: true
+        condition: "context.cloud == `aws`"
   repositoryRef:
     name: scaffolds
   catalogRef:
@@ -45,35 +47,16 @@ spec:
     - name: cluster
       type: CLUSTER
       documentation: The cluster you want to deploy to.
-    - name: tier
-      type: ENUM
-      documentation: The tier you want to deploy to.
-      values:
-        - dev
-        - prod
     - name: cloud
       type: ENUM
       documentation: The cloud you want to deploy to.
       values:
-        - aws
-    - name: region
-      type: STRING
-      documentation: The cloud provider region you want to use to deploy cloud resources.
-    - name: bucket
-      type: STRING
-      documentation: The name of the bucket you want to use. This must be globally unique.
+        - gcp
+        - azure
     - name: hostname
       type: STRING
       documentation: The DNS name you want to host Dagster under.
-    - name: resourceGroupName
-      type: STRING
-      documentation: The name of the resource group you want to use.
-      optional: true
-      condition:
-        field: cloud
-        operation: EQ
-        value: 'azure'
-    - name: storageAccountName
+    - name: storageAccount
       type: STRING
       documentation: The name of the storage account you want to use.
       optional: true

@@ -25,7 +25,6 @@ spec:
   configuration:
     cluster: {{ context.cluster }}
     stackName: dagster-{{ context.cluster }}
-    hostname: {{ context.hostname }}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}

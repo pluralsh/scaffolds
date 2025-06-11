@@ -1,21 +1,11 @@
-variable "namespace" {
-  type = string
-  default = "dagster"
-}
-
-variable "tier" {
-  type = string
-  default = "{{ context.tier }}"
-}
-
-variable "cluster_name" {
+variable "cluster_handle" {
   type = string
   default = "{{ context.cluster }}"
 }
 
-variable "dagster_bucket" {
+variable "hostname" {
   type = string
-  default = "{{ context.bucket }}"
+  default = "{{ context.hostname }}"
 }
 
 variable "force_destroy_bucket" {
@@ -25,7 +15,7 @@ variable "force_destroy_bucket" {
 }
 
 variable "db_name" {
-  default = "plrl-{{ context.cluster }}-dagster"
+  default = "dagster"
 }
 
 variable "postgres_vsn" {

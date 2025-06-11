@@ -7,9 +7,9 @@ resource "random_password" "oidc_cookie" {
 }
 
 resource "plural_oidc_provider" "dagster" {
-  name = "dagster-{{ context.cluster }}"
+  name = "${local.cluster_name}-dagster"
   auth_method = "BASIC"
   type = "PLURAL"
-  description = "OIDC provider for Dagster deployed to the {{ context.cluster }} cluster"
-  redirect_uris = ["https://{{ context.hostname }}/oauth2/callback"]
+  description = "OIDC provider for Dagster deployed to the ${local.cluster_name} cluster"
+  redirect_uris = ["https://${var.hostname}/oauth2/callback"]
 }

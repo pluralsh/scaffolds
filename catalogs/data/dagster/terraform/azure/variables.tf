@@ -1,41 +1,20 @@
-variable "namespace" {
-  type = string
-  default = "dagster"
-}
-
-variable "tier" {
-  type = string
-  default = "{{ context.tier }}"
-}
-
-variable "resource_group_name" {
-  type = string
-  default = "{{ context.resourceGroupName }}"
-}
-
 variable "storage_account_name" {
   type = string
-  default = "{{ context.storageAccountName }}"
+  default = "{{ context.storageAccount }}"
 }
 
-variable "cluster_name" {
+variable "cluster_handle" {
   type = string
   default = "{{ context.cluster }}"
 }
 
-variable "dagster_bucket" {
+variable "hostname" {
   type = string
-  default = "{{ context.bucket }}"
-}
-
-variable "force_destroy_bucket" {
-  type        = bool
-  default     = true
-  description = "If true, the bucket will be deleted even if it contains objects."
+  default = "{{ context.hostname }}"
 }
 
 variable "db_name" {
-  default = "plrl-{{ context.cluster }}-dagster"
+  default = "dagster"
 }
 
 variable "postgres_vsn" {

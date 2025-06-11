@@ -1,14 +1,5 @@
-output "iam_user" {
-  value = aws_iam_user.dagster
-}
-
-output "access_key_id" {
-  value = aws_iam_access_key.dagster.id
-}
-
-output "secret_access_key" {
-  value = aws_iam_access_key.dagster.secret
-  sensitive = true
+output "bucket_name" {
+  value = aws_s3_bucket.dagster.bucket
 }
 
 output "postgres_host" {

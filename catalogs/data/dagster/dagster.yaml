@@ -15,8 +15,13 @@ spec:
   repositoryRef:
     name: infra
     namespace: infra
-  configuration:
-    version: '1.8'
+  {% if context.cloud == 'azure' %}
+  jobSpec:
+    namespace: plrl-deploy-operator
+    labels:
+      azure.workload.identity/use: "true"
+    serviceAccount: "stacks"
+  {% endif %}
   clusterRef:
     name: mgmt
     namespace: infra
@@ -47,10 +52,12 @@ spec:
       namespace: apps
   configuration:
     cluster: {{ context.cluster }}
-    stackName: dagster-{{ context.cluster }}
     hostname: {{ context.hostname }}
-    bucket: {{ context.bucket }}
     cloud: {{ context.cloud }}
+    stackName: dagster-{{ context.cluster }}
+    {% if context.cloud == 'azure' %}
+    storageAccount: {{context.storageAccount}}
+    {% endif %}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}

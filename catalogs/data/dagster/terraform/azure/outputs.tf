@@ -6,8 +6,12 @@ output "storage_account_name" {
   value = data.azurerm_storage_account.sa.name
 }
 
+output "service_account_name" {
+  value = kubernetes_service_account.service_account.metadata.0.name
+}
+
 output "container_name" {
-  value = azurerm_storage_container.dagster_logs.name
+  value = azurerm_storage_container.dagster.name
 }
 
 output "postgres_host" {
