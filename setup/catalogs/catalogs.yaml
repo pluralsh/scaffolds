@@ -56,7 +56,7 @@ spec:
   icon: https://docs.plural.sh/favicon-128.png
   author: Plural
   description: |
-    Manage applicationdeployments using Plural
+    Manage application and microservice deployments using Plural
 ---
 apiVersion: deployments.plural.sh/v1alpha1
 kind: Catalog
