@@ -19,6 +19,10 @@ spec:
     url: https://grafana.github.io/helm-charts
     valuesFiles:
     - grafana.yaml.liquid
+  {% if context.pluralCloud %}
+  contexts:
+  - "plrl/cloud/observability"
+  {% endif %}
   imports:
   - stackRef:
       name: grafana-{{ context.cluster }}

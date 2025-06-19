@@ -46,3 +46,6 @@ spec:
   - name: hostname
     type: STRING
     documentation: the hostname of the grafana instance
+  - name: pluralCloud
+    type: BOOL
+    documentation: whether you're deploying to plural cloud (we will auto-configure a prometheus datasource for you if so)
