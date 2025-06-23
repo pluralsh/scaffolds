@@ -1,0 +1,60 @@
+{% raw %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: {{ configuration.name }}-dev
+spec:
+  namespace: {{ configuration.name }}
+  name: {{ configuration.name }}
+  flowRef:
+    name: {{ configuration.name }}
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  git:
+    ref: main
+    folder: helm/flows
+  helm:
+    version: x.x.x
+    url: https://pluralsh.github.io/bootstrap
+    chart: stateless
+    valuesFiles:
+    - postgres.values.yaml.liquid
+  imports:
+  - stackRef:
+      name: flow-{{ configuration.name }}-dev
+      namespace: {{ configuration.name }}
+  configuration:
+    flowName: {{ configuration.name }}
+    flowDomain: {{ configuration.devDomain }}
+    flowRegistry: {{ configuration.registry }}
+    flowTag: {{ configuration.devTag }}
+    stackName: flow-{{ configuration.name }}-dev
+  clusterRef:
+    kind: Cluster
+    name: {{ configuration.devCluster }}
+    namespace: infra
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: flow-{{ configuration.name }}-dev
+spec:
+  type: TERRAFORM
+  manageState: true
+  actor: console@plural.sh
+  approval: true
+  repositoryRef:
+    name: infra
+    namespace: infra
+  git:
+    ref: main
+    folder: terraform/flows/postgres/{{ configuration.cloud }}
+  variables:
+    network: dev
+    name: {{ configuration.name }}-dev
+  clusterRef:
+    name: mgmt
+    namespace: infra
+{% endraw %}

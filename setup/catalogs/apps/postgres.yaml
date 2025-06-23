@@ -1,28 +1,31 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: PrAutomation
 metadata:
-  name: flow-stateless
+  name: flow-postgres
 spec:
-  name: flow-stateless
-  icon: https://docs.plural.sh/favicon-128.png
+  name: flow-postgres
+  icon: https://wiki.postgresql.org/images/3/30/PostgreSQL_logo.3colors.120x120.png
   identifier: mgmt
-  documentation: Sets up a Plural Flow to manage the deployment of a basic stateless application
+  documentation: Sets up a Plural Flow to manage the deployment of an application backed by a postgres database
   creates:
     git:
       ref: main
       folder: catalogs/apps
     templates:
-    - source: stateless/flow
-      destination: "services/flows/stateless"
+    - source: postgres/flow
+      destination: "services/flows/postgres"
       external: true
-    - source: stateless/setup.yaml
+    - source: postgres/terraform
+      destination: "terraform/flows/postgres"
+      external: true
+    - source: postgres/setup.yaml
       destination: "bootstrap/flows/{{ context.name }}.yaml"
       external: true
     - source: flow-upgrade-pra.yaml
       destination: "bootstrap/pr-automation/flow-upgrade-pra.yaml"
       external: true
-    - source: stateless/helm/stateless.values.yaml.liquid
-      destination: "helm/flows/stateless.values.yaml.liquid"
+    - source: postgres/helm/postgres.values.yaml.liquid
+      destination: helm/flows/postgres.values.yaml.liquid
       external: true
     - source: README.md
       destination: "documentation/flows/README.md"
@@ -33,9 +36,9 @@ spec:
     name: apps
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
-  title: "Setting up a stateless application {{ context.name }} from clusters {{ context.devCluster }} to {{ context.prodCluster }}"
+  title: "Setting up a postgres based application {{ context.name }} from clusters {{ context.devCluster }} to {{ context.prodCluster }}"
   message: |
-    Setting up a stateless application {{ context.name }}
+    Setting up a postgres based application {{ context.name }}
 
     dev cluster: {{ context.devCluster }}
     prod cluster: {{ context.prodCluster }}
@@ -49,6 +52,13 @@ spec:
     type: STRING
     documentation: The Plural user group to give write access to this flow.
     default: "sre"
+  - name: cloud
+    type: ENUM
+    documentation: The cloud provider you want to deploy to.
+    values:
+    - aws
+    - azure
+    - gcp
   - name: devCluster
     type: CLUSTER
     documentation: Handle of the dev cluster you want to deploy to.

@@ -5,7 +5,7 @@ metadata:
 spec:
   pipelineRef:
     name: {{ context.fleet }}-fleet-upgrade
-    namespace: {{ context.fleet }}
+    namespace: infra
   context:
     fleet: {{ context.fleet }}
     version: '{{ context.version }}'

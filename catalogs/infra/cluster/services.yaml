@@ -3,7 +3,7 @@ kind: ServiceDeployment
 metadata:
   name: {{ context.fleet }}-dev
 spec:
-  namespace: {{ context.fleet }}
+  namespace: infra
   git:
     folder: services/{{ context.fleet }}/clusters/dev
     ref: main
@@ -22,7 +22,7 @@ kind: ServiceDeployment
 metadata:
   name: {{ context.fleet }}-prod
 spec:
-  namespace: {{ context.fleet }}
+  namespace: infra
   git:
     folder: services/{{ context.fleet }}/clusters/prod
     ref: main
