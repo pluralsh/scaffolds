@@ -1,0 +1,28 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: {{ context.name }}
+  namespace: infra
+spec:
+  namespace: {{ context.name }}
+  git:
+    folder: services/flows/postgres
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configuration:
+    name: {{ context.name }}
+    group: {{ context.group }}
+    registry: {{ context.registry }}
+    devCluster: {{ context.devCluster }}
+    prodCluster: {{ context.prodCluster }}
+    devTag: {{ context.tag }}
+    prodTag: {{ context.tag }}
+    devDomain: {{ context.devDomain }}
+    prodDomain: {{ context.prodDomain }}
+    cloud: {{ context.cloud }}
+  clusterRef:
+    name: mgmt
+    namespace: infra

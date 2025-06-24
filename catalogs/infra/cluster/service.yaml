@@ -4,7 +4,7 @@ metadata:
   name: {{ context.fleet }}-setup
   namespace: infra
 spec:
-  namespace: {{ context.fleet }}
+  namespace: infra
   git:
     folder: services/{{ context.fleet }}/setup
     ref: main
