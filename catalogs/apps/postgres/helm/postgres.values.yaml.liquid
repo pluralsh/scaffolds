@@ -6,6 +6,10 @@ image:
 secrets:
   POSTGRES_URL: {{ imports[configuration.stackName].db_url }}
 
+
+service:
+  port: {{ configuration.port }}
+
 ingress:
   enabled: true
   className: nginx
@@ -16,7 +20,7 @@ ingress:
   - host: {{ configuration.flowDomain }}
     paths:
     - path: /
-      pathType: ImplementationSpecific
+      pathType: Prefix
   tls:
   - secretName: {{ configuration.flowName }}-tls
     hosts:

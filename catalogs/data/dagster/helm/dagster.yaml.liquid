@@ -14,10 +14,6 @@ dagsterWebserver:
     azure.workload.identity/use: "true"
     {% endif %}
 
-  {% if configuration.cloud == 'aws' %}
-  envSecrets:
-    - name: dagster-env
-  {% endif %}
 
 postgresql:
   enabled: false
@@ -55,6 +51,19 @@ computeLogManager:
       bucket: {{ imports[configuration.stackName].storage_bucket_name }}
 {% endif %}
 
+{% if configuration.cloud == 'gcp' %}
+serviceAccount:
+  annotations:
+    iam.gke.io/gcp-service-account: {{ imports[configuration.stackName].gke_sa_email }}
+{% endif %}
+
+{% if configuration.cloud == 'azure' %}
+serviceAccount:
+  annotations:
+    azure.workload.identity/client-id: {{ imports[configuration.stackName].aks_client_id }}
+{% endif %}
+
+
 ingress:
   enabled: true
   ingressClassName: nginx
@@ -77,30 +86,25 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/use-regex: "true"
 
-{% if configuration.cloud == 'aws' %}
-runLauncher:
-  config:
-    k8sRunLauncher:
-      envSecrets:
-        - name: dagster-env
-{% endif %}
-
 dagster-user-deployments:
   enabled: true
   deployments:
-    - name: "iris-analysis"
+    - name: "k8s-example-user-code-1"
       {% if configuration.cloud == 'azure' %}
       labels:
         azure.workload.identity/use: "true"
       {% endif %}
       image:
         repository: docker.io/dagster/user-code-example
-        tag: latest
+        tag: 1.10.0
         pullPolicy: IfNotPresent
-      port: 3030
       dagsterApiGrpcArgs:
-        - "--python-file"
-        - "/iris_analysis/definitions.py"
+      - "-f"
+      - "/example_project/example_repo/repo.py"
+      port: 3030
+
+      # Whether or not to include configuration specified for this user code deployment in the pods
+      # launched for runs from that deployment
       includeConfigInLaunchedRuns:
         enabled: true
 {% endraw %}

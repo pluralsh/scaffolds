@@ -18,6 +18,10 @@ variable "db_name" {
   default = "dagster"
 }
 
+variable "dagster_bucket" {
+  type = string
+}
+
 variable "database_version" {
   default = "POSTGRES_14"
 }

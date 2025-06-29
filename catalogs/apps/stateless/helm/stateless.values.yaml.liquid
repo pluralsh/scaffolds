@@ -3,6 +3,9 @@ image:
   repository: {{ configuration.flowRegistry }}
   tag: {{ configuration.flowTag }}
 
+service:
+  port: {{ configuration.port }}
+
 ingress:
   enabled: true
   className: nginx
@@ -13,7 +16,7 @@ ingress:
   - host: {{ configuration.flowDomain }}
     paths:
     - path: /
-      pathType: ImplementationSpecific
+      pathType: Prefix
   tls:
   - secretName: {{ configuration.flowName }}-tls
     hosts:

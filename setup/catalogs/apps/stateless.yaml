@@ -61,6 +61,10 @@ spec:
   - name: tag
     type: STRING
     documentation: The docker tag you'll use to deploy the application.
+  - name: port
+    type: STRING
+    documentation: The port your container will listen on.
+    default: '80'
   - name: devDomain
     type: STRING
     documentation: The domain name you'll use to access the application in the dev cluster.

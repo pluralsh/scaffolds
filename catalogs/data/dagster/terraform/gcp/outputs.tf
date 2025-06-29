@@ -3,7 +3,7 @@ output "project_id" {
 }
 
 output "service_account_name" {
-  value = kubernetes_service_account.dagster.metadata.0.name
+  value = local.service_account_name
 }
 
 output "storage_bucket_name" {
@@ -33,4 +33,8 @@ output "oidc_client_id" {
 output "oidc_client_secret" {
   value = plural_oidc_provider.dagster.client_secret
   sensitive = true
+}
+
+output "gke_sa_email" {
+  value = google_service_account.dagster.email
 }

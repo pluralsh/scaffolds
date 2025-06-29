@@ -1,0 +1,20 @@
+{% raw %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PreviewEnvironmentTemplate
+metadata:
+  name: {{ configuration.name }}
+spec:
+  flowRef:
+    name: {{ configuration.name }}
+
+  referenceServiceRef:
+    name: {{ configuration.name }}-dev
+    namespace: {{ configuration.name }}
+{% endraw %}
+  template:
+    namespace: {{ "{% raw %}" }}{%raw %}"{{ context.name }}-pr-{{ pr.number }}"{% endraw %}{{ "{% endraw %}" }}
+    name: {{ "{% raw %}" }}{%raw %}"{{ context.name }}-pr-{{ pr.number }}"{% endraw %}{{ "{% endraw %}" }}
+    helm:
+      values:
+        image:
+          tag: {{ "{% raw %}" }}{%raw %}"sha-{{ commitSha | slice: 0, 7 }}"{% endraw %}{{ "{% endraw %}" }}
