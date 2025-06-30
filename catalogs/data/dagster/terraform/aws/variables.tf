@@ -3,6 +3,10 @@ variable "cluster_handle" {
   default = "{{ context.cluster }}"
 }
 
+variable "dagster_bucket" {
+  type = string
+}
+
 variable "hostname" {
   type = string
   default = "{{ context.hostname }}"
@@ -28,7 +32,7 @@ variable "db_storage" {
 
 variable "deletion_protection" {
   type    = bool
-  default = true
+  default = false
 }
 
 variable "backup_retention_period" {

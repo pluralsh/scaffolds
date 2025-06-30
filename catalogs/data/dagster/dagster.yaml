@@ -15,6 +15,8 @@ spec:
   repositoryRef:
     name: infra
     namespace: infra
+  variables:
+    dagster_bucket: {{ context.dagsterBucket }}
   {% if context.cloud == 'azure' %}
   jobSpec:
     namespace: plrl-deploy-operator
@@ -55,8 +57,9 @@ spec:
     hostname: {{ context.hostname }}
     cloud: {{ context.cloud }}
     stackName: dagster-{{ context.cluster }}
+    dagsterBucket: {{ context.dagsterBucket }}
     {% if context.cloud == 'azure' %}
-    storageAccount: {{context.storageAccount}}
+    storageAccount: {{ context.storageAccount }}
     {% endif %}
   clusterRef:
     kind: Cluster

@@ -50,6 +50,6 @@ resource "aws_iam_role_policy_attachment" "dagster_s3_attachment" {
 resource "aws_eks_pod_identity_association" "dagster_pod_identity" {
   cluster_name    = local.cluster_name
   namespace       = local.service_account_namespace
-  service_account = kubernetes_service_account.dagster.metadata[0].name
+  service_account = local.service_account_name
   role_arn        = aws_iam_role.dagster.arn
 }

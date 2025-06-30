@@ -23,6 +23,7 @@ spec:
     devDomain: {{ context.devDomain }}
     prodDomain: {{ context.prodDomain }}
     cloud: {{ context.cloud }}
+    port: '{{ context.port }}'
   clusterRef:
     name: mgmt
     namespace: infra

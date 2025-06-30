@@ -8,7 +8,7 @@ data "azurerm_storage_account" "sa" {
 }
 
 resource "azurerm_storage_container" "dagster" {
-  name                  = "${local.cluster_name}-dagster"
+  name                  = var.dagster_bucket
   storage_account_id    = data.azurerm_storage_account.sa.id
   container_access_type = "private"
 }

@@ -31,6 +31,7 @@ spec:
     flowRegistry: {{ configuration.registry }}
     flowTag: {{ configuration.devTag }}
     stackName: flow-{{ configuration.name }}-dev
+    port: {{ configuration.port }}
   clusterRef:
     kind: Cluster
     name: {{ configuration.devCluster }}

@@ -7,7 +7,7 @@ output "storage_account_name" {
 }
 
 output "service_account_name" {
-  value = kubernetes_service_account.service_account.metadata.0.name
+  value = local.service_account_name
 }
 
 output "container_name" {
@@ -36,4 +36,8 @@ output "oidc_client_id" {
 output "oidc_client_secret" {
   value = plural_oidc_provider.dagster.client_secret
   sensitive = true
+}
+
+output "aks_client_id" {
+  value = azurerm_user_assigned_identity.dagster.client_id
 }

@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "dagster" {
-  bucket         = "${local.cluster_name}-dagster"
+  bucket         = var.dagster_bucket
   force_destroy  = var.force_destroy_bucket
 }
 
