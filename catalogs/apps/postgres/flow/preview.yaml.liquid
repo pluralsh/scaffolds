@@ -12,7 +12,7 @@ spec:
     namespace: {{ configuration.name }}
 {% endraw %}
   template:
-    namespace: {{ "{% raw %}" }}{%raw %}"{{ context.name }}-pr-{{ pr.number }}"{% endraw %}{{ "{% endraw %}" }}
+    namespace: "{{ configuration.name }}-pr-{{ "{% raw %}{{ pr.number }}{% endraw %}" }}"
     name: {{ "{% raw %}" }}{%raw %}"{{ context.name }}-pr-{{ pr.number }}"{% endraw %}{{ "{% endraw %}" }}
     helm:
       values:
