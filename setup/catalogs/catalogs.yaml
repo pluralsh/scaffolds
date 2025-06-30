@@ -81,3 +81,15 @@ spec:
   author: Plural
   description: |
     Sets up data store using Plural
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
+  name: plural
+spec:
+  name: plural-upgrade
+  category: plural
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Upgrades plural clusters on mgmt console

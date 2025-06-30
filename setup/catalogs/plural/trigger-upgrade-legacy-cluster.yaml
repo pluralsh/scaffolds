@@ -1,0 +1,25 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: trigger-upgrade-legacy-cluster
+spec:
+  name: trigger-upgrade-legacy-cluster
+  documentation: triggers a stack to upgrade the legacy cluster 
+  updates:
+    regexReplacements:
+    - regex: '(kubernetes_version = )"(.*)" # k8s version'
+      file: "terraform/legacy/main.tf"
+      replacement: '(kubernetes_version = )"{{ context.version }}" # k8s version'
+  repositoryRef:
+    name: plrl-mgmt
+  catalogRef:
+    name: plural-upgrade
+  scmConnectionRef:
+    name: github
+  title: "Plural Stack: Legacy"
+  message: "Plural Stack: legacy"
+  identifier: pluralsh/plrl-mgmt
+  configuration:
+  - name: version
+    type: STRING
+    documentation: the new k8s version to use

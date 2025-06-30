@@ -1,0 +1,25 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: trigger-upgrade-cloud-cluster
+spec:
+  name: trigger-upgrade-cloud-cluster
+  documentation: triggers a stack to upgrade the cloud cluster 
+  updates:
+    regexReplacements::
+    - regex: 'default = "(.*)" # k8s version'
+      file: "terraform/modules/clusters/aws/variables.tf"
+      replacement: 'default = "{{ context.version }}" # k8s version'
+  repositoryRef:
+    name: plrl-mgmt
+  catalogRef:
+    name: plural-upgrade
+  scmConnectionRef:
+    name: github
+  title: "Plural Stack: Cloud"
+  message: "Plural Stack: cluster-cloud-us-east-1-a"
+  identifier: pluralsh/plrl-mgmt
+  configuration:
+  - name: version
+    type: STRING
+    documentation: the new k8s version to use
