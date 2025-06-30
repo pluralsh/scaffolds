@@ -26,6 +26,7 @@ spec:
     flowDomain: {{ configuration.prodDomain }}
     flowRegistry: {{ configuration.registry }}
     flowTag: {{ configuration.prodTag }}
+    port: '{{ configuration.port }}'
   clusterRef:
     kind: Cluster
     name: {{ configuration.prodCluster }}
