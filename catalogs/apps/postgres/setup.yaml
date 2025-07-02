@@ -18,8 +18,8 @@ spec:
     registry: {{ context.registry }}
     devCluster: {{ context.devCluster }}
     prodCluster: {{ context.prodCluster }}
-    devTag: {{ context.tag }}
-    prodTag: {{ context.tag }}
+    devTag: '{{ context.tag }}'
+    prodTag: '{{ context.tag }}'
     devDomain: {{ context.devDomain }}
     prodDomain: {{ context.prodDomain }}
     cloud: {{ context.cloud }}
