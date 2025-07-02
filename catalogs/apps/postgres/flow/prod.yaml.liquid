@@ -29,7 +29,7 @@ spec:
     flowName: {{ configuration.name }}
     flowDomain: {{ configuration.prodDomain }}
     flowRegistry: {{ configuration.registry }}
-    flowTag: {{ configuration.prodTag }}
+    flowTag: '{{ configuration.prodTag }}'
     stackName: flow-{{ configuration.name }}-dev
     port: '{{ configuration.port }}'
   clusterRef:
