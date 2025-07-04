@@ -1,5 +1,5 @@
 locals {
-  cluster_name = jsondecode(data.plural_service_context.mgmt.configuration)["cluster_name"]
+  cluster_name = jsondecode(data.plural_service_context.cluster.configuration)["cluster_name"]
 }
 
 resource "aws_iam_policy" "airbyte" {
