@@ -26,3 +26,12 @@ output "oidc_client_secret" {
   value = plural_oidc_provider.airbyte.client_secret
   sensitive = true
 }
+
+output "basic_auth_username" {
+  value = "airbyte"
+}
+
+output "basic_auth_password" {
+  value = bcrypt(random_password.basic_auth_password.result)
+  sensitive = true
+}

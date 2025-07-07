@@ -15,12 +15,9 @@ secret:
   env:
     OAUTH2_PROXY_UPSTREAM_TIMEOUT: '120s'
 
-{% if configuration["basicAuth"] %}
-{% assign basicAuth = configuration["basicAuth"] | from_json %}
-users:
-{% for user in basicAuth %}
-  {{ user[0] }}: {{ user[1] }}
-{% endfor %}
+{% if imports[configuration.stackName].basic_auth_password %}
+bcryptUsers:
+  {{ imports[configuration.stackName].basic_auth_username }}: {{ imports[configuration.stackName].basic_auth_password }}
 {% endif %}
 
 
