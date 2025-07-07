@@ -17,7 +17,7 @@ module "pg" {
   region = local.region
 
   // Master configurations
-  edition                         = "ENTERPRISE"
+  edition                         = "ENTERPRISE_PLUS"
   tier                            = var.tier
   availability_type               = var.availability_type
   maintenance_window_day          = var.maintenance_window_day
@@ -53,8 +53,22 @@ module "pg" {
   db_charset   = "UTF8"
   db_collation = "en_US.UTF8"
 
+  additional_databases = [
+    {
+      name = "temporal",
+      charset = "UTF8",
+      collation = "en_US.UTF8"
+    },
+    {
+      name = "temporal_visibility",
+      charset = "UTF8",
+      collation = "en_US.UTF8"
+    }
+  ]
+
   user_name     = var.user_name
   user_password = random_password.password.result
+  user_deletion_policy = "ABANDON"
 
   depends_on = [
     data.plural_service_context.cluster,
