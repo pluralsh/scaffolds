@@ -1,5 +1,5 @@
 resource "google_storage_bucket" "dagster" {
-  name          = "${local.cluster_name}-dagster"
+  name = var.dagster_bucket
   project       = local.project_id
   location      = local.region
   force_destroy = var.force_destroy_bucket

@@ -5,6 +5,7 @@ variable "cluster_handle" {
 
 variable "dagster_bucket" {
   type = string
+  default = "{{ context.dagsterBucket }}"
 }
 
 variable "hostname" {

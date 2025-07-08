@@ -20,6 +20,7 @@ variable "db_name" {
 
 variable "dagster_bucket" {
   type = string
+  default = "{{ context.dagsterBucket }}"
 }
 
 variable "database_version" {
