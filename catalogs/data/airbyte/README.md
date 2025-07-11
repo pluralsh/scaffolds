@@ -10,7 +10,9 @@ In addition, there are a few common customizations you might want to do.
 
 ## Configure Basic Auth
 
-Basic Auth for your airbyte instance is configured by default alongside the OpenID Connect setup brokered by Plural.  The basic auth user is hardfixed to `airbyte` and the random-generated password can be found in the stack outputs of your generated airbyte stack, which should be named something like `airbyte-{cluster-name}`
+Basic Auth for your airbyte instance is configured by default alongside the OpenID Connect setup brokered by Plural. The
+basic auth user is hardfixed to `airbyte` and the random-generated password can be found in the stack outputs of your
+generated airbyte stack, which should be named something like `airbyte-{cluster-name}`
 
 
 ## Contributing

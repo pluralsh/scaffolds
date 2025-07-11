@@ -5,6 +5,7 @@ variable "storage_account_name" {
 
 variable "dagster_bucket" {
   type = string
+  default = "{{ context.dagsterBucket }}"
 }
 
 variable "cluster_handle" {
