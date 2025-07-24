@@ -4,6 +4,7 @@ metadata:
   name: airbyte-oauth-proxy-config-mgmt
   namespace: apps
 spec:
+
   namespace: airbyte
   git:
     folder: helm/airbyte/mgmt

@@ -4,6 +4,9 @@ metadata:
   name: vmetrics-server
   namespace: infra
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   namespace: monitoring
   git:
     folder: helm/monitoring

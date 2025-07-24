@@ -3,6 +3,9 @@ kind: ServiceDeployment
 metadata:
   name: {{ context.fleet }}-dev
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   namespace: infra
   git:
     folder: services/{{ context.fleet }}/clusters/dev
@@ -22,6 +25,9 @@ kind: ServiceDeployment
 metadata:
   name: {{ context.fleet }}-prod
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   namespace: infra
   git:
     folder: services/{{ context.fleet }}/clusters/prod

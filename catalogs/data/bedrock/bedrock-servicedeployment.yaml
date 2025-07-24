@@ -4,6 +4,9 @@ metadata:
   name: bedrock-proxy
   namespace: apps
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   namespace: bedrock
   git:
     folder: helm/bedrock

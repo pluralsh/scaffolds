@@ -4,6 +4,7 @@ metadata:
   name: airbyte-mgmt
   namespace: apps
 spec:
+
   namespace: airbyte
   git:
     folder: helm/airbyte/mgmt

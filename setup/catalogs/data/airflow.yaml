@@ -9,7 +9,7 @@ spec:
   documentation: Sets up an airflow instance for a given cloud
   creates:
     git:
-      ref: main
+      ref: agent-session-support # changeme
       folder: catalogs/data/airflow
     templates:
     - source: helm
