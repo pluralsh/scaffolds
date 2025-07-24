@@ -4,6 +4,9 @@ metadata:
   name: elastic-stack
   namespace: infra
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   namespace: elastic
   repositoryRef:
     name: infra

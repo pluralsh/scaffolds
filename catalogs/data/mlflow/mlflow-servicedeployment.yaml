@@ -4,6 +4,9 @@ metadata:
   name: mlflow-{{ context.cluster }}
   namespace: apps
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   namespace: mlflow
   git:
     folder: helm/mlflow/{{ context.cluster }}

@@ -4,6 +4,9 @@ metadata:
   name: mlflow-raw-{{ context.cluster }}
   namespace: apps
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   namespace: mlflow
   git:
     folder: services/apps/mlflow

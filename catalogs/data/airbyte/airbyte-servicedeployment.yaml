@@ -4,6 +4,9 @@ metadata:
   name: airbyte-{{ context.cluster }}
   namespace: apps
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   namespace: airbyte
   git:
     folder: helm/airbyte/{{ context.cluster }}

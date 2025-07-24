@@ -4,6 +4,7 @@ metadata:
   name: airbyte-mgmt
   namespace: apps
 spec:
+
   detach: false
   type: TERRAFORM
   approval: true

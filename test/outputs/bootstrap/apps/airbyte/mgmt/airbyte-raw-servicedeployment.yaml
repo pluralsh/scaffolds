@@ -4,6 +4,7 @@ metadata:
   name: airbyte-raw-mgmt
   namespace: apps
 spec:
+
   namespace: airbyte
   git:
     folder: services/apps/airbyte

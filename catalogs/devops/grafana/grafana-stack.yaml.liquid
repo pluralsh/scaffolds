@@ -4,6 +4,9 @@ metadata:
   name: grafana-{{ context.cluster }}
   namespace: apps
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   detach: false
   type: TERRAFORM
   approval: true

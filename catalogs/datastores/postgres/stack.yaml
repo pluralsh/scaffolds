@@ -4,6 +4,9 @@ metadata:
   name: postgres-{{ context.name }}
   namespace: apps
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   detach: false
   type: TERRAFORM
   approval: true

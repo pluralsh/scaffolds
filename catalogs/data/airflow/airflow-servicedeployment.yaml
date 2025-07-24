@@ -4,6 +4,9 @@ metadata:
   name: airflow-{{ context.cluster }}
   namespace: apps
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   namespace: airflow
   git:
     folder: helm/airflow/{{ context.cluster }}

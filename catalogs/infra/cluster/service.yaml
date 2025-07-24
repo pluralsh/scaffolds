@@ -4,6 +4,9 @@ metadata:
   name: {{ context.fleet }}-setup
   namespace: infra
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   namespace: infra
   git:
     folder: services/{{ context.fleet }}/setup

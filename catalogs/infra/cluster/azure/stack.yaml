@@ -5,6 +5,9 @@ kind: InfrastructureStack
 metadata:
   name: cluster-{{ name }}
 spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   name: cluster-{{ name }}
   detach: false
   type: TERRAFORM
