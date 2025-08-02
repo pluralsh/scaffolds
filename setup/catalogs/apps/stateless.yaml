@@ -21,8 +21,8 @@ spec:
     - source: flow-upgrade-pra.yaml
       destination: "bootstrap/pr-automation/flow-upgrade-pra.yaml"
       external: true
-    - source: stateless/helm/stateless.values.yaml.liquid
-      destination: "helm/flows/stateless.values.yaml.liquid"
+    - source: stateless/helm/stateless.yaml.liquid
+      destination: "helm/flows/stateless.yaml.liquid"
       external: true
     - source: README.md
       destination: "documentation/flows/README.md"
