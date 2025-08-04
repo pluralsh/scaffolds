@@ -13,6 +13,8 @@ spec:
   template:
     namespace: "{{ context.name }}-pr-{% raw %}{{ pr.number }}{% endraw %}"
     name: "{{ context.name }}-pr-{% raw %}{{ pr.number }}{% endraw %}"
+    syncConfig:
+      deleteNamespace: true
     helm:
       values:
         image:
