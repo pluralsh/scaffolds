@@ -37,6 +37,9 @@ metadata:
   name: dagster-{{ context.cluster }}
   namespace: apps
 spec:
+  {% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+  {% endif %}
   namespace: dagster
   git:
     folder: helm/dagster/{{ context.cluster }}

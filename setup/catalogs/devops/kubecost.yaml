@@ -34,4 +34,6 @@ spec:
   title: "Global Kubecost Setup"
   message: |
     Sets up Kubecost global service with KubecostExtractor resources to publish back to plural
+
+    Plural Service: mgmt/apps
   configuration: []

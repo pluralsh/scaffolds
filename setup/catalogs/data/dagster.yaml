@@ -34,7 +34,10 @@ spec:
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: Dagster setup ({{ context.cluster }})
-  message: Sets up Dagster on {{ context.cluster }} cluster.
+  message: |
+    Sets up Dagster on {{ context.cluster }} cluster.
+
+    Plural Service: mgmt/apps
   configuration:
     - name: cluster
       type: CLUSTER

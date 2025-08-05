@@ -71,6 +71,8 @@ spec:
   title: "Elasticsearch setup ({{ context.cluster }})"
   message: |
     Sets up Elastic on {{ context.cluster }} cluster, alongside logstash and kibana.
+
+    Plural Service: mgmt/apps
   configuration:
   - name: cluster
     type: CLUSTER

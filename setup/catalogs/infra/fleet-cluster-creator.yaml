@@ -23,7 +23,10 @@ spec:
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: "Setting up {{ context.name }} cluster in fleet {{ context.fleet }}"
-  message: "Setting up {{ context.name }} cluster in fleet {{ context.fleet }}"
+  message: |
+    Setting up {{ context.name }} cluster in fleet {{ context.fleet }}
+
+    Plural Service: mgmt/{{ context.fleet }}
   configuration:
     - name: cloud
       type: ENUM
