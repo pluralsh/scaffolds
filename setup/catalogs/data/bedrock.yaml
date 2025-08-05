@@ -41,6 +41,8 @@ spec:
     This will provision IAM roles/policies for Bedrock, generate secrets,
     and create ServiceDeployment + Ingress so that Plural can
     route requests to AWS Bedrock.
+
+    Plural Service: mgmt/apps
   configuration:
     - name: cluster
       type: CLUSTER

@@ -30,6 +30,8 @@ spec:
     Set up postgres db {{ context.name }} on ({{ context.cloud }})
 
     Will set up a postgres database in the cloud provider.
+
+    Plural Service: mgmt/apps
   configuration:
     - name: name
       type: STRING

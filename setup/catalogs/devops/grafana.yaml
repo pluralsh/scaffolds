@@ -34,6 +34,8 @@ spec:
   title: "Grafana setup ({{ context.cluster }})"
   message: |
     Sets up Grafana on {{ context.cluster }} cluster.
+
+    Plural Service: mgmt/apps
   configuration:
   - name: cloud
     type: ENUM

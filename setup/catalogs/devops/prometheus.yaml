@@ -52,6 +52,8 @@ spec:
   title: "Setup Victoria Metrics for metrics storage and shipping"
   message: |
     Sets up a Victoria Metrics prometheus instance for metrics storage and a prometheus agent for metrics shipping in {{ context.cluster }}.
+
+    Plural Service: mgmt/apps
   configuration:
   - name: cluster
     type: CLUSTER

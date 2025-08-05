@@ -15,7 +15,10 @@ spec:
   scmConnectionRef:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: "Deletes fleet {{ context.fleet }}"
-  message: "Deletes fleet {{ context.fleet }}"
+  message: |
+    Deletes fleet {{ context.fleet }}
+
+    Plural Service: mgmt/apps
   configuration:
     - name: fleet
       type: STRING
