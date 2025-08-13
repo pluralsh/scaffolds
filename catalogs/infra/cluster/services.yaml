@@ -15,7 +15,7 @@ spec:
     name: infra
     namespace: infra
   configuration:
-    kubernetesVersion: '1.32' # dev
+    kubernetesVersion: '{{ context.version }}' # dev
   clusterRef:
     name: mgmt
     namespace: infra
@@ -37,7 +37,7 @@ spec:
     name: infra
     namespace: infra
   configuration:
-    kubernetesVersion: '1.32' # prod
+    kubernetesVersion: '{{ context.version }}' # prod
   clusterRef:
     name: mgmt
     namespace: infra

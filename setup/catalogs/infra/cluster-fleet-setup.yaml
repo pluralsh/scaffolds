@@ -57,6 +57,10 @@ spec:
     - name: fleet
       type: STRING
       documentation: Name for the fleet you want this cluster to belong to.
+    - name: version
+      type: STRING
+      documentation: Version of the cluster you want to create.
+      default: "1.32"
     - name: region
       type: STRING
       documentation: Region where the cluster should be created.
