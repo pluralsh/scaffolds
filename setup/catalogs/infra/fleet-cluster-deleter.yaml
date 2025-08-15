@@ -19,7 +19,7 @@ spec:
   message: |
     Deletes cluster {{ context.name }} in fleet {{ context.fleet }}
 
-    Plural Service: mgmt/{{ context.fleet }}
+    Plural Service: mgmt/{{ context.fleet }}-{{ context.tier }}
   configuration:
     - name: fleet
       type: STRING

@@ -26,7 +26,7 @@ spec:
   message: |
     Setting up {{ context.name }} cluster in fleet {{ context.fleet }}
 
-    Plural Service: mgmt/{{ context.fleet }}
+    Plural Service: mgmt/{{ context.fleet }}-{{ context.tier }}
   configuration:
     - name: cloud
       type: ENUM
