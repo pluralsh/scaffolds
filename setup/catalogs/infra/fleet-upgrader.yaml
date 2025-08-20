@@ -26,7 +26,7 @@ spec:
   message: |
     Triggers a pipelined cluster upgrade for fleet {{ context.fleet }}
 
-    Plural Service: mgmt/{{ context.fleet }}
+    Plural Service: mgmt/{{ context.fleet }}-setup
   configuration:
     - name: fleet
       type: STRING
