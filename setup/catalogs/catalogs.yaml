@@ -8,7 +8,7 @@ spec:
   icon: https://docs.plural.sh/favicon-128.png
   author: Plural
   description: |
-    Sets up OSS data infrastructure using Plural
+    Sets up OSS data engineering infrastructure using Plural, focusing on data pipelines, ML workflows and similar toolchains
 ---
 apiVersion: deployments.plural.sh/v1alpha1
 kind: Catalog
@@ -32,7 +32,7 @@ spec:
   icon: https://docs.plural.sh/favicon-128.png
   author: Plural
   description: |
-    Sets up OSS devops infrastructure using Plural
+    Sets up OSS devops infrastructure using Plural, focusing on observability and cost management
 ---
 apiVersion: deployments.plural.sh/v1alpha1
 kind: Catalog
@@ -68,7 +68,7 @@ spec:
   icon: https://docs.plural.sh/favicon-128.png
   author: Plural
   description: |
-    Sets up infrastructure using Plural
+    Sets up kubernetes cluster infrastructure using Plural
 ---
 apiVersion: deployments.plural.sh/v1alpha1
 kind: Catalog
@@ -80,4 +80,4 @@ spec:
   icon: https://docs.plural.sh/favicon-128.png
   author: Plural
   description: |
-    Sets up data store using Plural
+    Sets up common datastores using Plural
