@@ -32,6 +32,10 @@ PUT _index_template/plrl-logs
   ],
   "template": {
     "settings": {
+      "index": {
+        "number_of_shards": 15,
+        "refresh_interval": "30s"
+      },
       "lifecycle": {
         "name": "plrl-logs"
       }
