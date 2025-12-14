@@ -14,7 +14,10 @@ spec:
   scmConnectionRef:
     name: plural
   title: "Updating {{ context.fleet }} {{ context.pipeline.stage.name }} clusters to {{ context.version }}"
-  message: "Updating {{ context.fleet }} {{ context.pipeline.stage.name }} clusters to {{ context.version }}"
+  message: |
+    Updating {{ context.fleet }} {{ context.pipeline.stage.name }} clusters to {{ context.version }}"
+
+    Plural Service: mgmt/{{ context.fleet }}-setup
   identifier: mgmt
   configuration:
   - name: fleet
