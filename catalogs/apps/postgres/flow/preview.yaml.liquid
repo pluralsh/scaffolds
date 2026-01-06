@@ -12,11 +12,11 @@ spec:
     namespace: {{ configuration.name }}
 {% endraw %}
   template:
-    namespace: "{{ context.name }}-pr-{%- raw -%}{{ pr.number }}{%- endraw -%}"
-    name: "{{ context.name }}-pr-{%- raw -%}{{ pr.number }}{%- endraw -%}"
+    namespace: "{{ configuration.name }}-pr-{{ "{% raw %}" }}{% raw %}{{ pr.number }}{% endraw %}{{ "{% endraw %}" }}"
+    name: "{{ configuration.name }}-pr-{{ "{% raw %}" }}{% raw %}{{ pr.number }}{% endraw %}{{ "{% endraw %}" }}"
     syncConfig:
       deleteNamespace: true
     helm:
       values:
         image:
-          tag: {% raw -%}"sha-{{ commitSha | slice: 0, 7 }}"{%- endraw -%}
+          tag: "sha-{{ "{% raw %}" }}{% raw %}{{ commitSha | slice: 0, 7 }}{% endraw %}{{ "{% endraw %}" }}"
