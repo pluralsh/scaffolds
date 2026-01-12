@@ -1,0 +1,34 @@
+{% raw %}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: n8n-proxy
+  namespace: n8n
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/tls-acme: "true"
+    # Extend timeout to allow long running webhook requests.
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: {{ configuration.hostname }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: n8n-oauth2-proxy
+                port:
+                  number: 80
+            path: /.*
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - {{ configuration.hostname }}
+      secretName: n8n-tls
+{% endraw %}
+

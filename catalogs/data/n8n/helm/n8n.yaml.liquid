@@ -1,0 +1,41 @@
+{% raw %}
+n8n:
+  encryption_key: {{ imports[configuration.stackName].encryption_key }}
+
+config:
+  database:
+    type: postgresdb
+    postgresdb:
+      host: {{ imports[configuration.stackName].postgres_host }}
+      port: 5432
+      database: n8n
+      user: n8n
+      password: {{ imports[configuration.stackName].postgres_password }}
+
+scaling:
+  enabled: false
+
+postgresql:
+  enabled: false
+
+redis:
+  enabled: false
+
+main:
+  extraEnv:
+    N8N_EDITOR_BASE_URL: "https://{{ configuration.hostname }}"
+    WEBHOOK_URL: "https://{{ configuration.hostname }}/"
+
+ingress:
+  enabled: false
+
+service:
+  type: ClusterIP
+  port: 5678
+
+podAnnotations:
+  security.plural.sh/oauth-env-secret: n8n-proxy-config
+podLabels:
+  security.plural.sh/inject-oauth-sidecar: "true"
+{% endraw %}
+

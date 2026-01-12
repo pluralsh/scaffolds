@@ -1,0 +1,24 @@
+{% raw %}
+service:
+  name: n8n-oauth2-proxy
+  selector:
+    app.kubernetes.io/instance: n8n
+    app.kubernetes.io/name: n8n
+
+secret:
+  clientID: {{ imports[configuration.stackName].oidc_client_id }}
+  clientSecret: {{ imports[configuration.stackName].oidc_client_secret }}
+  cookieSecret: {{ imports[configuration.stackName].oidc_cookie_secret }}
+  issuer: https://oidc.plural.sh/
+  upstream: http://localhost:5678
+  name: n8n-proxy-config
+  env:
+    OAUTH2_PROXY_UPSTREAM_TIMEOUT: '120s'
+
+{% if imports[configuration.stackName].basic_auth_password %}
+bcryptUsers:
+  {{ imports[configuration.stackName].basic_auth_username }}: {{ imports[configuration.stackName].basic_auth_password }}
+{% endif %}
+
+{% endraw %}
+
