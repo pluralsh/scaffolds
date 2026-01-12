@@ -1,0 +1,93 @@
+resource "random_password" "password" {
+  length      = 20
+  min_lower   = 1
+  min_numeric = 1
+  min_upper   = 1
+  special     = false
+}
+
+resource "random_password" "encryption_key" {
+  length      = 32
+  min_lower   = 1
+  min_numeric = 1
+  min_upper   = 1
+  special     = false
+}
+
+data "plural_service_context" "cluster" {
+  name = "plrl/clusters/${var.cluster_name}"
+}
+
+locals {
+  configuration = jsondecode(data.plural_service_context.cluster.configuration)
+}
+
+module "db" {
+  source = "terraform-aws-modules/rds/aws"
+  version = "~> 6.3"
+
+  identifier = var.db_name
+
+  engine               = "postgres"
+  engine_version       = var.postgres_vsn
+  family               = "postgres14"
+  major_engine_version = var.postgres_vsn 
+  instance_class       = var.db_instance_class
+  allocated_storage    = var.db_storage
+
+  db_name  = "n8n"
+  username = "n8n"
+  password = random_password.password.result
+  manage_master_user_password = false
+
+  maintenance_window = "Mon:00:00-Mon:03:00"
+  backup_window      = "03:00-06:00"
+  backup_retention_period = var.backup_retention_period
+
+  monitoring_interval    = "30"
+  monitoring_role_name   = "${substr(var.db_name, 0, 40)}-PluralRDSMonitoringRole"
+  create_monitoring_role = true
+  apply_immediately      = true 
+
+  multi_az = true
+
+  create_db_subnet_group = true
+  subnet_ids             = local.configuration["subnet_ids"]
+  vpc_security_group_ids = [module.security_group.security_group_id]
+
+  create_cloudwatch_log_group = true
+  enabled_cloudwatch_logs_exports = ["postgresql"]
+
+  parameters = [
+    {
+      name  = "autovacuum"
+      value = 1
+    },
+    {
+      name  = "client_encoding"
+      value = "utf8"
+    }
+  ]
+
+  # Database Deletion Protection
+  deletion_protection = var.deletion_protection
+}
+
+module "security_group" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "~> 5.0"
+
+  name        = "${var.db_name}-db-security-group"
+  description = "security group for n8n postgres database"
+  vpc_id      = local.configuration["vpc_id"]
+
+  ingress_with_cidr_blocks = [
+    {
+      from_port   = 5432
+      to_port     = 5432
+      protocol    = "tcp"
+      description = "PostgreSQL access from within VPC"
+      cidr_blocks = local.configuration["vpc_cidr"]
+    },
+  ]
+}
