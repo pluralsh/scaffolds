@@ -15,7 +15,4 @@ spec:
     namespace: infra
   configuration:
     hostname: airbyte.plural.sh
-  clusterRef:
-    kind: Cluster
-    name: mgmt
-    namespace: infra
+  cluster: mgmt

@@ -33,7 +33,4 @@ spec:
     hostname: {{ context.hostname }}
     bucket: {{ context.bucket }}
     cloud: {{ context.cloud }}
-  clusterRef:
-    kind: Cluster
-    name: {{ context.cluster }}
-    namespace: infra
+  cluster: {{ context.cluster }}

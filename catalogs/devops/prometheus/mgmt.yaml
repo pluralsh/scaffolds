@@ -24,7 +24,4 @@ spec:
     chart: victoria-metrics-k8s-stack
     valuesFiles:
     - mgmt.yaml.liquid
-  clusterRef:
-    kind: Cluster
-    name: {{ context.cluster }}
-    namespace: infra
+  cluster: {{ context.cluster }}

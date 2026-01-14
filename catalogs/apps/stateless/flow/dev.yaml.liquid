@@ -27,8 +27,5 @@ spec:
     flowRegistry: {{ configuration.registry }}
     flowTag: '{{ configuration.devTag }}'
     port: '{{ configuration.port }}'
-  clusterRef:
-    kind: Cluster
-    name: {{ configuration.devCluster }}
-    namespace: infra
+  cluster: {{ configuration.devCluster }}
 {% endraw %}
