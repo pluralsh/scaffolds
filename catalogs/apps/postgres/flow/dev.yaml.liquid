@@ -32,10 +32,7 @@ spec:
     flowTag: '{{ configuration.devTag }}'
     stackName: flow-{{ configuration.name }}-dev
     port: '{{ configuration.port }}'
-  clusterRef:
-    kind: Cluster
-    name: {{ configuration.devCluster }}
-    namespace: infra
+  cluster: {{ configuration.devCluster }}
 ---
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack

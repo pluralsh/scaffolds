@@ -28,7 +28,4 @@ spec:
   configuration:
     cluster: {{ context.cluster }}
     stackName: dagster-{{ context.cluster }}
-  clusterRef:
-    kind: Cluster
-    name: {{ context.cluster }}
-    namespace: infra
+  cluster: {{ context.cluster }}

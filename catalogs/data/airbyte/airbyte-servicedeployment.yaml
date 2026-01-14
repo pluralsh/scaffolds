@@ -38,7 +38,4 @@ spec:
     resourceGroup: {{ context.resourceGroup }}
     storageAccount: {{ context.storageAccount }}
     {% endif %}
-  clusterRef:
-    kind: Cluster
-    name: {{ context.cluster }}
-    namespace: infra
+  cluster: {{ context.cluster }}
