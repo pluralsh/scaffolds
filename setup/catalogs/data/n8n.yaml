@@ -1,0 +1,68 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: n8n
+spec:
+  name: n8n
+  icon: https://n8n.io/favicon.ico
+  identifier: mgmt
+  documentation: |
+    Sets up an n8n workflow automation instance for a given cloud
+  creates:
+    git:
+      ref: main
+      folder: catalogs/data/n8n
+    templates:
+    - source: helm
+      destination: helm/n8n/{{ context.cluster }}
+      external: true
+    - source: "terraform/{{ context.cloud }}"
+      destination: "terraform/apps/n8n/{{ context.cluster }}"
+      external: true
+    - source: n8n-servicedeployment.yaml
+      destination: "bootstrap/apps/n8n/{{ context.cluster }}/n8n-servicedeployment.yaml"
+      external: true
+    - source: n8n-stack.yaml
+      destination: "bootstrap/apps/n8n/{{ context.cluster }}/n8n-stack.yaml"
+      external: true
+    - source: README.md
+      destination: documentation/n8n/README.md
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: data-engineering
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up n8n on cluster {{ context.cluster }} for {{ context.cloud }}"
+  message: |
+    Set up n8n on {{ context.cluster }} ({{ context.cloud }})
+
+    Will set up an n8n deployment with PostgreSQL database and n8n's built-in user management
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: Handle of the cluster you want to deploy n8n to.
+  - name: cloud
+    type: ENUM
+    documentation: Cloud provider you want to deploy n8n to.
+    values:
+    - aws
+    - azure
+    - gcp
+  - name: hostname
+    type: STRING
+    documentation: The DNS name you'll host n8n under.
+  - name: region
+    type: STRING
+    documentation: The cloud provider region you're going to use to deploy cloud resources.
+  - name: resourceGroup
+    type: STRING
+    documentation: Azure resource group that you would like to use.
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: 'azure'

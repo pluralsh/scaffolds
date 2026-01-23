@@ -1,0 +1,42 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: n8n-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  namespace: n8n
+  git:
+    folder: helm/n8n/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "1.4.1"
+    chart: n8n
+    release: n8n
+    ignoreHooks: false
+    url: https://8gears.container-registry.com/chartrepo/library
+    valuesFiles:
+    - n8n.yaml.liquid
+  imports:
+  - stackRef:
+      name: n8n-{{ context.cluster }}
+      namespace: apps
+  configuration:
+    cluster: {{ context.cluster }}
+    stackName: n8n-{{ context.cluster }}
+    hostname: {{ context.hostname }}
+    region: {{ context.region }}
+    cloud: {{ context.cloud }}
+    {% if context.cloud == 'azure' %}
+    resourceGroup: {{ context.resourceGroup }}
+    {% endif %}
+  clusterRef:
+    kind: Cluster
+    name: {{ context.cluster }}
+    namespace: infra
