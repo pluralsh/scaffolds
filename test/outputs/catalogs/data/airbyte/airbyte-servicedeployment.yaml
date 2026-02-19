@@ -24,7 +24,7 @@ spec:
     valuesFiles:
     - airbyte.yaml.liquid
   sources:
-  - path: services/apps/airbyte
+  - path: airbyte
     git:
       folder: services/apps/airbyte
       ref: main
@@ -33,7 +33,7 @@ spec:
       name: infra
       namespace: infra
   renderers:
-  - path: services/apps/airbyte
+  - path: airbyte
     type: RAW
   imports:
   - stackRef:
