@@ -10,7 +10,7 @@ spec:
     Sets up an airbyte instance for a given cloud
   creates:
     git:
-      ref: main
+      ref: feat-refactor-service-catalog
       folder: catalogs/data/airbyte
     templates:
     - source: helm
