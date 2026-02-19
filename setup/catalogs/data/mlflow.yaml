@@ -22,9 +22,6 @@ spec:
       - source: "terraform/{{ context.cloud }}"
         destination: "terraform/apps/mlflow/{{ context.cluster }}"
         external: true
-      - source: mlflow-raw-servicedeployment.yaml
-        destination: "bootstrap/apps/mlflow/{{ context.cluster }}/mlflow-raw-servicedeployment.yaml"
-        external: true
       - source: mlflow-servicedeployment.yaml
         destination: "bootstrap/apps/mlflow/{{ context.cluster }}/mlflow-servicedeployment.yaml"
         external: true

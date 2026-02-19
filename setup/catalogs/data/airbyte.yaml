@@ -22,9 +22,6 @@ spec:
     - source: "terraform/{{ context.cloud }}"
       destination: "terraform/apps/airbyte/{{ context.cluster }}"
       external: true
-    - source: airbyte-raw-servicedeployment.yaml
-      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-raw-servicedeployment.yaml"
-      external: true
     - source: airbyte-servicedeployment.yaml
       destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-servicedeployment.yaml"
       external: true

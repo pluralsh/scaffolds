@@ -23,6 +23,18 @@ spec:
     url: https://airbytehq.github.io/helm-charts
     valuesFiles:
     - airbyte.yaml.liquid
+  sources:
+  - path: services/apps/airbyte
+    git:
+      folder: services/apps/airbyte
+      ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra
+  renderers:
+  - path: services/apps/airbyte
+    type: RAW
   imports:
   - stackRef:
       name: airbyte-{{ context.cluster }}
