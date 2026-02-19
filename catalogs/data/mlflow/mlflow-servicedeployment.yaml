@@ -24,7 +24,7 @@ spec:
     valuesFiles:
       - mlflow.yaml.liquid
   sources:
-    - path: services/apps/mlflow
+    - path: mlflow
       git:
         folder: services/apps/mlflow
         ref: main
@@ -33,7 +33,7 @@ spec:
         name: infra
         namespace: infra
   renderers:
-    - path: services/apps/mlflow
+    - path: mlflow
       type: RAW
   imports:
     - stackRef:

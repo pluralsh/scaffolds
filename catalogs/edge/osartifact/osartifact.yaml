@@ -20,7 +20,7 @@ spec:
     valuesFiles:
       - osartifact.yaml.liquid
   sources:
-    - path: services/apps/osartifact/{{ context.cluster }}/{{ context.name }}
+    - path: osartifact/{{ context.cluster }}/{{ context.name }}
       git:
         folder: services/apps/osartifact/{{ context.cluster }}/{{ context.name }}
         ref: main
@@ -29,7 +29,7 @@ spec:
         name: infra
         namespace: infra
   renderers:
-    - path: services/apps/osartifact/{{ context.cluster }}/{{ context.name }}
+    - path: osartifact/{{ context.cluster }}/{{ context.name }}
       type: RAW
   configurationRef:
     name: osbuilder-{{ context.cluster }}-configuration
