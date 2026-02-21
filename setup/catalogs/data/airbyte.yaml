@@ -10,7 +10,7 @@ spec:
     Sets up an airbyte instance for a given cloud
   creates:
     git:
-      ref: main
+      ref: feat-refactor-service-catalog
       folder: catalogs/data/airbyte
     templates:
     - source: helm
@@ -21,9 +21,6 @@ spec:
       external: true
     - source: "terraform/{{ context.cloud }}"
       destination: "terraform/apps/airbyte/{{ context.cluster }}"
-      external: true
-    - source: airbyte-raw-servicedeployment.yaml
-      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-raw-servicedeployment.yaml"
       external: true
     - source: airbyte-servicedeployment.yaml
       destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-servicedeployment.yaml"

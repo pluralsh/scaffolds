@@ -19,6 +19,18 @@ spec:
     url: https://pluralsh.github.io/osbuilder/
     valuesFiles:
       - osartifact.yaml.liquid
+  sources:
+    - path: osartifact/{{ context.cluster }}/{{ context.name }}
+      git:
+        folder: services/apps/osartifact/{{ context.cluster }}/{{ context.name }}
+        ref: main
+      repositoryRef:
+        kind: GitRepository
+        name: infra
+        namespace: infra
+  renderers:
+    - path: osartifact/{{ context.cluster }}/{{ context.name }}
+      type: RAW
   configurationRef:
     name: osbuilder-{{ context.cluster }}-configuration
     namespace: osbuilder
@@ -29,6 +41,7 @@ spec:
     image: {{ context.image }}
     device: {{ context.device }}
     username: {{ context.username }}
+    {% if context.email != nil and context.email != '' %}email: {{ context.email }}{% endif %}
     isECRRegistry: '{{ context.isECRRegistry | default: false }}'
     useExistingRegistry: '{{ context.useExistingRegistry | default: true }}'
     {% if context.registry %}registry: {{ context.registry }}{% endif %}

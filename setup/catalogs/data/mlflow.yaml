@@ -10,7 +10,7 @@ spec:
     Sets up an mlflow instance for a given cloud
   creates:
     git:
-      ref: main # TODO set to main
+      ref: feat-refactor-service-catalog # TODO set to main
       folder: catalogs/data/mlflow
     templates:
       - source: helm
@@ -21,9 +21,6 @@ spec:
         external: true
       - source: "terraform/{{ context.cloud }}"
         destination: "terraform/apps/mlflow/{{ context.cluster }}"
-        external: true
-      - source: mlflow-raw-servicedeployment.yaml
-        destination: "bootstrap/apps/mlflow/{{ context.cluster }}/mlflow-raw-servicedeployment.yaml"
         external: true
       - source: mlflow-servicedeployment.yaml
         destination: "bootstrap/apps/mlflow/{{ context.cluster }}/mlflow-servicedeployment.yaml"

@@ -20,6 +20,18 @@ spec:
     url: https://pluralsh.github.io/osbuilder/
     valuesFiles:
       - osbuilder.yaml.liquid
+  sources:
+    - path: osbuilder/{{ context.cluster }}
+      git:
+        folder: services/apps/osbuilder/{{ context.cluster }}
+        ref: main
+      repositoryRef:
+        kind: GitRepository
+        name: infra
+        namespace: infra
+  renderers:
+    - path: osbuilder/{{ context.cluster }}
+      type: RAW
   {% if context.deploySelfHostedRegistry %}
   imports:
     - stackRef:
