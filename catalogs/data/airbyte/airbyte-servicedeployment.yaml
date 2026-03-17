@@ -24,9 +24,9 @@ spec:
     valuesFiles:
     - airbyte.yaml.liquid
   renderers:
-  - path: helm/oauth-proxy-config.yaml.liquid
+  - path: oauth-proxy-config.yaml.liquid
     type: RAW
-  - path: services/apps/airbyte/oauth-proxy-ingress.yaml.liquid
+  - path: oauth-proxy-ingress.yaml.liquid
     type: RAW
   imports:
   - stackRef:
