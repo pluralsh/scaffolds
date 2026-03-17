@@ -23,10 +23,17 @@ spec:
     url: https://airbytehq.github.io/helm-charts
     valuesFiles:
     - airbyte.yaml.liquid
+  sources:
+  - path: airbyte
+    git:
+      folder: helm/airbyte/{{ context.cluster }}
+      ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra
   renderers:
-  - path: oauth-proxy-config.yaml.liquid
-    type: RAW
-  - path: oauth-proxy-ingress.yaml.liquid
+  - path: airbyte/oauth-proxy-ingress.yaml.liquid
     type: RAW
   imports:
   - stackRef:
