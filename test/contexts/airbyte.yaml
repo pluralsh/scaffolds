@@ -1,5 +1,4 @@
 cluster: mgmt
-stackCluster: mgmt
 cloud: aws
 bucket: plrl-airbyte-logs
 hostname: airbyte.plural.sh
