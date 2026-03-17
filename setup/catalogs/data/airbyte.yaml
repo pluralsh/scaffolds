@@ -28,9 +28,6 @@ spec:
     - source: airbyte-stack.yaml
       destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-stack.yaml"
       external: true
-    - source: oauth-proxy-config-servicedeployment.yaml
-      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/oauth-proxy-config-servicedeployment.yaml"
-      external: true
     - source: README.md
       destination: documentation/airbyte/README.md
       external: true
