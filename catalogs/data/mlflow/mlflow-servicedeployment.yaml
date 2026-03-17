@@ -26,14 +26,14 @@ spec:
   sources:
     - path: mlflow
       git:
-        folder: services/apps/mlflow
+        folder: helm/mlflow/{{ context.cluster }}
         ref: main
       repositoryRef:
         kind: GitRepository
         name: infra
         namespace: infra
   renderers:
-    - path: mlflow
+    - path: mlflow/oauth-proxy-ingress.yaml.liquid
       type: RAW
   imports:
     - stackRef:

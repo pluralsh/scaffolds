@@ -16,9 +16,6 @@ spec:
       - source: helm
         destination: helm/mlflow/{{ context.cluster }}
         external: true
-      - source: services/oauth-proxy-ingress.yaml.liquid
-        destination: services/apps/mlflow/oauth-proxy-ingress.yaml.liquid
-        external: true
       - source: "terraform/{{ context.cloud }}"
         destination: "terraform/apps/mlflow/{{ context.cluster }}"
         external: true
