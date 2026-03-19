@@ -21,7 +21,7 @@ spec:
     valuesFiles:
       - osbuilder.yaml.liquid
   sources:
-    - path: osbuilder/{{ context.cluster }}
+    - path: osbuilder
       git:
         folder: services/apps/osbuilder/{{ context.cluster }}
         ref: main
@@ -30,7 +30,7 @@ spec:
         name: infra
         namespace: infra
   renderers:
-    - path: osbuilder/{{ context.cluster }}
+    - path: osbuilder
       type: RAW
   {% if context.deploySelfHostedRegistry %}
   imports:
