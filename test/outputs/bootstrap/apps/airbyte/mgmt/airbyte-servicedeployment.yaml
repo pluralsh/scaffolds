@@ -24,7 +24,7 @@ spec:
   sources:
   - path: airbyte
     git:
-      folder: helm/airbyte/{{ context.cluster }}
+      folder: helm/airbyte/mgmt
       ref: main
     repositoryRef:
       kind: GitRepository
