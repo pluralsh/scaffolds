@@ -1,0 +1,13 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: kyverno
+  namespace: apps
+spec:
+  template:
+    name: kyverno
+    namespace: kyverno
+    helm:
+      url: https://kyverno.github.io/kyverno/
+      chart: kyverno
+      version: 3.8.0
