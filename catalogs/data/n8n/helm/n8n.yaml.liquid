@@ -1,34 +1,29 @@
 {% raw %}
-n8n:
-  encryption_key: {{ imports[configuration.stackName].encryption_key }}
-
-config:
-  database:
-    type: postgresdb
-    postgresdb:
-      host: {{ imports[configuration.stackName].postgres_host }}
-      port: 5432
-      database: n8n
-      user: n8n
-      password: {{ imports[configuration.stackName].postgres_password }}
-
-scaling:
-  enabled: false
-
-postgresql:
-  enabled: false
-
-redis:
-  enabled: false
-
 main:
-  extraEnv:
-    N8N_EDITOR_BASE_URL: "https://{{ configuration.hostname }}"
-    WEBHOOK_URL: "https://{{ configuration.hostname }}/"
-    N8N_USER_MANAGEMENT_DISABLED: "false"
-    N8N_DIAGNOSTICS_ENABLED: "false"
-    N8N_HIRING_BANNER_ENABLED: "false"
-    N8N_PERSONALIZATION_ENABLED: "false"
+  secret:
+    n8n:
+      encryption_key: {{ imports[configuration.stackName].encryption_key }}
+    db:
+      postgresdb:
+        password: {{ imports[configuration.stackName].postgres_password }}
+  config:
+    db:
+      type: postgresdb
+      postgresdb:
+        host: {{ imports[configuration.stackName].postgres_host }}
+        port: 5432
+        database: n8n
+        user: n8n
+    n8n:
+      editor_base_url: "https://{{ configuration.hostname }}"
+      user_management_disabled: "false"
+      diagnostics_enabled: "false"
+      hiring_banner_enabled: "false"
+      personalization_enabled: "false"
+    webhook_url: "https://{{ configuration.hostname }}/"
+  service:
+    type: ClusterIP
+    port: 5678
 
 ingress:
   enabled: true
