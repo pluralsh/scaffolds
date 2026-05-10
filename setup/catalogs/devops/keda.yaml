@@ -1,0 +1,29 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: keda
+spec:
+  name: keda
+  icon: https://raw.githubusercontent.com/kedacore/keda/main/images/keda-logo-500x500-white.png
+  identifier: mgmt
+  documentation: Sets up KEDA event-driven autoscaling.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/keda
+    templates:
+      - source: README.md
+        destination: documentation/keda/README.md
+        external: true
+      - source: keda.yaml
+        destination: bootstrap/apps/keda/keda.yaml
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: KEDA setup
+  message: Sets up KEDA event-driven autoscaling.
+  configuration: []
