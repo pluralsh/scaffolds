@@ -10,7 +10,7 @@ spec:
     namespace: kube-system
     protect: true # protect prevents deletion in the UI, but also tunes the cluster drain behavior to leave this service in-place which can help w/ cleanup
     helm:
-      version: "1.8.2"
+      version: "1.8.4"
       chart: aws-load-balancer-controller
       url: https://aws.github.io/eks-charts
       valuesFiles:
