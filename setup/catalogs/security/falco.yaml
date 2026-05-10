@@ -1,0 +1,29 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: falco
+spec:
+  name: falco
+  icon: https://raw.githubusercontent.com/cncf/artwork/master/projects/falco/horizontal/color/falco-horizontal-color.svg
+  identifier: mgmt
+  documentation: Sets up Falco runtime security.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/security/falco
+    templates:
+      - source: README.md
+        destination: documentation/falco/README.md
+        external: true
+      - source: falco.yaml
+        destination: bootstrap/apps/falco/falco.yaml
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: security
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: Falco setup
+  message: Sets up Falco runtime security.
+  configuration: []

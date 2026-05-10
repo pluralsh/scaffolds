@@ -1,0 +1,13 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: falco
+  namespace: apps
+spec:
+  template:
+    name: falco
+    namespace: falco
+    helm:
+      url: https://falcosecurity.github.io/charts
+      chart: falco
+      version: 8.0.3
