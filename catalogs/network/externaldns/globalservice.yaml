@@ -22,7 +22,7 @@ spec:
       name: infra # this should point to your `plural up` repo
       namespace: infra
     helm:
-      version: 8.3.8
+      version: 9.0.3
       chart: external-dns
       url: oci://registry-1.docker.io/bitnamicharts
       valuesFiles:
