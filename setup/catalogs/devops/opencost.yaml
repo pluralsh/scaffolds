@@ -10,7 +10,7 @@ spec:
     Sets up OpenCost cost monitoring with a GlobalService Helm deployment.
   creates:
     git:
-      ref: main
+      ref: opencost
       folder: catalogs/devops/opencost
     templates:
     - source: README.md
