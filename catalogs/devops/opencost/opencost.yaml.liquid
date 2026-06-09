@@ -11,12 +11,12 @@ opencost:
     internal:
       enabled: false
 {% if context.auth == 'existing_secret' %}
-    existingSecretName: {{ context.secretName }}
+    existingSecretName: '{{ context.secretName }}'
     username_key: username
     password_key: password
 {% else %}
-    username: {{ context.username }}
-    existingSecretName: opencost-prometheus-auth
+    username: '{{ context.username }}'
+    password: '{{ context.password }}'
     username_key: username
     password_key: password
 {% endif %}
