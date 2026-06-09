@@ -22,8 +22,8 @@ spec:
     - source: global.yaml.liquid
       destination: "bootstrap/apps/opencost/globalservice.yaml"
       external: true
-    - source: generatedsecret.yaml.liquid
-      destination: "bootstrap/apps/opencost/generatedsecret.yaml"
+    - source: secret.yaml.liquid
+      destination: "bootstrap/apps/opencost/secret.yaml"
       external: true
   repositoryRef:
     name: scaffolds
