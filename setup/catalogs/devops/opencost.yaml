@@ -49,23 +49,9 @@ spec:
     - credentials
   - name: secretName
     type: STRING
-    documentation: Name of the existing Kubernetes secret in the opencost namespace.
-    optional: true
-    condition:
-      field: auth
-      operation: EQ
-      value: existing_secret
-  - name: usernameKey
-    type: STRING
-    documentation: Secret key that contains the username.
-    optional: true
-    condition:
-      field: auth
-      operation: EQ
-      value: existing_secret
-  - name: passwordKey
-    type: STRING
-    documentation: Secret key that contains the password.
+    documentation: |
+      Name of an existing Kubernetes secret in the opencost namespace.
+      The secret must contain `username` and `password` keys (stringData or data).
     optional: true
     condition:
       field: auth
@@ -73,9 +59,12 @@ spec:
       value: existing_secret
   - name: username
     type: STRING
-    documentation: |
-      Username for metrics backend authentication. Required when creating credentials.
-      Optional when using an existing secret if the username is stored in the secret.
+    documentation: Username for metrics backend authentication.
+    optional: true
+    condition:
+      field: auth
+      operation: EQ
+      value: credentials
   - name: password
     type: PASSWORD
     documentation: Password for metrics backend authentication.
