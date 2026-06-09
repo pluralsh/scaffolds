@@ -1,0 +1,86 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: opencost
+spec:
+  name: opencost
+  icon: https://github.com/opencost/opencost/raw/develop/logo.svg
+  identifier: mgmt
+  documentation: |
+    Sets up OpenCost cost monitoring with a GlobalService Helm deployment.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/opencost
+    templates:
+    - source: README.md
+      destination: documentation/opencost/README.md
+      external: true
+    - source: opencost.yaml.liquid
+      destination: "helm/opencost/opencost.yaml.liquid"
+      external: true
+    - source: global.yaml.liquid
+      destination: "bootstrap/apps/opencost/globalservice.yaml"
+      external: true
+    - source: generatedsecret.yaml.liquid
+      destination: "bootstrap/apps/opencost/generatedsecret.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Global OpenCost Setup"
+  message: |
+    Sets up OpenCost as a GlobalService Helm deployment.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: prometheusUrl
+    type: STRING
+    documentation: |
+      Full URL to a Prometheus-compatible query API (e.g. https://metrics.example.com/select/0/prometheus).
+  - name: auth
+    type: ENUM
+    documentation: How to provide credentials for the metrics backend.
+    values:
+    - existing_secret
+    - credentials
+  - name: secretName
+    type: STRING
+    documentation: Name of the existing Kubernetes secret in the opencost namespace.
+    optional: true
+    condition:
+      field: auth
+      operation: EQ
+      value: existing_secret
+  - name: usernameKey
+    type: STRING
+    documentation: Secret key that contains the username.
+    optional: true
+    condition:
+      field: auth
+      operation: EQ
+      value: existing_secret
+  - name: passwordKey
+    type: STRING
+    documentation: Secret key that contains the password.
+    optional: true
+    condition:
+      field: auth
+      operation: EQ
+      value: existing_secret
+  - name: username
+    type: STRING
+    documentation: |
+      Username for metrics backend authentication. Required when creating credentials.
+      Optional when using an existing secret if the username is stored in the secret.
+  - name: password
+    type: PASSWORD
+    documentation: Password for metrics backend authentication.
+    optional: true
+    condition:
+      field: auth
+      operation: EQ
+      value: credentials
