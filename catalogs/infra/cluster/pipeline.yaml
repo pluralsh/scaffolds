@@ -59,19 +59,13 @@ spec:
 {% if context.cloud == 'azure' %}
   - from: dev-cp
     to: dev-nodes
-    gates:
-    - name: dev-nodes-approval
-      type: APPROVAL
   - from: dev-nodes
     to: prod-cp
     gates:
-    - name: prod-cp-approval
+    - name: approval-gate
       type: APPROVAL
   - from: prod-cp
     to: prod-nodes
-    gates:
-    - name: prod-nodes-approval
-      type: APPROVAL
 {% else %}
   - from: dev
     to: prod
