@@ -5,12 +5,18 @@ metadata:
   name: fleet-upgrade-pra
 spec:
   name: fleet-upgrade-pra
-  documentation: Updates the k8s version of a given stage of cluster for a fleet
+  documentation: |
+    Updates the k8s version for a fleet pipeline stage. On AWS/GCP this bumps
+    kubernetesVersion. On Azure, stage names ending in -cp bump nextKubernetesVersion
+    (control plane) and stages ending in -nodes bump kubernetesVersion (node pools).
   updates:
     regexReplacements:
     - regex: "kubernetesVersion: (.*) # {{ context.pipeline.stage.name }}"
       file: "services/{{ context.fleet }}/setup/services.yaml"
       replacement: "kubernetesVersion: \"{{ context.version }}\" # {{ context.pipeline.stage.name }}"
+    - regex: 'nextKubernetesVersion: (.*) # {{ context.pipeline.stage.name }}'
+      file: "services/{{ context.fleet }}/setup/services.yaml"
+      replacement: 'nextKubernetesVersion: "{{ context.version }}" # {{ context.pipeline.stage.name }}'
   scmConnectionRef:
     name: plural
   title: "Updating {{ context.fleet }} {{ context.pipeline.stage.name }} clusters to {{ context.version }}"

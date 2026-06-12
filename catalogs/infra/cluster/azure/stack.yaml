@@ -30,8 +30,9 @@ spec:
     fleet: {{ context.fleet }}
     tier: {{ context.tier }}
     region: {{ context.region }}
-    {% raw %} 
+    {% raw %}
     kubernetes_version: "{{ configuration.kubernetesVersion }}"
+    next_kubernetes_version: "{{ configuration.nextKubernetesVersion }}"
     {% endraw %}
     resource_group_name: {{ context.resourceGroup }}
   jobSpec:

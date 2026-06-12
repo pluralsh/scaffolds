@@ -4,6 +4,40 @@ metadata:
   name: {{ context.fleet }}-fleet-upgrade
 spec:
   stages:
+{% if context.cloud == 'azure' %}
+    - name: dev-cp
+      services:
+        - serviceRef:
+            name: {{ context.fleet }}-dev
+            namespace: infra
+          criteria:
+            prAutomationRef:
+              name: fleet-upgrade-pra
+    - name: dev-nodes
+      services:
+        - serviceRef:
+            name: {{ context.fleet }}-dev
+            namespace: infra
+          criteria:
+            prAutomationRef:
+              name: fleet-upgrade-pra
+    - name: prod-cp
+      services:
+        - serviceRef:
+            name: {{ context.fleet }}-prod
+            namespace: infra
+          criteria:
+            prAutomationRef:
+              name: fleet-upgrade-pra
+    - name: prod-nodes
+      services:
+        - serviceRef:
+            name: {{ context.fleet }}-prod
+            namespace: infra
+          criteria:
+            prAutomationRef:
+              name: fleet-upgrade-pra
+{% else %}
     - name: dev
       services:
         - serviceRef:
@@ -20,9 +54,28 @@ spec:
           criteria:
             prAutomationRef:
               name: fleet-upgrade-pra
+{% endif %}
   edges:
+{% if context.cloud == 'azure' %}
+  - from: dev-cp
+    to: dev-nodes
+    gates:
+    - name: dev-nodes-approval
+      type: APPROVAL
+  - from: dev-nodes
+    to: prod-cp
+    gates:
+    - name: prod-cp-approval
+      type: APPROVAL
+  - from: prod-cp
+    to: prod-nodes
+    gates:
+    - name: prod-nodes-approval
+      type: APPROVAL
+{% else %}
   - from: dev
     to: prod
     gates:
     - name: approval-gate
       type: APPROVAL
+{% endif %}
