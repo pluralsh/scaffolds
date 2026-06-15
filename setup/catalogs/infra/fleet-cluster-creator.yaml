@@ -53,7 +53,6 @@ spec:
       documentation: Region where the cluster should be created.
     - name: resourceGroup
       type: STRING
-      optional: true
       documentation: Azure resource group that you would like to use.
       condition:
         field: cloud

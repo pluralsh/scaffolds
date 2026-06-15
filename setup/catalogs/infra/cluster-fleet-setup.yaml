@@ -43,7 +43,7 @@ spec:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: "Setting up {{ context.cloud }} fleet {{ context.fleet }}"
   message: |
-    Setting up {{ context.cloud }} fleet {{ context.fleet }}, including clusters and ugprade pipelines
+    Setting up {{ context.cloud }} fleet {{ context.fleet }}, including clusters and upgrade pipelines
 
     Plural Service: mgmt/apps
   configuration:
@@ -67,7 +67,6 @@ spec:
     - name: resourceGroup
       type: STRING
       documentation: Azure resource group that you would like to use.
-      optional: true
       condition:
         field: cloud
         operation: EQ

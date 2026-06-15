@@ -32,7 +32,7 @@ spec:
     region: {{ context.region }}
     {% raw %}
     kubernetes_version: "{{ configuration.kubernetesVersion }}"
-    next_kubernetes_version: "{{ configuration.nextKubernetesVersion }}"
+    next_kubernetes_version: "{{ configuration.nextKubernetesVersion | default: configuration.kubernetesVersion }}"
     {% endraw %}
     resource_group_name: {{ context.resourceGroup }}
   jobSpec:
