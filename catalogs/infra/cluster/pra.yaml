@@ -11,10 +11,10 @@ spec:
     (control plane) and stages ending in -nodes bump kubernetesVersion (node pools).
   updates:
     regexReplacements:
-    - regex: "kubernetesVersion: (.*) # {{ context.pipeline.stage.name }}"
+    - regex: "kubernetesVersion: (.*) # {{ context.pipeline.stage.name }}$"
       file: "services/{{ context.fleet }}/setup/services.yaml"
       replacement: "kubernetesVersion: \"{{ context.version }}\" # {{ context.pipeline.stage.name }}"
-    - regex: 'nextKubernetesVersion: (.*) # {{ context.pipeline.stage.name }}'
+    - regex: 'nextKubernetesVersion: (.*) # {{ context.pipeline.stage.name }}$'
       file: "services/{{ context.fleet }}/setup/services.yaml"
       replacement: 'nextKubernetesVersion: "{{ context.version }}" # {{ context.pipeline.stage.name }}'
   scmConnectionRef:
