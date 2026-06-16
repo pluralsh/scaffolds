@@ -10,7 +10,7 @@ spec:
     Upgrades a given fleet to a new kubernetes version
   creates:
     git:
-      ref: main
+      ref: marcin/prod-4407-plural-up-aks-upgrades-dont-upgrade-node-pools
       folder: catalogs/infra/cluster
     templates:
       - source: context.yaml
