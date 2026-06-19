@@ -1,0 +1,25 @@
+opencost:
+  exporter:
+    defaultClusterId: {% raw %}{{ cluster.handle }}{% endraw %}
+    extraEnv:
+      KUBECOST_SCRAPE_INTERVAL: 30s
+      PROM_CLUSTER_ID_LABEL: cluster
+  prometheus:
+    external:
+      enabled: true
+      url: {{ context.prometheusUrl }}
+    internal:
+      enabled: false
+{% if context.auth == 'existing_secret' %}
+    existingSecretName: '{{ context.secretName }}'
+    username_key: username
+    password_key: password
+{% else %}
+    username: '{{ context.username }}'
+    password: '{{ context.password }}'
+    username_key: username
+    password_key: password
+{% endif %}
+  metrics:
+    serviceMonitor:
+      enabled: true

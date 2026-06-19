@@ -1,0 +1,22 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: opencost
+  namespace: apps
+spec:
+  template:
+    namespace: opencost
+    git:
+      folder: helm/opencost
+      ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra
+    helm:
+      url: https://opencost.github.io/opencost-helm-chart
+      chart: opencost
+      version: '1.x.x'
+      valuesFiles:
+      - opencost.yaml.liquid
+
