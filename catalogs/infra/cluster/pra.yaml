@@ -17,18 +17,18 @@ spec:
     - regex: '(?m)nextKubernetesVersion: ([^\r\n]*) # {{ context.pipeline.stage.name }}$'
       file: "services/{{ context.fleet }}/setup/services.yaml"
       replacement: 'nextKubernetesVersion: "{{ context.version }}" # {{ context.pipeline.stage.name }}'
-    - regex: '{% if context.pipeline.stage.name == "dev" or context.pipeline.stage.name == "dev-nodes" %}(?m)kubernetes_version: "{{ configuration.kubernetesVersion }}"(?: # [^\r\n]*)?${% else %}a^{% endif %}'
+    - regex: '{% if context.pipeline.stage.name == "dev" or context.pipeline.stage.name == "dev-nodes" %}(?m)(kubernetes_version: "[^"]*")(?: # [^\r\n]*)?${% else %}a^{% endif %}'
       file: 'services/{{ context.fleet }}/clusters/dev/{{ context.fleet }}-dev.yaml.liquid'
-      replacement: 'kubernetes_version: "{{ configuration.kubernetesVersion }}" # {{ context.pipeline.stage.name }} {{ context.version }}'
-    - regex: '{% if context.pipeline.stage.name == "prod" or context.pipeline.stage.name == "prod-nodes" %}(?m)kubernetes_version: "{{ configuration.kubernetesVersion }}"(?: # [^\r\n]*)?${% else %}a^{% endif %}'
+      replacement: '$1 # {{ context.pipeline.stage.name }} {{ context.version }}'
+    - regex: '{% if context.pipeline.stage.name == "prod" or context.pipeline.stage.name == "prod-nodes" %}(?m)(kubernetes_version: "[^"]*")(?: # [^\r\n]*)?${% else %}a^{% endif %}'
       file: 'services/{{ context.fleet }}/clusters/prod/{{ context.fleet }}-prod.yaml.liquid'
-      replacement: 'kubernetes_version: "{{ configuration.kubernetesVersion }}" # {{ context.pipeline.stage.name }} {{ context.version }}'
-    - regex: '{% if context.pipeline.stage.name == "dev-cp" %}(?m)next_kubernetes_version: "{{ configuration.nextKubernetesVersion \| default: configuration.kubernetesVersion }}"(?: # [^\r\n]*)?${% else %}a^{% endif %}'
+      replacement: '$1 # {{ context.pipeline.stage.name }} {{ context.version }}'
+    - regex: '{% if context.pipeline.stage.name == "dev-cp" %}(?m)(next_kubernetes_version: "[^"]*")(?: # [^\r\n]*)?${% else %}a^{% endif %}'
       file: 'services/{{ context.fleet }}/clusters/dev/{{ context.fleet }}-dev.yaml.liquid'
-      replacement: 'next_kubernetes_version: "{{ configuration.nextKubernetesVersion | default: configuration.kubernetesVersion }}" # {{ context.pipeline.stage.name }} {{ context.version }}'
-    - regex: '{% if context.pipeline.stage.name == "prod-cp" %}(?m)next_kubernetes_version: "{{ configuration.nextKubernetesVersion \| default: configuration.kubernetesVersion }}"(?: # [^\r\n]*)?${% else %}a^{% endif %}'
+      replacement: '$1 # {{ context.pipeline.stage.name }} {{ context.version }}'
+    - regex: '{% if context.pipeline.stage.name == "prod-cp" %}(?m)(next_kubernetes_version: "[^"]*")(?: # [^\r\n]*)?${% else %}a^{% endif %}'
       file: 'services/{{ context.fleet }}/clusters/prod/{{ context.fleet }}-prod.yaml.liquid'
-      replacement: 'next_kubernetes_version: "{{ configuration.nextKubernetesVersion | default: configuration.kubernetesVersion }}" # {{ context.pipeline.stage.name }} {{ context.version }}'
+      replacement: '$1 # {{ context.pipeline.stage.name }} {{ context.version }}'
   scmConnectionRef:
     name: plural
   title: "Updating {{ context.fleet }} {{ context.pipeline.stage.name }} clusters to {{ context.version }}"
