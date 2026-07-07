@@ -51,3 +51,10 @@ spec:
   - name: pluralCloud
     type: BOOL
     documentation: whether you're deploying to plural cloud (we will auto-configure a prometheus datasource for you if so)
+  - name: tempoUrl
+    type: STRING
+    optional: true
+    documentation: |
+      Optional Grafana Tempo query URL to auto-configure a traces datasource (e.g. from the `tempo` catalog).
+      Use the in-cluster service (http://tempo.tempo.svc.cluster.local:3100) if Grafana is co-located,
+      or a Tempo ingress hostname if Grafana runs on a different cluster.

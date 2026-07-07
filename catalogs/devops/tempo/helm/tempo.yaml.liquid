@@ -1,0 +1,22 @@
+{% raw %}
+fullnameOverride: tempo
+
+tempo:
+  # OTLP is disabled by default in this chart, so we explicitly turn on the
+  # gRPC (4317) and HTTP (4318) receivers that the OpenTelemetry demo exports to.
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+  # This is a demo tracing backend, not long-term storage. Keep a short local
+  # retention window on the default filesystem backend.
+  retention: 24h
+
+# Demo backend: no need to survive pod restarts.
+persistence:
+  enabled: false
+{% endraw %}

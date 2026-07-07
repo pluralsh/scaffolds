@@ -19,8 +19,9 @@ ingress:
 persistence:
   enabled: false
 
-{% if context.pluralCloud %}
+{% if context.pluralCloud or context.tempoUrl %}
 datasources:
+{% if context.pluralCloud %}
 - name: prometheus
   type: prometheus
   url: {{ contexts["plrl/cloud/observability"].vmetrics.query_url }}
@@ -29,6 +30,13 @@ datasources:
   basicAuth: true
   basicAuthUser: {{ contexts["plrl/cloud/observability"].vmetrics.user }}
   basicAuthPassword: {{ contexts["plrl/cloud/observability"].vmetrics.password }}
+{% endif %}
+{% if context.tempoUrl %}
+- name: tempo
+  type: tempo
+  url: {{ context.tempoUrl }}
+  access: proxy
+{% endif %}
 {% endif %}
 
 envFromSecrets:

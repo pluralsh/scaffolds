@@ -10,3 +10,7 @@ spec:
   automations:
   - file: ../../setup/catalogs/data/airbyte.yaml
     context: ../contexts/airbyte.yaml
+  - file: ../../setup/catalogs/devops/tempo.yaml
+    context: ../contexts/tempo.yaml
+  - file: ../../setup/catalogs/devops/opentelemetry-demo.yaml
+    context: ../contexts/opentelemetry-demo.yaml
