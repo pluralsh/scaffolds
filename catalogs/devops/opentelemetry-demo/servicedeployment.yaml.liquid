@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: opentelemetry-demo-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: opentelemetry-demo
+  namespace: otel-demo
+  git:
+    folder: helm/opentelemetry-demo
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "x.x.x"
+    chart: opentelemetry-demo
+    release: opentelemetry-demo
+    url: https://open-telemetry.github.io/opentelemetry-helm-charts
+    valuesFiles:
+    - opentelemetry-demo.yaml.liquid
+  cluster: {{ context.cluster }}

@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: tempo-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: tempo
+  namespace: tempo
+  git:
+    folder: helm/tempo
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "x.x.x"
+    chart: tempo
+    release: tempo
+    url: https://grafana.github.io/helm-charts
+    valuesFiles:
+    - tempo.yaml.liquid
+  cluster: {{ context.cluster }}

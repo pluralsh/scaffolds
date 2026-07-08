@@ -1,0 +1,39 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: tempo
+spec:
+  name: tempo
+  icon: https://raw.githubusercontent.com/grafana/tempo/main/docs/sources/tempo/tempo_logo.png
+  identifier: mgmt
+  documentation: |
+    Sets up a Grafana Tempo backend for distributed tracing (OTLP ingest).
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/tempo
+    templates:
+    - source: README.md
+      destination: documentation/tempo/README.md
+      external: true
+    - source: helm/tempo.yaml.liquid
+      destination: "helm/tempo/tempo.yaml.liquid"
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: "bootstrap/apps/tempo/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Grafana Tempo setup ({{ context.cluster }})"
+  message: |
+    Sets up a Grafana Tempo distributed tracing backend on {{ context.cluster }} with OTLP ingest enabled.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster you want to deploy Tempo to

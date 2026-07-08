@@ -1,0 +1,47 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: opentelemetry-demo
+spec:
+  name: opentelemetry-demo
+  icon: https://opentelemetry.io/img/logos/opentelemetry-logo-nav.png
+  identifier: mgmt
+  documentation: |
+    Deploys the OpenTelemetry Astronomy Shop demo app, wired into the Plural observability stack
+    (traces -> Tempo, metrics -> shared OTel Collector/VictoriaMetrics, logs -> Elastic via Filebeat).
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/opentelemetry-demo
+    templates:
+    - source: README.md
+      destination: documentation/opentelemetry-demo/README.md
+      external: true
+    - source: helm/opentelemetry-demo.yaml.liquid
+      destination: "helm/opentelemetry-demo/opentelemetry-demo.yaml.liquid"
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: "bootstrap/apps/opentelemetry-demo/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "OpenTelemetry demo app setup ({{ context.cluster }})"
+  message: |
+    Deploys the OpenTelemetry demo app on {{ context.cluster }}.
+
+    Traces are sent to Grafana Tempo, metrics to the shared OpenTelemetry Collector (VictoriaMetrics),
+    and container logs are shipped to Elastic via Filebeat. Deploy the tempo, opentelemetry, prometheus
+    and elastic catalogs to this cluster first.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster you want to deploy the OpenTelemetry demo to
+  - name: hostname
+    type: STRING
+    documentation: the DNS name you'll expose the demo web store under (via nginx ingress + cert-manager)

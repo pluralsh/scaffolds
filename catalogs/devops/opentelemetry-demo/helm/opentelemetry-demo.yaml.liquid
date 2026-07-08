@@ -1,0 +1,63 @@
+# OpenTelemetry "Astronomy Shop" demo, wired into the Plural observability stack.
+#
+# The upstream chart bundles its own Jaeger, Prometheus, Grafana and OpenSearch.
+# We disable those and instead route signals to the platform stack:
+#   - traces  -> Grafana Tempo            (see the `tempo` catalog)
+#   - metrics -> shared OTel Collector    (see the `opentelemetry` + `prometheus` catalogs) -> vmagent/VictoriaMetrics
+#   - logs    -> Filebeat -> Logstash -> Elasticsearch (see the `elastic` catalog; container stdout is picked up automatically)
+jaeger:
+  enabled: false
+prometheus:
+  enabled: false
+grafana:
+  enabled: false
+opensearch:
+  enabled: false
+
+# The demo ships its own OpenTelemetry Collector instance that every service exports to.
+# We only override the exporters on each pipeline; receivers/processors from the chart
+# defaults are preserved (Helm merges objects and replaces arrays).
+opentelemetry-collector:
+  config:
+    exporters:
+      otlp/tempo:
+        endpoint: tempo.tempo.svc.cluster.local:4317
+        tls:
+          insecure: true
+      otlp/platform:
+        endpoint: opentelemetry-collector.monitoring.svc.cluster.local:4317
+        tls:
+          insecure: true
+    service:
+      pipelines:
+        # NOTE: the `spanmetrics` connector must stay in the traces exporter list,
+        # otherwise the collector fails to start.
+        traces:
+          exporters: [otlp/tempo, spanmetrics, debug]
+        metrics:
+          exporters: [otlp/platform, debug]
+        # Container logs already ship to Elastic via Filebeat, so we don't export
+        # logs from the collector (only keep debug for troubleshooting).
+        logs:
+          exporters: [debug]
+
+# Expose the demo web store (and its sub-routes: /loadgen, /feature, etc.) via ingress.
+components:
+  frontend-proxy:
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        kubernetes.io/tls-acme: "true"
+        cert-manager.io/cluster-issuer: plural
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      hosts:
+      - host: {{ context.hostname }}
+        paths:
+        - path: /
+          pathType: Prefix
+          port: 8080
+      tls:
+      - secretName: opentelemetry-demo-tls
+        hosts:
+        - {{ context.hostname }}
