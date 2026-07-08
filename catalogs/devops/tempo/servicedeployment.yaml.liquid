@@ -23,7 +23,4 @@ spec:
     url: https://grafana.github.io/helm-charts
     valuesFiles:
     - tempo.yaml.liquid
-  clusterRef:
-    kind: Cluster
-    name: {{ context.cluster }}
-    namespace: infra
+  cluster: {{ context.cluster }}

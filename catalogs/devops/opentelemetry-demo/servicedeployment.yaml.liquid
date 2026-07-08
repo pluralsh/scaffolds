@@ -23,7 +23,4 @@ spec:
     url: https://open-telemetry.github.io/opentelemetry-helm-charts
     valuesFiles:
     - opentelemetry-demo.yaml.liquid
-  clusterRef:
-    kind: Cluster
-    name: {{ context.cluster }}
-    namespace: infra
+  cluster: {{ context.cluster }}
