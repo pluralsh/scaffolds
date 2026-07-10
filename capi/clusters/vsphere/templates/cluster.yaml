@@ -1,0 +1,26 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: {{ .Values.cluster.name }}
+  labels:
+    {{- include "workload-cluster.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  clusterNetwork:
+    {{- with .Values.cluster.podCidrBlocks }}
+    pods:
+      cidrBlocks: {{ toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.cluster.serviceCidrBlocks }}
+    services:
+      cidrBlocks: {{ toYaml . | nindent 6 }}
+    {{- end }}
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: VSphereCluster
+    name: {{ .Values.cluster.name }}
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: KubeadmControlPlane
+    name: {{ .Values.cluster.name }}
