@@ -1,0 +1,23 @@
+{{- if .Values.operator.enabled -}}
+apiVersion: operator.cluster.x-k8s.io/v1alpha2
+kind: InfrastructureProvider
+metadata:
+  name: vsphere
+  labels:
+    {{- include "cluster-api-provider-vsphere.labels" . | nindent 4 }}
+spec:
+  version: {{ (index .Values "cluster-api-provider-vsphere").version | quote }}
+  {{- with (index .Values "cluster-api-provider-vsphere").controllerManager.manager.image }}
+  manager:
+    image:
+      repository: {{ .repository | quote }}
+      tag: {{ .tag | quote }}
+  {{- end }}
+  {{- if .Values.credentials.server }}
+  configSecret:
+    name: {{ include "cluster-api-provider-vsphere.credentialsSecretName" . }}
+    namespace: {{ include "cluster-api-provider-vsphere.namespace" . }}
+  {{- end }}
+  deployment:
+    namespace: {{ include "cluster-api-provider-vsphere.namespace" . }}
+{{- end }}

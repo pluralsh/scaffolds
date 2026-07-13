@@ -1,0 +1,12 @@
+# Cluster API Operator quickstart values.
+# Installs core CAPI with kubeadm bootstrap and control-plane providers.
+# See https://cluster-api-operator.sigs.k8s.io/installation/helm-chart-installation
+core:
+  cluster-api:
+    version: {{ configuration.version }}
+bootstrap:
+  kubeadm:
+    version: {{ configuration.version }}
+controlPlane:
+  kubeadm:
+    version: {{ configuration.version }}

@@ -1,0 +1,19 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: VSphereCluster
+metadata:
+  name: {{ .Values.cluster.name }}
+  labels:
+    {{- include "workload-cluster.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  controlPlaneEndpoint:
+    host: {{ .Values.cluster.vsphere.controlPlaneEndpoint.host | required "cluster.vsphere.controlPlaneEndpoint.host is required" }}
+    port: {{ .Values.cluster.vsphere.controlPlaneEndpoint.port | default 6443 }}
+  identityRef:
+    kind: Secret
+    name: {{ .Values.cluster.name }}
+  server: {{ .Values.cluster.vsphere.server | required "cluster.vsphere.server is required" }}
+  {{- with .Values.cluster.vsphere.thumbprint }}
+  thumbprint: {{ . | quote }}
+  {{- end }}

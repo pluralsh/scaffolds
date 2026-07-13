@@ -1,0 +1,115 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: capi-vsphere-cluster-creator
+spec:
+  name: capi-vsphere-cluster-creator
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d1a82b07-b809-4eb4-b615-8f24365b72b8/k8s.png?v=63861145828
+  identifier: mgmt
+  documentation: |
+    Provisions a kubeadm-based vSphere workload cluster using Cluster API.
+    Requires capi-core-setup and capi-vsphere-provider-setup on the management cluster.
+  creates:
+    git:
+      ref: lukasz/prod-4520-vmware-vsphere-capi-provider-setup
+      folder: catalogs/infra/capi/cluster/vsphere
+    templates:
+    - source: README.md
+      destination: documentation/capi/clusters/vsphere/README.md
+      external: true
+    - source: chart
+      destination: charts/capi/clusters/vsphere
+      external: true
+    - source: helm/values.yaml.liquid
+      destination: helm/capi/clusters/{{ context.clusterName }}/values.yaml.liquid
+      external: true
+    - source: helm/secrets.yaml.liquid
+      destination: helm/capi/clusters/{{ context.clusterName }}/secrets.yaml.liquid
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: bootstrap/capi/clusters/{{ context.clusterName }}/servicedeployment.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: capi
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "CAPI vSphere cluster {{ context.clusterName }}"
+  message: |
+    Provisions workload cluster {{ context.clusterName }} on vSphere via Cluster API.
+
+    Management cluster: {{ context.mgmtCluster }}
+    Kubernetes version: {{ context.version }}
+    Control plane endpoint: {{ context.controlPlaneEndpoint }}
+
+    Plural Service: mgmt/infra
+  configuration:
+  - name: mgmtCluster
+    type: CLUSTER
+    documentation: Management cluster where CAPI runs (CAPV must be installed).
+  - name: clusterName
+    type: STRING
+    documentation: Name for the workload cluster.
+    validation:
+      regex: '[a-z0-9\-]+'
+  - name: version
+    type: STRING
+    documentation: Kubernetes version (must match VM template).
+    default: v1.35.0
+  - name: server
+    type: STRING
+    documentation: vCenter or ESXi server (IP or FQDN).
+  - name: thumbprint
+    type: STRING
+    documentation: TLS certificate thumbprint for the vSphere endpoint.
+  - name: datacenter
+    type: STRING
+    documentation: vSphere datacenter name.
+  - name: datastore
+    type: STRING
+    documentation: vSphere datastore for VM disks.
+  - name: network
+    type: STRING
+    documentation: vSphere port group / network name.
+  - name: template
+    type: STRING
+    documentation: VM template name (must include kubeadm for the target k8s version).
+  - name: resourcePool
+    type: STRING
+    documentation: vSphere resource pool (e.g. cluster-name/Resources).
+    optional: true
+  - name: controlPlaneEndpoint
+    type: STRING
+    documentation: API server hostname or IP exposed to clients (e.g. load balancer or nginx proxy).
+  - name: controlPlaneEndpointPort
+    type: STRING
+    documentation: API server port.
+    default: "6443"
+  - name: kubeVipAddress
+    type: STRING
+    documentation: Static VIP for kube-vip on the workload network.
+  - name: username
+    type: STRING
+    documentation: vSphere identity for this cluster.
+  - name: password
+    type: STRING
+    documentation: vSphere password for this cluster.
+  - name: sshPublicKey
+    type: STRING
+    documentation: SSH public key for control plane and worker nodes.
+    optional: true
+  - name: workerReplicas
+    type: STRING
+    documentation: Number of worker nodes (used when nodePools is empty).
+    default: "1"
+  - name: podCidr
+    type: STRING
+    documentation: Pod CIDR for the cluster CNI.
+    default: 192.168.0.0/16
+  - name: nodePools
+    type: STRING
+    documentation: |
+      Optional JSON array of worker pools, e.g.
+      [{"name":"md-0","replicas":2,"numCPUs":2,"memoryMiB":8192,"diskGiB":25}]
+    optional: true

@@ -1,0 +1,51 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: capi-core-setup
+spec:
+  name: capi-core-setup
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d1a82b07-b809-4eb4-b615-8f24365b72b8/k8s.png?v=63861145828
+  identifier: mgmt
+  documentation: |
+    Installs the Cluster API Operator and core CAPI providers (cluster-api, kubeadm bootstrap,
+    kubeadm control-plane) on a management cluster. Run once per mgmt cluster before installing
+    infrastructure providers such as CAPV.
+  creates:
+    git:
+      ref: lukasz/prod-4520-vmware-vsphere-capi-provider-setup
+      folder: catalogs/infra/capi/core
+    templates:
+    - source: README.md
+      destination: documentation/capi/core/README.md
+      external: true
+    - source: helm/capi-operator.yaml.liquid
+      destination: helm/capi/core/capi-operator.yaml.liquid
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: bootstrap/capi/core/{{ context.cluster }}/servicedeployment.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: capi
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "CAPI core setup ({{ context.cluster }})"
+  message: |
+    Installs Cluster API Operator and core providers on {{ context.cluster }}.
+
+    Includes cluster-api core, kubeadm bootstrap, and kubeadm control-plane at version {{ context.version }}.
+
+    Plural Service: mgmt/infra
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: Management cluster where CAPI controllers should be installed.
+  - name: version
+    type: STRING
+    documentation: Cluster API provider version for core, bootstrap, and control-plane.
+    default: v1.16.1
+  - name: operatorVersion
+    type: STRING
+    documentation: cluster-api-operator Helm chart version.
+    default: "0.27.0"
