@@ -9,24 +9,25 @@ spec:
   documentation: |
     Provisions a kubeadm-based vSphere workload cluster using Cluster API.
     Requires capi-core-setup and capi-vsphere-provider-setup on the management cluster.
+    vSphere connection settings are read from helm/capi/vsphere-env/{mgmtCluster}/.
   creates:
     git:
       ref: lukasz/prod-4520-vmware-vsphere-capi-provider-setup
-      folder: catalogs/infra/capi/cluster/vsphere
+      folder: catalogs/infra/capi
     templates:
-    - source: README.md
+    - source: cluster/vsphere/README.md
       destination: documentation/capi/clusters/vsphere/README.md
       external: true
-    - source: chart
+    - source: cluster/vsphere/chart
       destination: charts/capi/clusters/vsphere
       external: true
-    - source: helm/values.yaml.liquid
-      destination: helm/capi/clusters/{{ context.clusterName }}/values.yaml.liquid
+    - source: cluster/vsphere/cluster.yaml
+      destination: helm/capi/clusters/{{ context.clusterName }}/cluster.yaml
       external: true
-    - source: helm/secrets.yaml.liquid
-      destination: helm/capi/clusters/{{ context.clusterName }}/secrets.yaml.liquid
+    - source: cluster/vsphere/secrets.yaml
+      destination: helm/capi/clusters/{{ context.clusterName }}/secrets.yaml
       external: true
-    - source: servicedeployment.yaml.liquid
+    - source: cluster/vsphere/servicedeployment.yaml.liquid
       destination: bootstrap/capi/clusters/{{ context.clusterName }}/servicedeployment.yaml
       external: true
   repositoryRef:
@@ -43,11 +44,13 @@ spec:
     Kubernetes version: {{ context.version }}
     Control plane endpoint: {{ context.controlPlaneEndpoint }}
 
+    Uses shared vSphere env: helm/capi/vsphere-env/{{ context.mgmtCluster }}/
+
     Plural Service: mgmt/infra
   configuration:
   - name: mgmtCluster
     type: CLUSTER
-    documentation: Management cluster where CAPI runs (CAPV must be installed).
+    documentation: Management cluster handle (must match capi-vsphere-provider-setup cluster).
   - name: clusterName
     type: STRING
     documentation: Name for the workload cluster.
@@ -57,21 +60,6 @@ spec:
     type: STRING
     documentation: Kubernetes version (must match VM template).
     default: v1.35.0
-  - name: server
-    type: STRING
-    documentation: vCenter or ESXi server (IP or FQDN).
-  - name: thumbprint
-    type: STRING
-    documentation: TLS certificate thumbprint for the vSphere endpoint.
-  - name: datacenter
-    type: STRING
-    documentation: vSphere datacenter name.
-  - name: datastore
-    type: STRING
-    documentation: vSphere datastore for VM disks.
-  - name: network
-    type: STRING
-    documentation: vSphere port group / network name.
   - name: template
     type: STRING
     documentation: VM template name (must include kubeadm for the target k8s version).
@@ -89,12 +77,6 @@ spec:
   - name: kubeVipAddress
     type: STRING
     documentation: Static VIP for kube-vip on the workload network.
-  - name: username
-    type: STRING
-    documentation: vSphere identity for this cluster.
-  - name: password
-    type: STRING
-    documentation: vSphere password for this cluster.
   - name: sshPublicKey
     type: STRING
     documentation: SSH public key for control plane and worker nodes.

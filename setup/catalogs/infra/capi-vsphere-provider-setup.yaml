@@ -7,26 +7,27 @@ spec:
   icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d1a82b07-b809-4eb4-b615-8f24365b72b8/k8s.png?v=63861145828
   identifier: mgmt
   documentation: |
-    Installs the Cluster API Provider for vSphere (CAPV) on a management cluster.
+    Installs the Cluster API Provider for vSphere (CAPV) on a management cluster and
+    writes shared vSphere environment settings used by workload cluster creation.
     Requires capi-core-setup to have been run first.
   creates:
     git:
       ref: lukasz/prod-4520-vmware-vsphere-capi-provider-setup
-      folder: catalogs/infra/capi/provider/vsphere
+      folder: catalogs/infra/capi
     templates:
-    - source: README.md
+    - source: provider/vsphere/README.md
       destination: documentation/capi/providers/vsphere/README.md
       external: true
-    - source: chart
+    - source: vsphere/vsphere-env.yaml
+      destination: helm/capi/vsphere-env/{{ context.cluster }}/env.yaml
+      external: true
+    - source: vsphere/vsphere-env.secrets.yaml
+      destination: helm/capi/vsphere-env/{{ context.cluster }}/secrets.yaml
+      external: true
+    - source: provider/vsphere/chart
       destination: charts/capi/providers/vsphere
       external: true
-    - source: helm/values.yaml.liquid
-      destination: helm/capi/providers/vsphere/{{ context.cluster }}/values.yaml.liquid
-      external: true
-    - source: helm/secrets.yaml.liquid
-      destination: helm/capi/providers/vsphere/{{ context.cluster }}/secrets.yaml.liquid
-      external: true
-    - source: servicedeployment.yaml.liquid
+    - source: provider/vsphere/servicedeployment.yaml.liquid
       destination: bootstrap/capi/providers/vsphere/{{ context.cluster }}/servicedeployment.yaml
       external: true
   repositoryRef:
@@ -40,6 +41,9 @@ spec:
     Installs Cluster API Provider vSphere on management cluster {{ context.cluster }}.
 
     vCenter endpoint: {{ context.server }}
+    Datacenter: {{ context.datacenter }}
+
+    Shared env: helm/capi/vsphere-env/{{ context.cluster }}/
 
     Plural Service: mgmt/infra
   configuration:
@@ -58,6 +62,15 @@ spec:
   - name: thumbprint
     type: STRING
     documentation: TLS certificate thumbprint (colon-separated hex) for the vSphere endpoint.
+  - name: datacenter
+    type: STRING
+    documentation: vSphere datacenter name (shared by workload clusters).
+  - name: datastore
+    type: STRING
+    documentation: vSphere datastore for VM disks (shared default).
+  - name: network
+    type: STRING
+    documentation: vSphere port group / network name (shared default).
   - name: capvVersion
     type: STRING
     documentation: CAPV controller version.

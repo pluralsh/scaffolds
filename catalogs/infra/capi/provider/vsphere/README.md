@@ -2,6 +2,8 @@
 
 Installs the Cluster API Provider for vSphere (CAPV) on a management cluster via the Cluster API Operator.
 
+Also writes **shared vSphere environment settings** to `helm/capi/vsphere-env/{cluster}/` used by workload cluster creation.
+
 ## Prerequisites
 
 - **`capi-core-setup`** completed on the target management cluster
@@ -12,10 +14,10 @@ Installs the Cluster API Provider for vSphere (CAPV) on a management cluster via
 
 | Path | Purpose |
 |------|---------|
+| `helm/capi/vsphere-env/{cluster}/env.yaml` | Shared vSphere + CAPV settings |
+| `helm/capi/vsphere-env/{cluster}/secrets.yaml` | Shared vCenter password |
 | `bootstrap/capi/providers/vsphere/{cluster}/servicedeployment.yaml` | Plural service for CAPV |
-| `charts/capi/providers/vsphere/` | CAPV Helm chart (InfrastructureProvider CR) |
-| `helm/capi/providers/vsphere/{cluster}/values.yaml.liquid` | Non-secret vCenter settings |
-| `helm/capi/providers/vsphere/{cluster}/secrets.yaml.liquid` | vCenter password (keep out of git if possible) |
+| `charts/capi/providers/vsphere/` | CAPV Helm chart |
 
 ## Next steps
 
@@ -26,4 +28,4 @@ kubectl get infrastructureprovider -A
 kubectl get pods -n capv-system
 ```
 
-Then run **`capi-vsphere-cluster-creator`** to provision a workload cluster.
+Then run **`capi-vsphere-cluster-creator`** to provision a workload cluster (no need to re-enter server/datacenter/password).

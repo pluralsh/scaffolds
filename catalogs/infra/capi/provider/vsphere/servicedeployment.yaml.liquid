@@ -22,12 +22,6 @@ spec:
       folder: charts/capi/providers/vsphere
       ref: main
     valuesFiles:
-    - values.yaml.liquid
-    - secrets.yaml.liquid
-  configuration:
-    server: {{ context.server }}
-    username: {{ context.username }}
-    thumbprint: {{ context.thumbprint }}
-    password: {{ context.password }}
-    capvVersion: {{ context.capvVersion }}
+    - ../../vsphere-env/{{ context.cluster }}/env.yaml
+    - ../../vsphere-env/{{ context.cluster }}/secrets.yaml
   cluster: {{ context.cluster }}

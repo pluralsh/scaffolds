@@ -5,7 +5,7 @@ Provisions a kubeadm-based Kubernetes workload cluster on vSphere using Cluster 
 ## Prerequisites
 
 - **`capi-core-setup`** on the management cluster
-- **`capi-vsphere-provider-setup`** with CAPV running
+- **`capi-vsphere-provider-setup`** with shared env at `helm/capi/vsphere-env/{mgmtCluster}/`
 - VM template with kubeadm pre-installed (matching the target Kubernetes version)
 - Static VIP for kube-vip (control plane endpoint)
 
@@ -13,12 +13,12 @@ Provisions a kubeadm-based Kubernetes workload cluster on vSphere using Cluster 
 
 | Path | Purpose |
 |------|---------|
-| `bootstrap/capi/clusters/{name}/servicedeployment.yaml` | Plural service to reconcile the cluster |
+| `helm/capi/clusters/{name}/cluster.yaml` | Cluster-specific settings (name, template, endpoints, workers) |
+| `helm/capi/clusters/{name}/secrets.yaml` | SSH keys |
+| `bootstrap/capi/clusters/{name}/servicedeployment.yaml` | Plural service |
 | `charts/capi/clusters/vsphere/` | Workload cluster Helm chart |
-| `helm/capi/clusters/{name}/values.yaml.liquid` | Cluster topology and vSphere settings |
-| `helm/capi/clusters/{name}/secrets.yaml.liquid` | Password and SSH keys |
 
-Keep `secrets.yaml.liquid` out of version control or use a secrets manager where possible.
+vSphere connection settings (`server`, `datacenter`, `password`, etc.) come from the shared env written by provider setup.
 
 ## Verify
 
