@@ -8,6 +8,8 @@ Installs the [Cluster API Operator](https://cluster-api-operator.sigs.k8s.io/) a
 
 This is provider-agnostic and only needs to run **once per management cluster** before installing infrastructure providers (CAPV, CAPA, CAPZ, etc.) or creating workload clusters.
 
+Use a **cluster-api core** release (e.g. `v1.13.3`). Infrastructure providers such as CAPV use their own version line (e.g. `v1.16.1` via `capi-vsphere-provider-setup`).
+
 ## Prerequisites
 
 - A registered Plural management cluster with kubectl access

@@ -43,8 +43,8 @@ spec:
     documentation: Management cluster where CAPI controllers should be installed.
   - name: version
     type: STRING
-    documentation: Cluster API provider version for core, bootstrap, and control-plane.
-    default: v1.16.1
+    documentation: Cluster API core version for cluster-api, kubeadm bootstrap, and kubeadm control-plane (e.g. v1.13.3). This is not the infrastructure provider version.
+    default: v1.13.3
   - name: operatorVersion
     type: STRING
     documentation: cluster-api-operator Helm chart version.
