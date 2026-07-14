@@ -15,9 +15,6 @@ spec:
       ref: lukasz/prod-4520-vmware-vsphere-capi-provider-setup
       folder: catalogs/infra/capi
     templates:
-    - source: cluster/vsphere/README.md
-      destination: documentation/capi/clusters/vsphere/README.md
-      external: true
     - source: cluster/vsphere/cluster.yaml.liquid
       destination: helm/capi/clusters/{{ context.clusterName }}/cluster.yaml
       external: true

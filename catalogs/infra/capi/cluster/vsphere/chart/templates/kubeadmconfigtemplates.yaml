@@ -1,9 +1,0 @@
-{{- $currentScope := . -}}
-{{- $defaultVals := .Values.workers.defaults -}}
-{{- range $name, $values := .Values.workers.groups }}
-{{- with $currentScope }}
-{{- $keys := ($values | default dict).sshAuthorizedKeys | default $defaultVals.sshAuthorizedKeys | default $.Values.controlPlane.sshAuthorizedKeys -}}
-{{- include "workers.kubeadmConfigTemplate" (dict "ctx" $currentScope "name" $name "keys" $keys) }}
----
-{{- end }}
-{{- end }}

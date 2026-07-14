@@ -15,7 +15,7 @@ Provisions a kubeadm-based Kubernetes workload cluster on vSphere using Cluster 
 |------|---------|
 | `helm/capi/clusters/{name}/cluster.yaml` | Cluster-specific settings (name, template, endpoints, workers) |
 | `helm/capi/clusters/{name}/secrets.yaml` | SSH keys |
-| `bootstrap/capi/clusters/{name}/servicedeployment.yaml` | Plural service (Helm chart sourced from scaffolds repo) |
+| `bootstrap/capi/clusters/{name}/servicedeployment.yaml` | Plural service (Helm chart from `capi/clusters/vsphere` in scaffolds repo) |
 
 vSphere connection settings (`server`, `datacenter`, `password`, etc.) come from the shared env written by provider setup.
 
@@ -23,5 +23,5 @@ vSphere connection settings (`server`, `datacenter`, `password`, etc.) come from
 
 ```bash
 kubectl get cluster,machine -A
-kubectl get secret {name}-kubeconfig -o go-template='{{index .data "value"}}' | base64 -d
+kubectl get secret {name}-kubeconfig -o jsonpath='{.data.value}' | base64 -d
 ```

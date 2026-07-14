@@ -1,8 +1,0 @@
-{{- $currentScope := . -}}
-{{- $defaultVals := .Values.workers.defaults -}}
-{{- range $name, $values := .Values.workers.groups }}
-{{- with $currentScope }}
-{{- include "workers.machineDeployment" (dict "ctx" $currentScope "name" $name "values" $values "defaultVals" $defaultVals) }}
----
-{{- end }}
-{{- end }}

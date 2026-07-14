@@ -1,9 +1,0 @@
-{{- $currentScope := . -}}
-{{- $defaultVals := .Values.workers.defaults -}}
-{{- range $name, $values := .Values.workers.groups }}
-{{- with $currentScope }}
-{{- $spec := mergeOverwrite (deepCopy $defaultVals.spec) (($values | default dict).spec | default dict) -}}
-{{- include "workers.vsphereMachineTemplate" (dict "ctx" $currentScope "spec" $spec "suffix" $name) }}
----
-{{- end }}
-{{- end }}
