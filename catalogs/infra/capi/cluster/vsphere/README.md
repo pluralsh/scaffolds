@@ -17,7 +17,7 @@ Provisions a kubeadm-based Kubernetes workload cluster on vSphere using Cluster 
 | `helm/capi/clusters/{name}/secrets.yaml` | SSH keys |
 | `bootstrap/capi/clusters/{name}/servicedeployment.yaml` | Plural service (Helm chart from `capi/clusters/vsphere` in scaffolds repo) |
 
-vSphere connection settings (`server`, `datacenter`, `password`, etc.) come from the shared env written by provider setup.
+vSphere connection settings (`server`, `datacenter`, `password`, etc.) are loaded from `helm/capi/vsphere-env/{mgmtCluster}/` via a ServiceDeployment `sources` entry (Plural multisource Helm cannot reference files outside the service git folder with `../` paths).
 
 ## Verify
 

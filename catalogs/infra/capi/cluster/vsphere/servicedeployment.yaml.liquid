@@ -16,6 +16,15 @@ spec:
     kind: GitRepository
     name: infra
     namespace: infra
+  sources:
+  - path: vsphere-env
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra
+    git:
+      folder: helm/capi/vsphere-env/{{ context.mgmtCluster }}
+      ref: main
   helm:
     chart: vsphere-workload-cluster
     git:
@@ -27,8 +36,8 @@ spec:
       namespace: infra
     release: {{ context.clusterName }}
     valuesFiles:
-    - ../../vsphere-env/{{ context.mgmtCluster }}/env.yaml
-    - ../../vsphere-env/{{ context.mgmtCluster }}/secrets.yaml
+    - vsphere-env/env.yaml
+    - vsphere-env/secrets.yaml
     - cluster.yaml
     - secrets.yaml
   cluster: {{ context.mgmtCluster }}
