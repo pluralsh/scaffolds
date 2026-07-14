@@ -18,6 +18,4 @@ spec:
     name: {{ include "cluster-api-provider-vsphere.credentialsSecretName" . }}
     namespace: {{ include "cluster-api-provider-vsphere.namespace" . }}
   {{- end }}
-  deployment:
-    namespace: {{ include "cluster-api-provider-vsphere.namespace" . }}
 {{- end }}
