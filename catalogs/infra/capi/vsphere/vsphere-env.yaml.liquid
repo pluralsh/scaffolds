@@ -1,0 +1,20 @@
+# Shared vSphere environment settings for CAPV and workload clusters.
+# Created by capi-vsphere-provider-setup; referenced by capi-vsphere-cluster-creator.
+cluster:
+  vsphere:
+    server: {{ context.server }}
+    thumbprint: {{ context.thumbprint }}
+    datacenter: {{ context.datacenter }}
+    datastore: {{ context.datastore }}
+    network: {{ context.network }}
+    identity:
+      username: {{ context.username }}
+
+workers:
+  defaults:
+    spec:
+      network:
+        devices:
+          - dhcp4: true
+            dhcp6: false
+            networkName: {{ context.network }}

@@ -1,0 +1,80 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: capi-vsphere-provider-setup
+spec:
+  name: capi-vsphere-provider-setup
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/d1a82b07-b809-4eb4-b615-8f24365b72b8/k8s.png?v=63861145828
+  identifier: mgmt
+  documentation: |
+    Installs the Cluster API Provider for vSphere (CAPV) on a management cluster and
+    writes shared vSphere environment settings used by workload cluster creation.
+    Requires capi-core-setup to have been run first.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/infra/capi
+    templates:
+    - source: provider/vsphere/README.md
+      destination: documentation/capi/providers/vsphere/README.md
+      external: true
+    - source: vsphere/vsphere-env.yaml.liquid
+      destination: helm/capi/vsphere-env/{{ context.cluster }}/env.yaml
+      external: true
+    - source: vsphere/vsphere-env.secrets.yaml.liquid
+      destination: helm/capi/vsphere-env/{{ context.cluster }}/secrets.yaml
+      external: true
+    - source: provider/vsphere/manifests/infrastructure-provider.yaml.liquid
+      destination: helm/capi/providers/vsphere/{{ context.cluster }}/infrastructure-provider.yaml
+      external: true
+    - source: provider/vsphere/manifests/credentials-secret.yaml.liquid
+      destination: helm/capi/providers/vsphere/{{ context.cluster }}/credentials-secret.yaml
+      external: true
+    - source: provider/vsphere/servicedeployment.yaml.liquid
+      destination: bootstrap/capi/providers/vsphere/{{ context.cluster }}/servicedeployment.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: capi
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "CAPV provider setup ({{ context.cluster }})"
+  message: |
+    Installs Cluster API Provider vSphere on management cluster {{ context.cluster }}.
+
+    vCenter endpoint: {{ context.server }}
+    Datacenter: {{ context.datacenter }}
+
+    Shared env: helm/capi/vsphere-env/{{ context.cluster }}/
+
+    Plural Service: mgmt/infra
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: Management cluster where CAPV should be installed.
+  - name: server
+    type: STRING
+    documentation: vCenter or ESXi server (IP or FQDN).
+  - name: username
+    type: STRING
+    documentation: vSphere API user (e.g. administrator@vsphere.local).
+  - name: password
+    type: STRING
+    documentation: vSphere API password.
+  - name: thumbprint
+    type: STRING
+    documentation: TLS certificate thumbprint (colon-separated hex) for the vSphere endpoint.
+  - name: datacenter
+    type: STRING
+    documentation: vSphere datacenter name (shared by workload clusters).
+  - name: datastore
+    type: STRING
+    documentation: vSphere datastore for VM disks (shared default).
+  - name: network
+    type: STRING
+    documentation: vSphere port group / network name (shared default).
+  - name: capvVersion
+    type: STRING
+    documentation: CAPV controller version.
+    default: v1.16.1

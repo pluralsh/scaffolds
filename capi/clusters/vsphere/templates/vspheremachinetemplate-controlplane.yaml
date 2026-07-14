@@ -1,0 +1,2 @@
+{{- $cpSpec := mergeOverwrite (deepCopy .Values.controlPlane.machine) (dict "cloneMode" .Values.cluster.vsphere.cloneMode "powerOffMode" .Values.cluster.vsphere.powerOffMode "os" .Values.cluster.vsphere.os) -}}
+{{- include "workers.vsphereMachineTemplate" (dict "ctx" . "spec" $cpSpec) }}
