@@ -18,13 +18,10 @@ spec:
     - source: cluster/vsphere/README.md
       destination: documentation/capi/clusters/vsphere/README.md
       external: true
-    - source: cluster/vsphere/chart
-      destination: charts/capi/clusters/vsphere
-      external: true
-    - source: cluster/vsphere/cluster.yaml
+    - source: cluster/vsphere/cluster.yaml.liquid
       destination: helm/capi/clusters/{{ context.clusterName }}/cluster.yaml
       external: true
-    - source: cluster/vsphere/secrets.yaml
+    - source: cluster/vsphere/secrets.yaml.liquid
       destination: helm/capi/clusters/{{ context.clusterName }}/secrets.yaml
       external: true
     - source: cluster/vsphere/servicedeployment.yaml.liquid

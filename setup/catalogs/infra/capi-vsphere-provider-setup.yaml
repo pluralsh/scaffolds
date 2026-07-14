@@ -18,14 +18,17 @@ spec:
     - source: provider/vsphere/README.md
       destination: documentation/capi/providers/vsphere/README.md
       external: true
-    - source: vsphere/vsphere-env.yaml
+    - source: vsphere/vsphere-env.yaml.liquid
       destination: helm/capi/vsphere-env/{{ context.cluster }}/env.yaml
       external: true
-    - source: vsphere/vsphere-env.secrets.yaml
+    - source: vsphere/vsphere-env.secrets.yaml.liquid
       destination: helm/capi/vsphere-env/{{ context.cluster }}/secrets.yaml
       external: true
-    - source: provider/vsphere/chart
-      destination: charts/capi/providers/vsphere
+    - source: provider/vsphere/manifests/infrastructure-provider.yaml.liquid
+      destination: helm/capi/providers/vsphere/{{ context.cluster }}/infrastructure-provider.yaml
+      external: true
+    - source: provider/vsphere/manifests/credentials-secret.yaml.liquid
+      destination: helm/capi/providers/vsphere/{{ context.cluster }}/credentials-secret.yaml
       external: true
     - source: provider/vsphere/servicedeployment.yaml.liquid
       destination: bootstrap/capi/providers/vsphere/{{ context.cluster }}/servicedeployment.yaml

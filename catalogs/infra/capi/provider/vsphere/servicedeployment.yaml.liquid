@@ -16,12 +16,4 @@ spec:
     kind: GitRepository
     name: infra
     namespace: infra
-  helm:
-    chart: cluster-api-provider-vsphere
-    git:
-      folder: charts/capi/providers/vsphere
-      ref: main
-    valuesFiles:
-    - ../../vsphere-env/{{ context.cluster }}/env.yaml
-    - ../../vsphere-env/{{ context.cluster }}/secrets.yaml
   cluster: {{ context.cluster }}

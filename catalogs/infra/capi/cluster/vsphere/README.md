@@ -15,8 +15,7 @@ Provisions a kubeadm-based Kubernetes workload cluster on vSphere using Cluster 
 |------|---------|
 | `helm/capi/clusters/{name}/cluster.yaml` | Cluster-specific settings (name, template, endpoints, workers) |
 | `helm/capi/clusters/{name}/secrets.yaml` | SSH keys |
-| `bootstrap/capi/clusters/{name}/servicedeployment.yaml` | Plural service |
-| `charts/capi/clusters/vsphere/` | Workload cluster Helm chart |
+| `bootstrap/capi/clusters/{name}/servicedeployment.yaml` | Plural service (Helm chart sourced from scaffolds repo) |
 
 vSphere connection settings (`server`, `datacenter`, `password`, etc.) come from the shared env written by provider setup.
 

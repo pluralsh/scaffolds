@@ -1,0 +1,12 @@
+apiVersion: operator.cluster.x-k8s.io/v1alpha2
+kind: InfrastructureProvider
+metadata:
+  name: vsphere
+  namespace: capv-system
+spec:
+  version: {{ context.capvVersion | quote }}
+  configSecret:
+    name: capv-credentials
+    namespace: capv-system
+  deployment:
+    namespace: capv-system

@@ -1,13 +1,5 @@
 # Shared vSphere environment settings for CAPV and workload clusters.
 # Created by capi-vsphere-provider-setup; referenced by capi-vsphere-cluster-creator.
-credentials:
-  server: {{ context.server }}
-  username: {{ context.username }}
-  thumbprint: {{ context.thumbprint }}
-
-cluster-api-provider-vsphere:
-  version: {{ context.capvVersion }}
-
 cluster:
   vsphere:
     server: {{ context.server }}

@@ -19,8 +19,12 @@ spec:
   helm:
     chart: vsphere-workload-cluster
     git:
-      folder: charts/capi/clusters/vsphere
+      folder: catalogs/infra/capi/cluster/vsphere/chart
       ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: scaffolds
+      namespace: infra
     release: {{ context.clusterName }}
     valuesFiles:
     - ../../vsphere-env/{{ context.mgmtCluster }}/env.yaml

@@ -22,4 +22,4 @@ catalogs/infra/capi/
 
 **Shared env:** `capi-vsphere-provider-setup` writes `helm/capi/vsphere-env/{mgmtCluster}/`. `capi-vsphere-cluster-creator` references it so vCenter settings are not re-entered.
 
-Helm charts under `provider/vsphere/chart` and `cluster/vsphere/chart` are vendored copies of `scaffolds/capi/providers/vsphere` and `scaffolds/capi/clusters/vsphere`. Update both when the upstream charts change.
+Helm charts under `cluster/vsphere/chart` are vendored copies of `scaffolds/capi/clusters/vsphere`. The cluster creator references the chart from the **scaffolds** GitRepository (not copied into the infra repo) to avoid Liquid templating conflicts with Helm `templates/_helpers.tpl`.

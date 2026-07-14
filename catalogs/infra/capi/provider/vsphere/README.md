@@ -14,10 +14,11 @@ Also writes **shared vSphere environment settings** to `helm/capi/vsphere-env/{c
 
 | Path | Purpose |
 |------|---------|
-| `helm/capi/vsphere-env/{cluster}/env.yaml` | Shared vSphere + CAPV settings |
+| `helm/capi/vsphere-env/{cluster}/env.yaml` | Shared vSphere settings (server, datacenter, network, …) |
 | `helm/capi/vsphere-env/{cluster}/secrets.yaml` | Shared vCenter password |
+| `helm/capi/providers/vsphere/{cluster}/infrastructure-provider.yaml` | CAPV InfrastructureProvider CR |
+| `helm/capi/providers/vsphere/{cluster}/credentials-secret.yaml` | vSphere credentials Secret |
 | `bootstrap/capi/providers/vsphere/{cluster}/servicedeployment.yaml` | Plural service for CAPV |
-| `charts/capi/providers/vsphere/` | CAPV Helm chart |
 
 ## Next steps
 
