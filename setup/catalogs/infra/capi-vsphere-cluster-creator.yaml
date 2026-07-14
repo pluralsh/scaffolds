@@ -12,7 +12,7 @@ spec:
     vSphere connection settings are read from helm/capi/vsphere-env/{mgmtCluster}/.
   creates:
     git:
-      ref: lukasz/prod-4520-vmware-vsphere-capi-provider-setup
+      ref: main
       folder: catalogs/infra/capi
     templates:
     - source: cluster/vsphere/cluster.yaml.liquid
