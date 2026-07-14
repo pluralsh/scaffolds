@@ -15,7 +15,12 @@ spec:
     name: infra
     namespace: infra
   configuration:
+{% if context.cloud == 'azure' %}
+    kubernetesVersion: '{{ context.version }}' # dev-nodes
+    nextKubernetesVersion: '{{ context.version }}' # dev-cp
+{% else %}
     kubernetesVersion: '{{ context.version }}' # dev
+{% endif %}
   clusterRef:
     name: mgmt
     namespace: infra
@@ -37,7 +42,12 @@ spec:
     name: infra
     namespace: infra
   configuration:
+{% if context.cloud == 'azure' %}
+    kubernetesVersion: '{{ context.version }}' # prod-nodes
+    nextKubernetesVersion: '{{ context.version }}' # prod-cp
+{% else %}
     kubernetesVersion: '{{ context.version }}' # prod
+{% endif %}
   clusterRef:
     name: mgmt
     namespace: infra

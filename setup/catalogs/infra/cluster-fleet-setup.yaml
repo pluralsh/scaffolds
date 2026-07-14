@@ -10,7 +10,7 @@ spec:
     Sets up a PR to a new fleet, with a dev + prod cluster and a pipeline to control upgrades
   creates:
     git:
-      ref: main
+      ref: marcin/prod-4407-plural-up-aks-upgrades-dont-upgrade-node-pools
       folder: catalogs/infra/cluster
     templates:
       - source: pipeline.yaml
@@ -43,7 +43,7 @@ spec:
     name: plural  # you'll need to add this ScmConnection manually before this is functional
   title: "Setting up {{ context.cloud }} fleet {{ context.fleet }}"
   message: |
-    Setting up {{ context.cloud }} fleet {{ context.fleet }}, including clusters and ugprade pipelines
+    Setting up {{ context.cloud }} fleet {{ context.fleet }}, including clusters and upgrade pipelines
 
     Plural Service: mgmt/apps
   configuration:
@@ -60,14 +60,13 @@ spec:
     - name: version
       type: STRING
       documentation: Version of the cluster you want to create.
-      default: "1.32"
+      default: "1.34"
     - name: region
       type: STRING
       documentation: Region where the cluster should be created.
     - name: resourceGroup
       type: STRING
       documentation: Azure resource group that you would like to use.
-      optional: true
       condition:
         field: cloud
         operation: EQ
