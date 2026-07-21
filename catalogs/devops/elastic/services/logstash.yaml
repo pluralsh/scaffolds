@@ -30,8 +30,9 @@ spec:
             hosts => [ "${UPSTREAM_ES_HOSTS}" ]
             user => "${UPSTREAM_ES_USER}"
             password => "${UPSTREAM_ES_PASSWORD}"
-            index => "plrl-logs-%{+YYYY.MM.dd}"
-            ilm_policy => "plrl-logs"
+            index => "plrl-logs-write"
+            manage_template => false
+            ilm_enabled => false
           }
         }
   services:

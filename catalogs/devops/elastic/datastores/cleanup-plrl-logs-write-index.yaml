@@ -1,0 +1,68 @@
+# One-shot cleanup: Logstash may have auto-created a concrete index named
+# plrl-logs-write before the write alias existed. That blocks bootstrap.
+# Safe to re-run: if plrl-logs-write is already a write alias, this is a no-op.
+#
+# Job name bumped when the script changes so GitOps can recreate it (Job specs
+# are largely immutable after creation).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cleanup-plrl-logs-write-index-v2
+  namespace: elastic
+  annotations:
+    deployment.plural.sh/sync-wave: "8"
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: cleanup
+        image: curlimages/curl:8.5.0
+        env:
+        - name: ELASTICSEARCH_URL
+          value: http://elasticsearch-es-http.elastic.svc:9200
+        - name: ES_USER
+          valueFrom:
+            secretKeyRef:
+              name: plrl-elastic-user
+              key: username
+        - name: ES_PASS
+          valueFrom:
+            secretKeyRef:
+              name: plrl-elastic-user
+              key: password
+        command: ["sh", "-c"]
+        args:
+        - |
+          set -eu
+          echo "waiting for elasticsearch..."
+          until curl -sSf -u "${ES_USER}:${ES_PASS}" "${ELASTICSEARCH_URL}" >/dev/null; do
+            sleep 3
+          done
+          echo "elasticsearch is up"
+
+          # Already a proper write alias → nothing to do
+          ALIAS_CODE=$(curl -s -o /tmp/alias.json -w "%{http_code}" -u "${ES_USER}:${ES_PASS}" \
+            "${ELASTICSEARCH_URL}/_alias/plrl-logs-write" || true)
+          echo "alias check http=${ALIAS_CODE}"
+          if [ "${ALIAS_CODE}" = "200" ] && grep -q 'is_write_index' /tmp/alias.json; then
+            echo "plrl-logs-write is already a write alias; skipping"
+            cat /tmp/alias.json
+            exit 0
+          fi
+
+          # Concrete index with this name → delete so bootstrap can create the alias
+          IDX_CODE=$(curl -s -o /dev/null -w "%{http_code}" -u "${ES_USER}:${ES_PASS}" \
+            "${ELASTICSEARCH_URL}/plrl-logs-write" || true)
+          echo "index check http=${IDX_CODE}"
+          if [ "${IDX_CODE}" = "200" ]; then
+            echo "deleting concrete index plrl-logs-write"
+            curl -sSf -u "${ES_USER}:${ES_PASS}" -X DELETE "${ELASTICSEARCH_URL}/plrl-logs-write"
+            echo
+            echo "deleted"
+          else
+            echo "no concrete index plrl-logs-write (http ${IDX_CODE})"
+          fi
+          echo "cleanup done"

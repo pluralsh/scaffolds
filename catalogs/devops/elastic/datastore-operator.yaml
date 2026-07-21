@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: datastore-operator
+  namespace: infra
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  namespace: elastic
+  sources:
+  - path: datastore-crs
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra
+    git:
+      folder: services/datastores
+      ref: main
+  renderers:
+  - path: datastore-crs
+    type: RAW
+  helm:
+    url: https://pluralsh.github.io/console
+    version: 0.x.x
+    chart: datastore
+  clusterRef:
+    kind: Cluster
+    name: mgmt
+    namespace: infra
+  reconciliation:
+    interval: 1m
+    driftDetection: true
