@@ -10,7 +10,8 @@ spec:
     Sets up ElasticSearch
   creates:
     git:
-      ref: main
+      # Point at the feature branch while testing; flip back to main before merge.
+      ref: lukasz/prod-5050-convert-es-indices-in-plural-cloud-to-use-rollover-policies
       folder: catalogs/devops/elastic
     templates:
     - source: README.md
