@@ -9,7 +9,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cleanup-plrl-logs-write-index-v3
+  name: cleanup-plrl-logs-write-index-v4
   namespace: elastic
   annotations:
     deployment.plural.sh/sync-wave: "8"

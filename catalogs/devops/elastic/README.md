@@ -11,7 +11,7 @@ Plural **datastore operator**, which provisions ILM, index templates, and the
    - Legacy ILM `plrl-logs` (dated indices: warm 10d / delete 30d)
    - Rollover ILM `plrl-logs-rollover` (30gb shard thresholds, shrink @ 1d, delete 7d)
    - Templates for `plrl-logs-*` (legacy) and `plrl-logs-0*` (rollover + write alias)
-   - Cleanup Job `cleanup-plrl-logs-write-index-v3` (concrete `plrl-logs-write` index
+   - Cleanup Job `cleanup-plrl-logs-write-index-v4` (concrete `plrl-logs-write` index
      and dual write-index alias repair — keeps newest `plrl-logs-0*` as write)
    - Bootstrap index `plrl-logs-000001` with alias `plrl-logs-write` (`is_write_index: true`)
 2. **Logstash** writes to `plrl-logs-write` (`manage_template` / `ilm_enabled` false).
