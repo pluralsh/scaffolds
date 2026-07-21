@@ -3,13 +3,16 @@
 # 1) Deletes a concrete index named plrl-logs-write (Logstash race before alias).
 # 2) If the alias has zero or multiple write indices, keeps the highest
 #    plrl-logs-0* index as the sole is_write_index (fixes dual-write after rollover).
+# 3) If bootstrap index plrl-logs-000001 is missing but the alias already has a
+#    write index, recreate 000001 with is_write_index:false so the create-only
+#    ElasticsearchIndex CR can go Ready without stealing the write alias.
 #
 # Job name bumped when the script changes so GitOps can recreate it (Job specs
 # are largely immutable after creation).
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cleanup-plrl-logs-write-index-v4
+  name: cleanup-plrl-logs-write-index-v5
   namespace: elastic
   annotations:
     deployment.plural.sh/sync-wave: "8"
@@ -44,6 +47,7 @@ spec:
           user = os.environ["ES_USER"]
           password = os.environ["ES_PASS"]
           alias = "plrl-logs-write"
+          bootstrap = "plrl-logs-000001"
 
           def request(method, path, body=None):
               data = None if body is None else json.dumps(body).encode()
@@ -54,8 +58,13 @@ spec:
                   req.add_header("Content-Type", "application/json")
               try:
                   with urllib.request.urlopen(req, timeout=60) as resp:
-                      raw = resp.read().decode() or "{}"
-                      return resp.status, json.loads(raw) if raw.strip() else {}
+                      raw = resp.read().decode() or ""
+                      if not raw.strip():
+                          return resp.status, {}
+                      try:
+                          return resp.status, json.loads(raw)
+                      except json.JSONDecodeError:
+                          return resp.status, {"raw": raw}
               except urllib.error.HTTPError as e:
                   raw = e.read().decode()
                   try:
@@ -63,6 +72,19 @@ spec:
                   except json.JSONDecodeError:
                       parsed = {"raw": raw}
                   return e.code, parsed
+
+          def alias_state():
+              c, body = request("GET", f"/_alias/{alias}")
+              if c != 200:
+                  return c, [], [], None
+              idxs = sorted(body.keys())
+              writes = [
+                  idx
+                  for idx in idxs
+                  if body[idx].get("aliases", {}).get(alias, {}).get("is_write_index") is True
+              ]
+              win = max(idxs) if idxs else None
+              return c, idxs, writes, win
 
           print("waiting for elasticsearch...")
           while True:
@@ -89,48 +111,82 @@ spec:
                       raise SystemExit(f"failed to delete concrete index {alias}")
               else:
                   print(f"no concrete index {alias} (http {idx_code})")
-              print("cleanup done")
+              print("cleanup done (bootstrap CR will create write alias)")
               raise SystemExit(0)
 
           if code != 200:
               raise SystemExit(f"unexpected alias response http={code} body={alias_body}")
 
           print(json.dumps(alias_body, indent=2))
-          indices = sorted(alias_body.keys())
-          if not indices:
+          _, indices, write_indices, winner = alias_state()
+          if not indices or winner is None:
               print("alias returned no indices; nothing to fix")
               raise SystemExit(0)
 
-          write_indices = []
-          for idx in indices:
-              meta = alias_body[idx].get("aliases", {}).get(alias, {})
-              if meta.get("is_write_index") is True:
-                  write_indices.append(idx)
-
-          winner = max(indices)
           print(f"indices={indices} write_indices={write_indices} winner={winner}")
 
-          if write_indices == [winner]:
-              print("alias already has a single write index (newest); skipping")
-              raise SystemExit(0)
-
-          actions = [
-              {
-                  "add": {
-                      "index": idx,
-                      "alias": alias,
-                      "is_write_index": idx == winner,
+          if write_indices != [winner]:
+              actions = [
+                  {
+                      "add": {
+                          "index": idx,
+                          "alias": alias,
+                          "is_write_index": idx == winner,
+                      }
                   }
+                  for idx in indices
+              ]
+              print(f"fixing write alias; actions={json.dumps(actions)}")
+              fix_code, fix_body = request("POST", "/_aliases", {"actions": actions})
+              print(f"aliases update http={fix_code} body={fix_body}")
+              if fix_code != 200:
+                  raise SystemExit(f"failed to fix write alias: http={fix_code}")
+              _, indices, write_indices, winner = alias_state()
+              print(f"after fix indices={indices} write_indices={write_indices} winner={winner}")
+          else:
+              print("alias already has a single write index (newest)")
+
+          # Recreate missing bootstrap index without stealing write, so the
+          # create-only ElasticsearchIndex CR can reconcile Ready.
+          boot_code, _ = request("HEAD", f"/{bootstrap}")
+          print(f"bootstrap index {bootstrap} http={boot_code}")
+
+          has_other_write = bool(write_indices) and write_indices != [bootstrap]
+          if boot_code == 404 and has_other_write:
+              body = {
+                  "aliases": {alias: {"is_write_index": False}},
+                  "mappings": {"properties": {"@timestamp": {"type": "date"}}},
+                  "settings": {
+                      "index": {
+                          "number_of_shards": 5,
+                          "number_of_replicas": 1,
+                          "refresh_interval": "30s",
+                          "sort.field": "@timestamp",
+                          "sort.order": "desc",
+                          "lifecycle": {
+                              "name": "plrl-logs-rollover",
+                              "rollover_alias": alias,
+                          },
+                      }
+                  },
               }
-              for idx in indices
-          ]
-          print(f"fixing write alias; actions={json.dumps(actions)}")
-          fix_code, fix_body = request("POST", "/_aliases", {"actions": actions})
-          print(f"aliases update http={fix_code} body={fix_body}")
-          if fix_code != 200:
-              raise SystemExit(f"failed to fix write alias: http={fix_code}")
+              print(
+                  f"creating {bootstrap} with is_write_index=false "
+                  f"(write stays on {write_indices[0]})"
+              )
+              create_code, create_body = request("PUT", f"/{bootstrap}", body)
+              print(f"create http={create_code} body={create_body}")
+              if create_code not in (200, 201):
+                  raise SystemExit(f"failed to create bootstrap index: http={create_code}")
+          elif boot_code == 200:
+              print(f"{bootstrap} already exists")
+          else:
+              print(
+                  f"leaving {bootstrap} for bootstrap CR "
+                  f"(http={boot_code}, write_indices={write_indices})"
+              )
 
           _, after = request("GET", f"/_alias/{alias}")
-          print("alias after fix:")
+          print("alias after cleanup:")
           print(json.dumps(after, indent=2))
           print("cleanup done")
