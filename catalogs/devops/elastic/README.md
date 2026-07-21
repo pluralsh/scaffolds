@@ -11,7 +11,8 @@ Plural **datastore operator**, which provisions ILM, index templates, and the
    - Legacy ILM `plrl-logs` (dated indices: warm 10d / delete 30d)
    - Rollover ILM `plrl-logs-rollover` (30gb shard thresholds, shrink @ 1d, delete 7d)
    - Templates for `plrl-logs-*` (legacy) and `plrl-logs-0*` (rollover + write alias)
-   - Cleanup Job (removes a stray concrete `plrl-logs-write` index if Logstash created one first)
+   - Cleanup Job `cleanup-plrl-logs-write-index-v3` (concrete `plrl-logs-write` index
+     and dual write-index alias repair — keeps newest `plrl-logs-0*` as write)
    - Bootstrap index `plrl-logs-000001` with alias `plrl-logs-write` (`is_write_index: true`)
 2. **Logstash** writes to `plrl-logs-write` (`manage_template` / `ilm_enabled` false).
 3. Elasticsearch rolls to `plrl-logs-000002`, … when ILM thresholds hit.
@@ -26,8 +27,11 @@ On first install, prefer:
 2. `datastore-operator` ServiceDeployment (ILM + bootstrap Ready)
 3. Logstash GlobalService
 
-If Logstash starts before the write alias exists, the cleanup Job + bootstrap CR
-recover from a concrete `plrl-logs-write` index conflict.
+The cleanup Job (wave 8) recovers from:
+- a concrete `plrl-logs-write` index created by Logstash before the alias existed
+- multiple `is_write_index: true` targets on `plrl-logs-write` (illegal after rollover)
+
+Bump the Job name (`…-vN`) to re-run after a script change (Job specs are immutable).
 
 ## Tuning
 

@@ -1,25 +1,27 @@
-# One-shot cleanup: Logstash may have auto-created a concrete index named
-# plrl-logs-write before the write alias existed. That blocks bootstrap.
-# Safe to re-run: if plrl-logs-write is already a write alias, this is a no-op.
+# One-shot cleanup for plrl-logs-write alias health (wave 8, before bootstrap).
+#
+# 1) Deletes a concrete index named plrl-logs-write (Logstash race before alias).
+# 2) If the alias has zero or multiple write indices, keeps the highest
+#    plrl-logs-0* index as the sole is_write_index (fixes dual-write after rollover).
 #
 # Job name bumped when the script changes so GitOps can recreate it (Job specs
 # are largely immutable after creation).
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cleanup-plrl-logs-write-index-v2
+  name: cleanup-plrl-logs-write-index-v3
   namespace: elastic
   annotations:
     deployment.plural.sh/sync-wave: "8"
 spec:
-  ttlSecondsAfterFinished: 300
+  ttlSecondsAfterFinished: 600
   backoffLimit: 5
   template:
     spec:
       restartPolicy: OnFailure
       containers:
       - name: cleanup
-        image: curlimages/curl:8.5.0
+        image: python:3.12-alpine
         env:
         - name: ELASTICSEARCH_URL
           value: http://elasticsearch-es-http.elastic.svc:9200
@@ -33,36 +35,102 @@ spec:
             secretKeyRef:
               name: plrl-elastic-user
               key: password
-        command: ["sh", "-c"]
+        command: ["python", "-c"]
         args:
         - |
-          set -eu
-          echo "waiting for elasticsearch..."
-          until curl -sSf -u "${ES_USER}:${ES_PASS}" "${ELASTICSEARCH_URL}" >/dev/null; do
-            sleep 3
-          done
-          echo "elasticsearch is up"
+          import base64, json, os, time, urllib.error, urllib.request
 
-          # Already a proper write alias → nothing to do
-          ALIAS_CODE=$(curl -s -o /tmp/alias.json -w "%{http_code}" -u "${ES_USER}:${ES_PASS}" \
-            "${ELASTICSEARCH_URL}/_alias/plrl-logs-write" || true)
-          echo "alias check http=${ALIAS_CODE}"
-          if [ "${ALIAS_CODE}" = "200" ] && grep -q 'is_write_index' /tmp/alias.json; then
-            echo "plrl-logs-write is already a write alias; skipping"
-            cat /tmp/alias.json
-            exit 0
-          fi
+          url = os.environ["ELASTICSEARCH_URL"].rstrip("/")
+          user = os.environ["ES_USER"]
+          password = os.environ["ES_PASS"]
+          alias = "plrl-logs-write"
 
-          # Concrete index with this name → delete so bootstrap can create the alias
-          IDX_CODE=$(curl -s -o /dev/null -w "%{http_code}" -u "${ES_USER}:${ES_PASS}" \
-            "${ELASTICSEARCH_URL}/plrl-logs-write" || true)
-          echo "index check http=${IDX_CODE}"
-          if [ "${IDX_CODE}" = "200" ]; then
-            echo "deleting concrete index plrl-logs-write"
-            curl -sSf -u "${ES_USER}:${ES_PASS}" -X DELETE "${ELASTICSEARCH_URL}/plrl-logs-write"
-            echo
-            echo "deleted"
-          else
-            echo "no concrete index plrl-logs-write (http ${IDX_CODE})"
-          fi
-          echo "cleanup done"
+          def request(method, path, body=None):
+              data = None if body is None else json.dumps(body).encode()
+              req = urllib.request.Request(f"{url}{path}", data=data, method=method)
+              token = base64.b64encode(f"{user}:{password}".encode()).decode()
+              req.add_header("Authorization", f"Basic {token}")
+              if body is not None:
+                  req.add_header("Content-Type", "application/json")
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as resp:
+                      raw = resp.read().decode() or "{}"
+                      return resp.status, json.loads(raw) if raw.strip() else {}
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      parsed = json.loads(raw) if raw.strip() else {}
+                  except json.JSONDecodeError:
+                      parsed = {"raw": raw}
+                  return e.code, parsed
+
+          print("waiting for elasticsearch...")
+          while True:
+              try:
+                  code, _ = request("GET", "/")
+                  if code == 200:
+                      break
+              except Exception as exc:
+                  print(f"es not ready: {exc}")
+              time.sleep(3)
+          print("elasticsearch is up")
+
+          code, alias_body = request("GET", f"/_alias/{alias}")
+          print(f"alias check http={code}")
+
+          if code == 404:
+              idx_code, _ = request("GET", f"/{alias}")
+              print(f"index check http={idx_code}")
+              if idx_code == 200:
+                  print(f"deleting concrete index {alias}")
+                  del_code, del_body = request("DELETE", f"/{alias}")
+                  print(f"delete http={del_code} body={del_body}")
+                  if del_code not in (200, 404):
+                      raise SystemExit(f"failed to delete concrete index {alias}")
+              else:
+                  print(f"no concrete index {alias} (http {idx_code})")
+              print("cleanup done")
+              raise SystemExit(0)
+
+          if code != 200:
+              raise SystemExit(f"unexpected alias response http={code} body={alias_body}")
+
+          print(json.dumps(alias_body, indent=2))
+          indices = sorted(alias_body.keys())
+          if not indices:
+              print("alias returned no indices; nothing to fix")
+              raise SystemExit(0)
+
+          write_indices = []
+          for idx in indices:
+              meta = alias_body[idx].get("aliases", {}).get(alias, {})
+              if meta.get("is_write_index") is True:
+                  write_indices.append(idx)
+
+          winner = max(indices)
+          print(f"indices={indices} write_indices={write_indices} winner={winner}")
+
+          if write_indices == [winner]:
+              print("alias already has a single write index (newest); skipping")
+              raise SystemExit(0)
+
+          actions = [
+              {
+                  "add": {
+                      "index": idx,
+                      "alias": alias,
+                      "is_write_index": idx == winner,
+                  }
+              }
+              for idx in indices
+          ]
+          print(f"fixing write alias; actions={json.dumps(actions)}")
+          fix_code, fix_body = request("POST", "/_aliases", {"actions": actions})
+          print(f"aliases update http={fix_code} body={fix_body}")
+          if fix_code != 200:
+              raise SystemExit(f"failed to fix write alias: http={fix_code}")
+
+          _, after = request("GET", f"/_alias/{alias}")
+          print("alias after fix:")
+          print(json.dumps(after, indent=2))
+          print("cleanup done")
