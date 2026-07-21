@@ -1,0 +1,22 @@
+apiVersion: dbs.plural.sh/v1alpha1
+kind: ElasticsearchIndexTemplate
+metadata:
+  name: plrl-logs
+  namespace: elastic
+  annotations:
+    deployment.plural.sh/sync-wave: "7"
+spec:
+  name: plrl-logs
+  credentialsRef:
+    name: elasticsearch
+  definition:
+    indexPatterns:
+      - "plrl-logs-*"
+    priority: 100
+    template:
+      settings:
+        index:
+          number_of_shards: 15
+          refresh_interval: 30s
+          lifecycle:
+            name: plrl-logs
