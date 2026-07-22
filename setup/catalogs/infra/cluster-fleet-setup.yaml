@@ -10,7 +10,7 @@ spec:
     Sets up a PR to a new fleet, with a dev + prod cluster and a pipeline to control upgrades
   creates:
     git:
-      ref: marcin/prod-4407-plural-up-aks-upgrades-dont-upgrade-node-pools
+      ref: main
       folder: catalogs/infra/cluster
     templates:
       - source: pipeline.yaml
