@@ -10,20 +10,14 @@ spec:
     Sets up an mlflow instance for a given cloud
   creates:
     git:
-      ref: main # TODO set to main
+      ref: feat-refactor-service-catalog # TODO set to main
       folder: catalogs/data/mlflow
     templates:
       - source: helm
         destination: helm/mlflow/{{ context.cluster }}
         external: true
-      - source: services/oauth-proxy-ingress.yaml.liquid
-        destination: services/apps/mlflow/oauth-proxy-ingress.yaml.liquid
-        external: true
       - source: "terraform/{{ context.cloud }}"
         destination: "terraform/apps/mlflow/{{ context.cluster }}"
-        external: true
-      - source: mlflow-raw-servicedeployment.yaml
-        destination: "bootstrap/apps/mlflow/{{ context.cluster }}/mlflow-raw-servicedeployment.yaml"
         external: true
       - source: mlflow-servicedeployment.yaml
         destination: "bootstrap/apps/mlflow/{{ context.cluster }}/mlflow-servicedeployment.yaml"
@@ -54,10 +48,6 @@ spec:
     - name: cluster
       type: STRING
       documentation: Handle of the cluster you want to deploy mlflow to.
-    - name: stackCluster
-      type: STRING
-      documentation: Handle of the cluster used to run Infrastructure Stacks for provisioning the infrastructure. Defaults to the management cluster.
-      default: mgmt
     - name: cloud
       type: ENUM
       documentation: Cloud provider you want to deploy mlflow to.

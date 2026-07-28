@@ -20,4 +20,4 @@ spec:
     namespace: infra
   configuration:
     version: '1.8'
-  cluster: {{ context.stackCluster }}
+  cluster: mgmt
