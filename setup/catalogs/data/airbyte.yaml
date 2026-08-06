@@ -16,23 +16,17 @@ spec:
     - source: helm
       destination: helm/airbyte/{{ context.cluster }}
       external: true
-    - source: services/oauth-proxy-ingress.yaml.liquid
-      destination: services/apps/airbyte/oauth-proxy-ingress.yaml.liquid
+    - source: oauth-proxy-config-servicedeployment.yaml
+      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/oauth-proxy-config-servicedeployment.yaml"
       external: true
     - source: "terraform/{{ context.cloud }}"
       destination: "terraform/apps/airbyte/{{ context.cluster }}"
-      external: true
-    - source: airbyte-raw-servicedeployment.yaml
-      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-raw-servicedeployment.yaml"
       external: true
     - source: airbyte-servicedeployment.yaml
       destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-servicedeployment.yaml"
       external: true
     - source: airbyte-stack.yaml
       destination: "bootstrap/apps/airbyte/{{ context.cluster }}/airbyte-stack.yaml"
-      external: true
-    - source: oauth-proxy-config-servicedeployment.yaml
-      destination: "bootstrap/apps/airbyte/{{ context.cluster }}/oauth-proxy-config-servicedeployment.yaml"
       external: true
     - source: README.md
       destination: documentation/airbyte/README.md
