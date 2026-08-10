@@ -1,0 +1,117 @@
+{% raw %}
+fullnameOverride: kestra
+
+common:
+  replicas: 1
+  resources:
+    requests:
+      cpu: "2"
+      memory: 4Gi
+    limits:
+      memory: 8Gi
+  {% if configuration.cloud == 'azure' %}
+  podLabels:
+    azure.workload.identity/use: "true"
+  {% endif %}
+
+serviceAccount:
+  create: true
+  automount: true
+  name: "{{ imports[configuration.stackName].service_account_name }}"
+  {% if configuration.cloud == 'gcp' %}
+  annotations:
+    iam.gke.io/gcp-service-account: "{{ imports[configuration.stackName].gcp_service_account_email }}"
+  {% elsif configuration.cloud == 'azure' %}
+  annotations:
+    azure.workload.identity/client-id: "{{ imports[configuration.stackName].azure_client_id }}"
+  {% endif %}
+
+deployments:
+  standalone:
+    dind:
+      enabled: {{ configuration.enableDockerRunner }}
+
+dind:
+  enabled: {{ configuration.enableDockerRunner }}
+  mode: rootless
+  socketPath: /dind
+  tmpPath: /tmp
+
+configurations:
+  application:
+    datasources:
+      postgres:
+        url: "jdbc:postgresql://{{ imports[configuration.stackName].postgres_host }}:5432/kestra?sslmode=require"
+        driver-class-name: org.postgresql.Driver
+        username: kestra
+    kestra:
+      queue:
+        type: postgres
+      repository:
+        type: postgres
+      url: "https://{{ configuration.hostname }}"
+      storage:
+        {% if configuration.cloud == 'aws' %}
+        type: s3
+        s3:
+          bucket: "{{ imports[configuration.stackName].storage_bucket_name }}"
+          region: "{{ configuration.region }}"
+        {% elsif configuration.cloud == 'gcp' %}
+        type: gcs
+        gcs:
+          bucket: "{{ imports[configuration.stackName].storage_bucket_name }}"
+          project-id: "{{ imports[configuration.stackName].project_id }}"
+        {% elsif configuration.cloud == 'azure' %}
+        type: azure
+        azure:
+          endpoint: "{{ imports[configuration.stackName].storage_account_endpoint }}"
+          container: "{{ imports[configuration.stackName].storage_bucket_name }}"
+          workload-identity-client-id: "{{ imports[configuration.stackName].azure_client_id }}"
+        {% endif %}
+  secrets:
+    - name: kestra-secrets
+      key: application-secrets.yml
+
+extraManifests:
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: kestra-secrets
+      labels:
+        app.kubernetes.io/name: kestra
+        app.kubernetes.io/part-of: kestra
+    type: Opaque
+    stringData:
+      application-secrets.yml: |
+        datasources:
+          postgres:
+            password: "{{ imports[configuration.stackName].postgres_password }}"
+        kestra:
+          encryption:
+            secret-key: "{{ imports[configuration.stackName].encryption_key }}"
+          server:
+            basic-auth:
+              username: "{{ configuration.adminEmail }}"
+              password: "{{ imports[configuration.stackName].admin_password }}"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "{{ configuration.maxUploadSize }}"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  hosts:
+    - host: "{{ configuration.hostname }}"
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: kestra-tls
+      hosts:
+        - "{{ configuration.hostname }}"
+{% endraw %}

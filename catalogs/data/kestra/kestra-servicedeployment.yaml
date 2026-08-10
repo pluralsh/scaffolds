@@ -1,0 +1,43 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: kestra-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  namespace: kestra
+  git:
+    folder: helm/kestra/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    url: https://helm.kestra.io/
+    version: "1.3.x"
+    chart: kestra
+    release: kestra
+    valuesFiles:
+      - kestra.yaml.liquid
+  imports:
+    - stackRef:
+        name: kestra-{{ context.cluster }}
+        namespace: apps
+  configuration:
+    cluster: "{{ context.cluster }}"
+    cloud: "{{ context.cloud }}"
+    hostname: "{{ context.hostname }}"
+    adminEmail: "{{ context.adminEmail }}"
+    maxUploadSize: "{{ context.maxUploadSize }}"
+    enableDockerRunner: {{ context.enableDockerRunner }}
+    stackName: "kestra-{{ context.cluster }}"
+    {% if context.cloud == 'aws' %}
+    region: "{{ context.region }}"
+    {% endif %}
+  clusterRef:
+    kind: Cluster
+    name: "{{ context.cluster }}"
+    namespace: infra
