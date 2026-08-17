@@ -1,0 +1,53 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: jenkins
+spec:
+  name: jenkins
+  icon: https://www.jenkins.io/images/logos/jenkins/jenkins.svg
+  identifier: mgmt
+  documentation: |
+    Deploys a persistent Jenkins controller with ephemeral Kubernetes build agents.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/jenkins
+    templates:
+    - source: README.md
+      destination: documentation/jenkins/README.md
+      external: true
+    - source: helm/jenkins.yaml.liquid
+      destination: helm/jenkins/jenkins.yaml.liquid
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: bootstrap/apps/jenkins/{{ context.cluster }}/servicedeployment.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Jenkins setup ({{ context.cluster }})"
+  message: |
+    Deploys Jenkins on {{ context.cluster }} at https://{{ context.hostname }}.
+
+    The target cluster needs nginx ingress, cert-manager with the `plural`
+    ClusterIssuer, and a default StorageClass.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: Handle of the Kubernetes cluster where Jenkins will run.
+  - name: hostname
+    type: STRING
+    documentation: Lowercase DNS hostname used to expose Jenkins over HTTPS.
+    validation:
+      regex: '^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$'
+  - name: storageSize
+    type: STRING
+    documentation: Size of the persistent volume used for JENKINS_HOME.
+    default: 20Gi
+    validation:
+      regex: '^[1-9][0-9]*(Ei|Pi|Ti|Gi|Mi|Ki)$'
