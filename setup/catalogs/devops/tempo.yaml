@@ -4,10 +4,10 @@ metadata:
   name: tempo
 spec:
   name: tempo
-  icon: https://raw.githubusercontent.com/grafana/tempo/main/docs/sources/tempo/tempo_logo.png
+  icon: https://grafana.com/static/assets/img/logos/grafana-tempo.svg
   identifier: mgmt
   documentation: |
-    Sets up a Grafana Tempo backend for distributed tracing (OTLP ingest).
+    Sets up a Grafana Tempo backend with cloud object storage for distributed tracing (OTLP ingest).
   creates:
     git:
       ref: main
@@ -16,11 +16,14 @@ spec:
     - source: README.md
       destination: documentation/tempo/README.md
       external: true
-    - source: helm/tempo.yaml.liquid
-      destination: "helm/tempo/tempo.yaml.liquid"
+    - source: helm
+      destination: "helm/tempo/{{ context.cluster }}"
       external: true
-    - source: servicedeployment.yaml.liquid
-      destination: "bootstrap/apps/tempo/{{ context.cluster }}/servicedeployment.yaml"
+    - source: "terraform/{{ context.cloud }}"
+      destination: "terraform/apps/tempo/{{ context.cluster }}"
+      external: true
+    - source: tempo.yaml.liquid
+      destination: "bootstrap/apps/tempo/{{ context.cluster }}/tempo.yaml"
       external: true
   repositoryRef:
     name: scaffolds
@@ -28,12 +31,38 @@ spec:
     name: devops
   scmConnectionRef:
     name: plural # you'll need to add this ScmConnection manually before this is functional
-  title: "Grafana Tempo setup ({{ context.cluster }})"
+  title: "Grafana Tempo setup ({{ context.cluster }}, {{ context.cloud }})"
   message: |
-    Sets up a Grafana Tempo distributed tracing backend on {{ context.cluster }} with OTLP ingest enabled.
+    Sets up a Grafana Tempo distributed tracing backend on {{ context.cluster }} with OTLP ingest and {{ context.cloud }} object storage.
 
     Plural Service: mgmt/apps
   configuration:
   - name: cluster
     type: CLUSTER
     documentation: the cluster you want to deploy Tempo to
+  - name: cloud
+    type: ENUM
+    documentation: the cloud provider hosting the target cluster
+    values:
+    - aws
+    - azure
+    - gcp
+  - name: bucket
+    type: STRING
+    documentation: the globally unique S3/GCS bucket name, or Azure Blob container name, used for trace storage
+  - name: region
+    type: STRING
+    documentation: the AWS region containing the target EKS cluster and Tempo bucket
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: storageAccount
+    type: STRING
+    documentation: the Azure storage account in the target AKS cluster's resource group
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
