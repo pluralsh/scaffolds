@@ -1,0 +1,65 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: tempo-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/tempo/{{ context.cluster }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  {% if context.cloud == 'azure' %}
+  jobSpec:
+    namespace: plrl-deploy-operator
+    labels:
+      azure.workload.identity/use: "true"
+    serviceAccount: stacks
+  {% endif %}
+  clusterRef:
+    name: mgmt
+    namespace: infra
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: tempo-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: tempo
+  namespace: tempo
+  git:
+    folder: helm/tempo/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "x.x.x"
+    chart: tempo
+    release: tempo
+    url: https://grafana-community.github.io/helm-charts
+    valuesFiles:
+    - tempo.yaml.liquid
+  imports:
+  - stackRef:
+      name: tempo-{{ context.cluster }}
+      namespace: apps
+  configuration:
+    cluster: {{ context.cluster }}
+    cloud: {{ context.cloud }}
+    stackName: tempo-{{ context.cluster }}
+  cluster: {{ context.cluster }}

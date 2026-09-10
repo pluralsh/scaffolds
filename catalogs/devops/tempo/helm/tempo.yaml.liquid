@@ -2,8 +2,6 @@
 fullnameOverride: tempo
 
 tempo:
-  # OTLP is disabled by default in this chart, so we explicitly turn on the
-  # gRPC (4317) and HTTP (4318) receivers that the OpenTelemetry demo exports to.
   receivers:
     otlp:
       protocols:
@@ -12,11 +10,48 @@ tempo:
         http:
           endpoint: 0.0.0.0:4318
 
-  # This is a demo tracing backend, not long-term storage. Keep a short local
-  # retention window on the default filesystem backend.
-  retention: 24h
+  retention: 168h
 
-# Demo backend: no need to survive pod restarts.
+  storage:
+    trace:
+{% if configuration.cloud == 'aws' %}
+      backend: s3
+      s3:
+        bucket: {{ imports[configuration.stackName].bucket_name }}
+        endpoint: s3.{{ imports[configuration.stackName].region }}.amazonaws.com
+        region: {{ imports[configuration.stackName].region }}
+        native_aws_auth_enabled: true
+{% elsif configuration.cloud == 'azure' %}
+      backend: azure
+      azure:
+        container_name: {{ imports[configuration.stackName].container_name }}
+        storage_account_name: {{ imports[configuration.stackName].storage_account_name }}
+        use_federated_token: true
+{% elsif configuration.cloud == 'gcp' %}
+      backend: gcs
+      gcs:
+        bucket_name: {{ imports[configuration.stackName].bucket_name }}
+{% endif %}
+
+serviceAccount:
+  create: true
+  name: {{ imports[configuration.stackName].service_account_name }}
+{% if configuration.cloud == 'azure' %}
+  annotations:
+    azure.workload.identity/client-id: {{ imports[configuration.stackName].client_id }}
+{% elsif configuration.cloud == 'gcp' %}
+  annotations:
+    iam.gke.io/gcp-service-account: {{ imports[configuration.stackName].service_account_email }}
+{% endif %}
+
+{% if configuration.cloud == 'azure' %}
+podLabels:
+  azure.workload.identity/use: "true"
+{% endif %}
+
+# Object storage contains completed blocks; this PVC protects the local WAL
+# and in-flight traces across pod restarts.
 persistence:
-  enabled: false
+  enabled: true
+  size: 10Gi
 {% endraw %}

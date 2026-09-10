@@ -56,5 +56,5 @@ spec:
     optional: true
     documentation: |
       Optional Grafana Tempo query URL to auto-configure a traces datasource (e.g. from the `tempo` catalog).
-      Use the in-cluster service (http://tempo.tempo.svc.cluster.local:3100) if Grafana is co-located,
+      Use the in-cluster service (http://tempo.tempo.svc.cluster.local:3200) if Grafana is co-located,
       or a Tempo ingress hostname if Grafana runs on a different cluster.
