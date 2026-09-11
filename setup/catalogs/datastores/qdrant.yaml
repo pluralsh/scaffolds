@@ -1,0 +1,44 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: qdrant
+spec:
+  name: qdrant
+  icon: https://qdrant.github.io/qdrant-helm/logo_with_text.svg
+  identifier: mgmt
+  documentation: |
+    Sets up a single-node, persistent Qdrant vector database on a selected cluster.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/datastores/qdrant
+    templates:
+    - source: README.md
+      destination: documentation/qdrant/README.md
+      external: true
+    - source: helm/qdrant.yaml.liquid
+      destination: helm/qdrant/qdrant.yaml.liquid
+      external: true
+    - source: generatedsecret.yaml
+      destination: bootstrap/apps/qdrant/{{ context.cluster }}/generatedsecret.yaml
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: bootstrap/apps/qdrant/{{ context.cluster }}/servicedeployment.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: datastores
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Qdrant vector database ({{ context.cluster }})"
+  message: |
+    Sets up a single-node Qdrant vector database on {{ context.cluster }}.
+
+    The deployment uses a 10 GiB persistent volume, ClusterIP-only access, and a generated API key.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster where Qdrant should run
