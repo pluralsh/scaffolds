@@ -1,0 +1,150 @@
+{{- $vip := .Values.cluster.vsphere.kubeVip.address | default .Values.cluster.vsphere.controlPlaneEndpoint.host -}}
+{{- $kubeVipEnabled := and .Values.cluster.vsphere.kubeVip.enabled $vip -}}
+{{- $keys := .Values.controlPlane.sshAuthorizedKeys -}}
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: KubeadmControlPlane
+metadata:
+  name: {{ .Values.cluster.name }}
+  labels:
+    {{- include "workload-cluster.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  replicas: {{ .Values.controlPlane.replicas }}
+  version: v{{ trimPrefix "v" (.Values.cluster.kubernetesVersion | toString) }}
+  machineTemplate:
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: VSphereMachineTemplate
+        name: {{ .Values.cluster.name }}
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      controlPlaneEndpoint: {{ printf "%s:%d" .Values.cluster.vsphere.controlPlaneEndpoint.host (.Values.cluster.vsphere.controlPlaneEndpoint.port | default 6443 | int) }}
+      apiServer:
+        certSANs:
+        - {{ .Values.cluster.vsphere.controlPlaneEndpoint.host | quote }}
+        {{- with .Values.cluster.vsphere.kubeVip.address }}
+        {{- if ne . $.Values.cluster.vsphere.controlPlaneEndpoint.host }}
+        - {{ . | quote }}
+        {{- end }}
+        {{- end }}
+      controllerManager:
+        extraArgs:
+        - name: cloud-provider
+          value: external
+    initConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+        - name: cloud-provider
+          value: external
+        name: '{{`{{ local_hostname }}`}}'
+    joinConfiguration:
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+        - name: cloud-provider
+          value: external
+        name: '{{`{{ local_hostname }}`}}'
+    {{- include "workload-cluster.preKubeadmCommands" (dict "kubeVipEnabled" $kubeVipEnabled) | nindent 4 }}
+    {{- include "workload-cluster.kubeadmUsers" (dict "keys" $keys) | nindent 4 }}
+    {{- if $kubeVipEnabled }}
+    files:
+    - content: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: kube-vip
+          namespace: kube-system
+        spec:
+          containers:
+          - name: kube-vip
+            image: {{ .Values.cluster.vsphere.kubeVip.image }}
+            imagePullPolicy: IfNotPresent
+            args:
+            - manager
+            env:
+            - name: vip_arp
+              value: "true"
+            - name: port
+              value: "6443"
+            - name: vip_interface
+              value: ""
+            - name: vip_cidr
+              value: "32"
+            - name: cp_enable
+              value: "true"
+            - name: cp_namespace
+              value: kube-system
+            - name: vip_ddns
+              value: "false"
+            - name: svc_enable
+              value: "true"
+            - name: svc_leasename
+              value: plndr-svcs-lock
+            - name: svc_election
+              value: "true"
+            - name: vip_leaderelection
+              value: "true"
+            - name: vip_leasename
+              value: plndr-cp-lock
+            - name: vip_leaseduration
+              value: "15"
+            - name: vip_renewdeadline
+              value: "10"
+            - name: vip_retryperiod
+              value: "2"
+            - name: address
+              value: {{ $vip }}
+            - name: prometheus_server
+              value: :2112
+            securityContext:
+              capabilities:
+                add:
+                - NET_ADMIN
+                - NET_RAW
+            volumeMounts:
+            - mountPath: /etc/kubernetes/admin.conf
+              name: kubeconfig
+            - mountPath: /etc/hosts
+              name: etchosts
+          hostNetwork: true
+          volumes:
+          - hostPath:
+              path: /etc/kubernetes/admin.conf
+            name: kubeconfig
+          - hostPath:
+              path: /etc/kube-vip.hosts
+              type: File
+            name: etchosts
+      owner: root:root
+      path: /etc/kubernetes/manifests/kube-vip.yaml
+      permissions: "0644"
+    - content: |
+        127.0.0.1 localhost kubernetes
+      owner: root:root
+      path: /etc/kube-vip.hosts
+      permissions: "0644"
+    - content: |
+        #!/bin/bash
+        set -e
+        KUBEADM_MINOR="$(kubeadm version -o short | cut -d '.' -f 2)"
+        if [[ "$KUBEADM_MINOR" -lt "29" ]]; then
+          exit 0
+        fi
+        IS_KUBEADM_INIT="false"
+        if [[ -f /run/kubeadm/kubeadm.yaml ]]; then
+          IS_KUBEADM_INIT="true"
+        fi
+        if [[ -f /etc/kubeadm.sh ]] && grep -q -e "kubeadm init" /etc/kubeadm.sh; then
+          IS_KUBEADM_INIT="true"
+        fi
+        if [[ "$IS_KUBEADM_INIT" == "true" ]]; then
+          sed -i 's#path: /etc/kubernetes/admin.conf#path: /etc/kubernetes/super-admin.conf#' \
+            /etc/kubernetes/manifests/kube-vip.yaml
+        fi
+      owner: root:root
+      path: /etc/pre-kubeadm-commands/50-kube-vip-prepare.sh
+      permissions: "0700"
+    {{- end }}

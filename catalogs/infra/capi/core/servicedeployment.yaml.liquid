@@ -1,0 +1,28 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: capi-core-{{ context.cluster }}
+  namespace: infra
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: capi-operator
+  namespace: capi-operator-system
+  git:
+    folder: helm/capi/core
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    url: https://kubernetes-sigs.github.io/cluster-api-operator
+    version: "{{ context.operatorVersion }}"
+    chart: cluster-api-operator
+    release: capi-operator
+    valuesFiles:
+    - capi-operator.yaml.liquid
+  configuration:
+    version: {{ context.version }}
+  cluster: {{ context.cluster }}

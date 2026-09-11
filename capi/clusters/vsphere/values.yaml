@@ -1,0 +1,78 @@
+## vSphere uses kubeadm (self-managed); there is no managed control plane option.
+type: unmanaged
+
+cluster:
+  ## The name of the cluster
+  name: azure-lab
+  ## The version of Kubernetes to deploy (e.g. v1.35.0)
+  kubernetesVersion: v1.35.0
+  ## The cidr blocks for pods
+  podCidrBlocks:
+    - 192.168.0.0/16
+  ## The cidr blocks for services
+  serviceCidrBlocks: []
+
+  vsphere:
+    ## vCenter or ESXi server (IP or FQDN); Azure lab uses nginx proxy on public IP
+    server: "172.205.144.3"
+    ## TLS certificate thumbprint (colon-separated hex) for the proxy/vCenter cert
+    thumbprint: "86:D2:F2:5B:6E:01:E8:80:E1:45:05:AD:1D:73:69:02:C6:D5:8B:8B"
+    datacenter: plural
+    datastore: datastore1
+    ## Optional VM folder; omit or leave empty to use default placement
+    folder: ""
+    resourcePool: "plural-dev/Resources"
+    network: VM Network
+    ## VM template with kubeadm (must match kubernetesVersion)
+    template: photon-5-kube-v1.35.0
+    cloneMode: fullClone
+    powerOffMode: trySoft
+    os: Linux
+    identity:
+      username: administrator@vsphere.local
+      password: ""
+    controlPlaneEndpoint:
+      host: "172.205.144.3"
+      port: 6443
+    kubeVip:
+      enabled: true
+      address: "192.168.100.50"
+      image: ghcr.io/kube-vip/kube-vip:v0.8.0
+
+addons:
+  cni:
+    enabled: true
+    podCidr: 192.168.0.0/16
+  cpi:
+    enabled: true
+    image: registry.k8s.io/cloud-pv-vsphere/cloud-provider-vsphere:v1.35.0
+
+controlPlane:
+  replicas: 1
+  sshAuthorizedKeys: []
+  machine:
+    numCPUs: 2
+    memoryMiB: 8192
+    diskGiB: 25
+
+workers:
+  defaults:
+    replicas: 0
+    labels: {}
+    annotations: {}
+    sshAuthorizedKeys: []
+    spec:
+      numCPUs: 2
+      memoryMiB: 8192
+      diskGiB: 25
+      cloneMode: fullClone
+      powerOffMode: trySoft
+      os: Linux
+      network:
+        devices:
+          - dhcp4: true
+            dhcp6: false
+            networkName: VM Network
+  groups:
+    md-0:
+      replicas: 1

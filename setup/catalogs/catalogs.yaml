@@ -73,6 +73,19 @@ spec:
 apiVersion: deployments.plural.sh/v1alpha1
 kind: Catalog
 metadata:
+  name: capi
+spec:
+  name: capi
+  category: infra
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Provision Kubernetes workload clusters with Cluster API — bootstrap management clusters,
+    install infrastructure providers, and create workload clusters.
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
   name: datastores
 spec:
   name: datastores

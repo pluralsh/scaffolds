@@ -1,0 +1,38 @@
+cluster:
+  name: {{ configuration.clusterName }}
+  kubernetesVersion: {{ configuration.version }}
+  vsphere:
+    server: {{ configuration.server }}
+    thumbprint: {{ configuration.thumbprint }}
+    datacenter: {{ configuration.datacenter }}
+    datastore: {{ configuration.datastore }}
+    network: {{ configuration.network }}
+    template: {{ configuration.template }}
+    controlPlaneEndpoint:
+      host: {{ configuration.controlPlaneEndpoint }}
+    kubeVip:
+      address: {{ configuration.controlPlaneEndpoint }}
+    identity:
+      username: {{ configuration.username }}
+      password: {{ configuration.password }}
+
+{% assign workers = configuration.nodePools | from_json %}
+workers:
+  groups:
+    {% if workers and workers.size != 0 -%}
+    {%- for worker in workers %}
+    {{ worker.name }}:
+      replicas: {{ worker.min_size | default: 1 }}
+      spec:
+        numCPUs: {{ worker.num_cpus | default: 2 }}
+        memoryMiB: {{ worker.memory_mib | default: 8192 }}
+        diskGiB: {{ worker.disk_gib | default: 25 }}
+    {% endfor -%}
+    {% else %}
+    md-0:
+      replicas: 1
+      spec:
+        numCPUs: 2
+        memoryMiB: 8192
+        diskGiB: 25
+    {% endif -%}

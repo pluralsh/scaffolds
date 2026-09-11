@@ -1,0 +1,13 @@
+apiVersion: v2
+name: cluster-api-provider-vsphere
+description: A base Helm chart for vSphere Cluster API controller
+type: application
+version: 0.0.1
+appVersion: v1.16.1
+# Plural does not yet publish cluster-api-provider-vsphere in capi-helm-charts.
+# This chart installs CAPV via the Cluster API Operator InfrastructureProvider CR.
+# When a helmify chart is available, add:
+# dependencies:
+#   - name: cluster-api-provider-vsphere
+#     version: 0.0.0
+#     repository: https://pluralsh.github.io/capi-helm-charts
