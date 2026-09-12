@@ -11,8 +11,6 @@ domainFilters:
 - example.org
 
 
-
-
 azure:
   secretName: "external-dns-azure"
 podLabels:
@@ -21,7 +19,3 @@ podLabels:
 serviceAccount:
   annotations:
     azure.workload.identity/client-id: {{ cluster.metadata.iam.external_dns }}
-
-
-
-

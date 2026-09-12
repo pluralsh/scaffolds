@@ -1,17 +1,16 @@
-
 apiVersion: deployments.plural.sh/v1alpha1
 kind: GlobalService
 metadata:
   name: external-dns
   namespace: infra
 spec:
-  {% if context.cloud == "aws" %}
+{% if context.cloud == "aws" %}
   distro: EKS
-  {% elsif context.cloud == "gcp" %}
+{% elsif context.cloud == "gcp" %}
   distro: GKE
-  {% elsif context.cloud == "azure" %}
+{% elsif context.cloud == "azure" %}
   distro: AKS
-  {% endif %}
+{% endif %}
   template:
     name: external-dns
     namespace: external-dns # note this for later

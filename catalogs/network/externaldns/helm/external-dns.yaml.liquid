@@ -16,11 +16,7 @@ domainFilters:
 {% raw %}
 serviceAccount:
   annotations:
-    eks.amazonaws.com/role-arn: {{ cluster.metadata.iam.external_dns }}
-{% endraw %}
-{% endif %}
-
-{% if context.cloud == "azure" %}
+    eks.amazonaws.com/role-arn: {{ cluster.metadata.iam.external_dns }}{% endraw %}{% elsif context.cloud == "azure" %}
 azure:
   secretName: {{ context.azureConfigSecret | json }}
 podLabels:
@@ -28,14 +24,8 @@ podLabels:
 {% raw %}
 serviceAccount:
   annotations:
-    azure.workload.identity/client-id: {{ cluster.metadata.iam.external_dns }}
-{% endraw %}
-{% endif %}
-
-{% if context.cloud == "gcp" %}
+    azure.workload.identity/client-id: {{ cluster.metadata.iam.external_dns }}{% endraw %}{% elsif context.cloud == "gcp" %}
 {% raw %}
 serviceAccount:
   annotations:
-    iam.gke.io/gcp-service-account: {{ cluster.metadata.iam.external_dns }}
-{% endraw %}
-{% endif %}
+    iam.gke.io/gcp-service-account: {{ cluster.metadata.iam.external_dns }}{% endraw %}{% endif %}

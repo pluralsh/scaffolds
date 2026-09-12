@@ -1,13 +1,12 @@
-
 apiVersion: deployments.plural.sh/v1alpha1
 kind: GlobalService
 metadata:
   name: external-dns
   namespace: infra
 spec:
-  
+
   distro: EKS
-  
+
   template:
     name: external-dns
     namespace: external-dns # note this for later
