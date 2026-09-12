@@ -1,0 +1,27 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: nats-dev
+  namespace: apps
+spec:
+
+  name: nats
+  namespace: nats
+  git:
+    folder: helm/nats
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configurationRef:
+    name: nats-users-dev
+    namespace: infra
+  helm:
+    version: "2.14.6"
+    chart: nats
+    release: nats
+    url: https://nats-io.github.io/k8s/helm/charts/
+    valuesFiles:
+    - nats.yaml.liquid
+  cluster: dev

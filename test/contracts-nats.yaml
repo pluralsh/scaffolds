@@ -1,0 +1,14 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: nats
+spec:
+  workdir: test/outputs-nats
+  templates:
+    from: catalogs/datastores/nats
+    to: test/outputs-nats/catalogs/datastores/nats
+  automations:
+  - file: ../../setup/catalogs/datastores/nats.yaml
+    context: ../contexts/nats-dev.yaml
+  - file: ../../setup/catalogs/datastores/nats.yaml
+    context: ../contexts/nats-prod.yaml
