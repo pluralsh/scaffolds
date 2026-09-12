@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: n8n-azure
+spec:
+  workdir: test/outputs-n8n-azure
+  automations:
+    - file: ../../setup/catalogs/data/n8n.yaml
+      context: ../contexts/n8n-azure.yaml
+      externalDir: ../../catalogs/data/n8n

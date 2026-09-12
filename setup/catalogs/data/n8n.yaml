@@ -25,8 +25,8 @@ spec:
     - source: n8n-stack.yaml
       destination: "bootstrap/apps/n8n/{{ context.cluster }}/n8n-stack.yaml"
       external: true
-    - source: README.md
-      destination: documentation/n8n/README.md
+    - source: N8n-Setup-Guide.md
+      destination: documentation/n8n/N8n-Setup-Guide-{{ context.cluster }}.md
       external: true
   repositoryRef:
     name: scaffolds
@@ -61,7 +61,6 @@ spec:
   - name: resourceGroup
     type: STRING
     documentation: Azure resource group that you would like to use.
-    optional: true
     condition:
       field: cloud
       operation: EQ

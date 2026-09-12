@@ -1,0 +1,22 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: n8n-n8n-gcp-test
+  namespace: apps
+spec:
+
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/n8n/n8n-gcp-test
+  repositoryRef:
+    name: infra
+    namespace: infra
+
+  clusterRef:
+    name: mgmt
+    namespace: infra

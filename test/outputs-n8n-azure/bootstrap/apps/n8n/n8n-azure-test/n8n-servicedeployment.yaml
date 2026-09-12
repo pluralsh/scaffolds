@@ -1,0 +1,40 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: n8n-n8n-azure-test
+  namespace: apps
+spec:
+
+  namespace: n8n
+  git:
+    folder: helm/n8n/n8n-azure-test
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "2.1.1"
+    chart: n8n
+    release: n8n
+    ignoreHooks: false
+    url: oci://8gears.container-registry.com/library
+    valuesFiles:
+    - n8n.yaml.liquid
+  imports:
+  - stackRef:
+      name: n8n-n8n-azure-test
+      namespace: apps
+  configuration:
+    cluster: n8n-azure-test
+    stackName: n8n-n8n-azure-test
+    hostname: n8n-azure.example.org
+    region: eastus
+    cloud: azure
+
+    resourceGroup: n8n-test-rg
+
+  clusterRef:
+    kind: Cluster
+    name: n8n-azure-test
+    namespace: infra

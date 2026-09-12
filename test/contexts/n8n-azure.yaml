@@ -1,0 +1,5 @@
+cluster: n8n-azure-test
+cloud: azure
+hostname: n8n-azure.example.org
+region: eastus
+resourceGroup: n8n-test-rg
