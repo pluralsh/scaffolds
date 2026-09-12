@@ -1,0 +1,49 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: memos
+spec:
+  name: memos
+  identifier: mgmt
+  documentation: |
+    Sets up a private Memos instance for team notes and runbooks, with
+    persistent SQLite storage. Bootstrap the first admin through a local
+    port-forward before granting other users network access.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/memos
+    templates:
+    - source: README.md
+      destination: documentation/memos/README.md
+      external: true
+    - source: manifests/resources.yaml
+      destination: "kubernetes/memos/{{ context.cluster }}/resources.yaml"
+      external: true
+    - source: manifests/pvc.yaml.liquid
+      destination: "kubernetes/memos/{{ context.cluster }}/pvc.yaml"
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: "bootstrap/apps/memos/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # Configure this ScmConnection before using the automation.
+  title: "Memos setup ({{ context.cluster }})"
+  message: |
+    Sets up a private, persistent Memos instance on {{ context.cluster }}.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: Kubernetes 1.26 or newer cluster in which Memos will run
+  - name: storageClass
+    type: STRING
+    optional: true
+    documentation: |
+      Optional StorageClass for the 2Gi ReadWriteOnce data volume. Omit or
+      leave empty to use the cluster default StorageClass.

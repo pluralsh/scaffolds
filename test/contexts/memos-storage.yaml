@@ -1,0 +1,5 @@
+cluster: memos-storage
+storageClass: fast-rwo
+ai:
+  session:
+    agent_id: memos-test-agent

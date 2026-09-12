@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: memos-data
+  namespace: memos
+  labels:
+    app.kubernetes.io/name: memos
+spec:
+{% if context.storageClass and context.storageClass != '' %}
+  storageClassName: {{ context.storageClass | quote }}
+{% endif %}
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
