@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: argo-workflows
+spec:
+  workdir: test/outputs-argo-workflows
+  templates:
+    from: catalogs/devops/argo-workflows
+    to: test/outputs-argo-workflows/catalogs/devops/argo-workflows
+  automations:
+  - file: ../../setup/catalogs/devops/argo-workflows.yaml
+    context: ../contexts/argo-workflows.yaml

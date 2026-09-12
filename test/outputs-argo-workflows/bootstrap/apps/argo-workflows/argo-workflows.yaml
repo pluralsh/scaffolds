@@ -1,0 +1,35 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: argo-workflows
+  namespace: apps
+spec:
+  template:
+    name: argo-workflows
+    namespace: argo-workflows
+    helm:
+      url: https://argoproj.github.io/argo-helm
+      chart: argo-workflows
+      version: "2.0.6"
+      values:
+        singleNamespace: false
+        controller:
+          replicas: 2
+          workflowNamespaces:
+          - argo-workflows
+          metricsConfig:
+            enabled: true
+        server:
+          replicas: 2
+          secure: false
+          authModes:
+          - client
+          podSecurityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+        workflow:
+          serviceAccount:
+            create: true
+          rbac:
+            create: true

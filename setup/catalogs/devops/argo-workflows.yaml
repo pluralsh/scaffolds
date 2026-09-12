@@ -1,0 +1,35 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: argo-workflows
+spec:
+  name: argo-workflows
+  icon: https://argoproj.github.io/argo-workflows/assets/logo.png
+  identifier: mgmt
+  documentation: |
+    Sets up the Argo Workflows controller and Argo Server for running
+    container-native workflow pipelines.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/argo-workflows
+    templates:
+    - source: README.md
+      destination: documentation/argo-workflows/README.md
+      external: true
+    - source: argo-workflows.yaml
+      destination: bootstrap/apps/argo-workflows/argo-workflows.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Argo Workflows setup
+  message: |
+    Sets up Argo Workflows event-driven workflow pipelines, including the
+    workflow controller and the Argo Server API/UI in the management cluster.
+
+    Plural Service: mgmt/apps
+  configuration: []
