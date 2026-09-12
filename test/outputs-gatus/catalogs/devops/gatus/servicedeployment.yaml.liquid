@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: gatus-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: gatus
+  namespace: gatus
+  git:
+    ref: main
+    folder: helm/gatus/{{ context.cluster }}
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    chart: gatus
+    version: "1.5.0"
+    release: gatus
+    url: https://twin.github.io/helm-charts
+    valuesFiles:
+    - values.yaml
+  cluster: {{ context.cluster | quote }}

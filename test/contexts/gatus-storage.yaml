@@ -1,0 +1,4 @@
+cluster: workload-b
+endpointName: "API's readiness"
+endpointUrl: 'https://api.example.org/ready?group=one&detail=full'
+storageClass: fast-rwo

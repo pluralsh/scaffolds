@@ -1,0 +1,16 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: gatus
+spec:
+  workdir: test/outputs-gatus
+  templates:
+    from: catalogs/devops/gatus
+    to: test/outputs-gatus/catalogs/devops/gatus
+  automations:
+  - file: ../../setup/catalogs/devops/gatus.yaml
+    context: ../contexts/gatus.yaml
+  - file: ../../setup/catalogs/devops/gatus.yaml
+    context: ../contexts/gatus-storage.yaml
+  - file: ../../setup/catalogs/devops/gatus.yaml
+    context: ../contexts/gatus-empty-storage.yaml

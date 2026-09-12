@@ -1,0 +1,3 @@
+cluster: workload-a
+endpointName: 'Payments: "checkout"'
+endpointUrl: 'http://checkout.apps.svc.cluster.local:8080/health?region=us&detail=full'
