@@ -1,0 +1,99 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: kestra
+spec:
+  name: kestra
+  icon: https://kestra.io/favicon-192x192.png
+  identifier: mgmt
+  documentation: |
+    Sets up a production-oriented Kestra instance with managed PostgreSQL,
+    cloud object storage, workload identity, TLS, and native authentication.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/data/kestra
+    templates:
+      - source: helm
+        destination: helm/kestra/{{ context.cluster }}
+        external: true
+      - source: "terraform/{{ context.cloud }}"
+        destination: terraform/apps/kestra/{{ context.cluster }}
+        external: true
+      - source: kestra-stack.yaml
+        destination: "bootstrap/apps/kestra/{{ context.cluster }}/kestra-stack.yaml"
+        external: true
+      - source: kestra-servicedeployment.yaml
+        destination: "bootstrap/apps/kestra/{{ context.cluster }}/kestra-servicedeployment.yaml"
+        external: true
+      - source: README.md
+        destination: documentation/kestra/README.md
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: data-engineering
+  scmConnectionRef:
+    name: plural  # add this ScmConnection before using the automation
+  title: "Set up Kestra on {{ context.cluster }} ({{ context.cloud }})"
+  message: |
+    Sets up Kestra on {{ context.cluster }} with managed PostgreSQL, durable
+    object storage, workload identity, TLS, and generated administrator credentials.
+
+    Plural Service: mgmt/apps
+  configuration:
+    - name: cluster
+      type: CLUSTER
+      documentation: Handle of the cluster where Kestra will run.
+    - name: cloud
+      type: ENUM
+      documentation: Cloud provider for the Kestra infrastructure.
+      values:
+        - aws
+        - azure
+        - gcp
+    - name: hostname
+      type: STRING
+      documentation: DNS hostname for the Kestra UI and API.
+      validation:
+        regex: '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$'
+    - name: adminEmail
+      type: STRING
+      documentation: Valid email address for the initial Kestra administrator.
+      validation:
+        regex: '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+    - name: storageBucket
+      type: STRING
+      documentation: Globally unique S3/GCS bucket name, or container name unique within the Azure Storage account.
+      validation:
+        regex: '^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$'
+    - name: region
+      type: STRING
+      documentation: AWS region where Kestra infrastructure will be created.
+      optional: true
+      validation:
+        regex: '^[a-z]{2}(-[a-z]+)+-[0-9]$'
+      condition:
+        field: cloud
+        operation: EQ
+        value: aws
+    - name: storageAccount
+      type: STRING
+      documentation: Existing reachable Azure Storage account in the cluster resource group, with hierarchical namespace disabled.
+      optional: true
+      validation:
+        regex: '^[a-z0-9]{3,24}$'
+      condition:
+        field: cloud
+        operation: EQ
+        value: azure
+    - name: maxUploadSize
+      type: STRING
+      default: "100m"
+      documentation: Maximum request body accepted by the NGINX ingress, using k, m, or g units.
+      validation:
+        regex: '^[1-9][0-9]*(k|m|g)$'
+    - name: enableDockerRunner
+      type: BOOL
+      default: "false"
+      documentation: Enable the privileged rootless Docker-in-Docker sidecar for Docker-based script tasks.

@@ -1,0 +1,32 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: kestra-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/kestra/{{ context.cluster }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  variables:
+    storage_bucket: "{{ context.storageBucket }}"
+  {% if context.cloud == 'azure' %}
+  jobSpec:
+    namespace: plrl-deploy-operator
+    labels:
+      azure.workload.identity/use: "true"
+    serviceAccount: stacks
+  {% endif %}
+  clusterRef:
+    name: mgmt
+    namespace: infra
