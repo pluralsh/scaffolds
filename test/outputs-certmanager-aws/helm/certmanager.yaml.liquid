@@ -1,0 +1,10 @@
+
+installCRDs: true
+serviceAccount:
+  name: cert-manager
+  annotations:
+
+    eks.amazonaws.com/role-arn: {{ cluster.metadata.iam.cert_manager }}
+securityContext:
+  fsGroup: 1000
+  runAsNonRoot: true

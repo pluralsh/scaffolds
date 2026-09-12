@@ -5,27 +5,20 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: notifications@plural.sh # replace with an internal email if you want
-
+    email: {{ context.email | json }}
     privateKeySecretRef:
       name: dns01-private-key
-
-    # ACME DNS-01 provider configurations to verify domain
     solvers:
     - dns01:
-        {% if cluster.distro == 'EKS' %}
+{% if context.cloud == 'aws' %}
         route53:
-          region: {{ context.region }}
-        {% endif %}
-        {% if cluster.distro == 'AKS' %}
+          region: {{ context.region | json }}{% elsif context.cloud == 'azure' %}
         azureDNS:
-          hostedZoneName: {{ context.dnsZone }}
-          resourceGroupName: {{ context.resourceGroupName }}
-          subscriptionID: {% raw %}{{ cluster.metadataa.subscription_id }}{% endraw %}
-          environment: AzurePublicCloud
-        {% endif %}
-        {% if cluster.distro == 'GKE' %}
+          hostedZoneName: {{ context.dnsZone | json }}
+          resourceGroupName: {{ context.resourceGroupName | json }}
+          subscriptionID: {% raw %}{{ cluster.metadata.subscription_id }}{% endraw %}
+          managedIdentity:
+            clientID: {% raw %}{{ cluster.metadata.iam.cert_manager }}{% endraw %}
+          environment: AzurePublicCloud{% elsif context.cloud == 'gcp' %}
         cloudDNS:
-          project: {{ cluster.metadata.project }}
-        {% endraw %}
-        {% endif %}
+          project: {% raw %}{{ cluster.metadata.project }}{% endraw %}{% endif %}

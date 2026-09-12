@@ -1,0 +1,13 @@
+
+podLabels:
+  azure.workload.identity/use: "true"
+
+installCRDs: true
+serviceAccount:
+  name: cert-manager
+  annotations:
+
+    azure.workload.identity/client-id: {{ cluster.metadata.iam.cert_manager }}
+securityContext:
+  fsGroup: 1000
+  runAsNonRoot: true

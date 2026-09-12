@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: certmanager-gcp
+spec:
+  workdir: test/outputs-certmanager-gcp
+  automations:
+    - file: ../../setup/catalogs/network/cert-manager.yaml
+      context: ../contexts/certmanager-gcp.yaml
+      externalDir: ../../catalogs/network/cert-manager

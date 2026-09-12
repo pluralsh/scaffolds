@@ -1,0 +1,3 @@
+cloud: aws
+email: certificates@example.org
+region: us-east-2
