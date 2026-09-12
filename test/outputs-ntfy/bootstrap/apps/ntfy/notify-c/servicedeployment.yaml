@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: ntfy-notify-c
+  namespace: apps
+spec:
+
+  agentId: test-agent
+
+  name: ntfy
+  namespace: ntfy
+  git:
+    ref: main
+    folder: helm/ntfy/notify-c
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    chart: ntfy
+    version: "1.2.2"
+    release: ntfy
+    url: https://repo.helmforge.dev
+    valuesFiles:
+    - values.yaml
+  cluster: "notify-c"
