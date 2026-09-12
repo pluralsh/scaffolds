@@ -1,0 +1,29 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: cloudnative-pg
+spec:
+  name: cloudnative-pg
+  icon: https://avatars.githubusercontent.com/u/100373852?v=4
+  identifier: mgmt
+  documentation: Sets up CloudNativePG operator for PostgreSQL on Kubernetes.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/datastores/cloudnative-pg
+    templates:
+      - source: README.md
+        destination: documentation/cloudnative-pg/README.md
+        external: true
+      - source: cloudnative-pg.yaml
+        destination: bootstrap/apps/cloudnative-pg/cloudnative-pg.yaml
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: datastores
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: CloudNativePG setup
+  message: Sets up the CloudNativePG operator for PostgreSQL on Kubernetes.
+  configuration: []

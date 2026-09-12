@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: cloudnative-pg
+spec:
+  workdir: test/outputs-cloudnative-pg
+  templates:
+    from: catalogs/datastores/cloudnative-pg
+    to: test/outputs-cloudnative-pg/catalogs/datastores/cloudnative-pg
+  automations:
+  - file: ../../setup/catalogs/datastores/cloudnative-pg.yaml
+    context: ../contexts/cloudnative-pg.yaml
