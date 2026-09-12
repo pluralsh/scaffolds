@@ -1,0 +1,55 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: gatus
+spec:
+  name: gatus
+  icon: https://raw.githubusercontent.com/TwiN/gatus/a1c8422c2ff2b9d0a6f184c99e4dc728d3f2cd75/web/static/logo-192x192.png
+  identifier: mgmt
+  documentation: |
+    Sets up a persistent Gatus health dashboard for an HTTP endpoint.
+    The dashboard is internal to the target cluster by default.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/gatus
+    templates:
+    - source: README.md
+      destination: documentation/gatus/README.md
+      external: true
+    - source: helm/values.yaml.liquid
+      destination: "helm/gatus/{{ context.cluster }}/values.yaml"
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: "bootstrap/apps/gatus/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Gatus setup ({{ context.cluster }})"
+  message: |
+    Sets up Gatus with persistent health-check history on {{ context.cluster }}.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster in which Gatus will run
+  - name: endpointName
+    type: STRING
+    documentation: a descriptive name for the first monitored endpoint
+  - name: endpointUrl
+    type: STRING
+    documentation: |
+      Full HTTP(S) health URL reachable from the target cluster and expected to
+      return HTTP 200. This value is committed to Git; use an endpoint without
+      credentials in its URL.
+  - name: storageClass
+    type: STRING
+    optional: true
+    documentation: |
+      Optional StorageClass for the 1Gi history volume. Leave empty to use the
+      cluster's default StorageClass, which must support ReadWriteOnce volumes.

@@ -1,0 +1,59 @@
+deployment:
+  # A rolling update can overlap two writers to the same SQLite database.
+  strategy: Recreate
+  annotateConfigChecksum: true
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: false
+
+gateway:
+  route:
+    enabled: false
+
+serviceAccount:
+  create: false
+  autoMount: false
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  seccompProfile:
+    type: RuntimeDefault
+
+persistence:
+  enabled: true
+  size: 1Gi
+  mountPath: /data
+  accessModes:
+  - ReadWriteOnce
+
+
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+config:
+  metrics: true
+  storage:
+    type: sqlite
+    path: /data/gatus.db
+  endpoints:
+  - name: "Payments: \"checkout\""
+    url: "http://checkout.apps.svc.cluster.local:8080/health?region=us&detail=full"
+    interval: 60s
+    conditions:
+    - "[STATUS] == 200"

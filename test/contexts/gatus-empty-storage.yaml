@@ -1,0 +1,7 @@
+cluster: workload-c
+endpointName: Ready
+endpointUrl: 'http://ready.apps.svc.cluster.local/health'
+storageClass: ''
+ai:
+  session:
+    agent_id: test-agent
