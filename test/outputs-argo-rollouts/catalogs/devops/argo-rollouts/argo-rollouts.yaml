@@ -1,0 +1,37 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: argo-rollouts
+  namespace: apps
+spec:
+  template:
+    name: argo-rollouts
+    namespace: argo-rollouts
+    helm:
+      url: https://argoproj.github.io/argo-helm
+      chart: argo-rollouts
+      version: "2.43.1"
+      values:
+        installCRDs: true
+        keepCRDs: true
+        clusterInstall: true
+        providerRBAC:
+          enabled: false
+        controller:
+          replicas: 2
+          metrics:
+            enabled: true
+            serviceMonitor:
+              enabled: false
+        podSecurityContext:
+          runAsNonRoot: true
+        containerSecurityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          seccompProfile:
+            type: RuntimeDefault
+        dashboard:
+          enabled: false
