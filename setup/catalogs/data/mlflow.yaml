@@ -34,8 +34,8 @@ spec:
       - source: oauth-proxy-config-servicedeployment.yaml
         destination: "bootstrap/apps/mlflow/{{ context.cluster }}/oauth-proxy-config-servicedeployment.yaml"
         external: true
-      - source: README.md
-        destination: documentation/mlflow/README.md
+      - source: Mlflow-Setup-Guide.md
+        destination: documentation/mlflow/Mlflow-Setup-Guide-{{ context.cluster }}.md
         external: true
   repositoryRef:
     name: scaffolds

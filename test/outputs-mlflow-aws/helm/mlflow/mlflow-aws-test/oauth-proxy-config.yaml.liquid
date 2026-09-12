@@ -1,4 +1,4 @@
-{% raw %}
+
 service:
   name: mlflow-oauth2-proxy
   selector:
@@ -14,4 +14,4 @@ secret:
   upstream: http://localhost:5000
   name: mlflow-proxy-config
   env:
-    OAUTH2_PROXY_UPSTREAM_TIMEOUT: '120s'{% endraw %}
+    OAUTH2_PROXY_UPSTREAM_TIMEOUT: '120s'

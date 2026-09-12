@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: mlflow-aws
+spec:
+  workdir: test/outputs-mlflow-aws
+  automations:
+    - file: ../../setup/catalogs/data/mlflow.yaml
+      context: ../contexts/mlflow-aws.yaml
+      externalDir: ../../catalogs/data/mlflow

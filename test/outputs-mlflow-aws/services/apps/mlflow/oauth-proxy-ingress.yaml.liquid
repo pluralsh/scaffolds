@@ -1,4 +1,4 @@
-{% raw %}
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -29,4 +29,4 @@ spec:
   tls:
     - hosts:
         - {{ configuration.hostname }}
-      secretName: mlflow-tls{% endraw %}
+      secretName: mlflow-tls
