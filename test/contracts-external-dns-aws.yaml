@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: external-dns-aws
+spec:
+  workdir: test/outputs-external-dns-aws
+  automations:
+    - file: ../../setup/catalogs/network/external-dns.yaml
+      context: ../contexts/external-dns-aws.yaml
+      externalDir: ../../catalogs/network/externaldns

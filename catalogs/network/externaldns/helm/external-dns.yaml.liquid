@@ -10,32 +10,22 @@ txtOwnerId: plrl-{{ cluster.handle }} # templating in the cluster handle, which 
 policy: upsert-only
 
 domainFilters:
-- {{ context.dnsZone }} 
+- {{ context.dnsZone }}
 
 {% if context.cloud == "aws" %}
 {% raw %}
 serviceAccount:
   annotations:
-    eks.amazonaws.com/role-arn: {{ cluster.metadata.iam.external_dns }} 
-{% endraw %}
-{% endif %}
-
-{% if context.cloud == "azure" %}
+    eks.amazonaws.com/role-arn: {{ cluster.metadata.iam.external_dns }}{% endraw %}{% elsif context.cloud == "azure" %}
+azure:
+  secretName: {{ context.azureConfigSecret | json }}
+podLabels:
+  azure.workload.identity/use: "true"
 {% raw %}
 serviceAccount:
   annotations:
-    azure.workload.identity/client-id: {{ cluster.metadata.iam.external_dns }}
-  labels:
-    azure.workload.identity/use: "true"
-{% endraw %}
-{% endif %}
-
-{% if context.cloud == "gcp" %}
+    azure.workload.identity/client-id: {{ cluster.metadata.iam.external_dns }}{% endraw %}{% elsif context.cloud == "gcp" %}
 {% raw %}
 serviceAccount:
   annotations:
-    iam.gke.io/gcp-service-account: {{ cluster.metadata.iam.external_dns }}
-  labels:
-    azure.workload.identity/use: "true"
-{% endraw %}
-{% endif %}
+    iam.gke.io/gcp-service-account: {{ cluster.metadata.iam.external_dns }}{% endraw %}{% endif %}
