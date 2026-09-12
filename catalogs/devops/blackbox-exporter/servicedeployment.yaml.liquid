@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: blackbox-exporter-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: blackbox-exporter
+  namespace: blackbox-exporter
+  git:
+    ref: main
+    folder: helm/blackbox-exporter/{{ context.cluster }}
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    chart: prometheus-blackbox-exporter
+    version: "11.18.0"
+    release: blackbox-exporter
+    url: https://prometheus-community.github.io/helm-charts
+    valuesFiles:
+    - values.yaml
+  cluster: {{ context.cluster | quote }}
