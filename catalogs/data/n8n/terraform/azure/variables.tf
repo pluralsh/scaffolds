@@ -26,4 +26,3 @@ variable "db_sku" {
   type = string
   default = "GP_Standard_D2s_v3"
 }
-

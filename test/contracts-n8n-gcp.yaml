@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: n8n-gcp
+spec:
+  workdir: test/outputs-n8n-gcp
+  automations:
+    - file: ../../setup/catalogs/data/n8n.yaml
+      context: ../contexts/n8n-gcp.yaml
+      externalDir: ../../catalogs/data/n8n

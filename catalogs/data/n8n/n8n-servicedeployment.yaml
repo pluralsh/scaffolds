@@ -16,11 +16,11 @@ spec:
     name: infra
     namespace: infra
   helm:
-    version: "1.4.1"
+    version: "2.1.1"
     chart: n8n
     release: n8n
     ignoreHooks: false
-    url: https://8gears.container-registry.com/chartrepo/library
+    url: oci://8gears.container-registry.com/library
     valuesFiles:
     - n8n.yaml.liquid
   imports:
@@ -33,9 +33,9 @@ spec:
     hostname: {{ context.hostname }}
     region: {{ context.region }}
     cloud: {{ context.cloud }}
-    {% if context.cloud == 'azure' %}
+{% if context.cloud == 'azure' %}
     resourceGroup: {{ context.resourceGroup }}
-    {% endif %}
+{% endif %}
   clusterRef:
     kind: Cluster
     name: {{ context.cluster }}

@@ -1,0 +1,50 @@
+
+main:
+  config:
+    db:
+      type: postgresdb
+      postgresdb:
+        host: {{ imports[configuration.stackName].postgres_host | json }}
+        port: 5432
+        database: n8n
+        user: n8n
+  secret:
+    n8n:
+      encryption_key: {{ imports[configuration.stackName].encryption_key | json }}
+    db:
+      postgresdb:
+        password: {{ imports[configuration.stackName].postgres_password | json }}
+  extraEnv:
+    N8N_EDITOR_BASE_URL:
+      value: {{ configuration.hostname | prepend: 'https://' | json }}
+    WEBHOOK_URL:
+      value: {{ configuration.hostname | prepend: 'https://' | append: '/' | json }}
+    N8N_DIAGNOSTICS_ENABLED:
+      value: "false"
+    N8N_HIRING_BANNER_ENABLED:
+      value: "false"
+    N8N_PERSONALIZATION_ENABLED:
+      value: "false"
+  service:
+    type: ClusterIP
+    port: 5678
+
+ingress:
+  enabled: true
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  className: nginx
+  hosts:
+    - host: {{ configuration.hostname | json }}
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: n8n-tls
+      hosts:
+        - {{ configuration.hostname | json }}

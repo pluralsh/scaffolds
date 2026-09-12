@@ -1,0 +1,4 @@
+cluster: n8n-aws-test
+cloud: aws
+hostname: n8n-aws.example.org
+region: us-east-1

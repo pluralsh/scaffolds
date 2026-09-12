@@ -1,0 +1,4 @@
+cluster: n8n-gcp-test
+cloud: gcp
+hostname: n8n-gcp.example.org
+region: us-central1

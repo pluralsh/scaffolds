@@ -16,4 +16,3 @@ provider "plural" {}
 provider "aws" {
   region = "{{ context.region }}"
 }
-

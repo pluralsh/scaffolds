@@ -28,4 +28,3 @@ variable "backup_retention_period" {
 variable "db_instance_class" {
   default = "db.t4g.medium"
 }
-

@@ -47,4 +47,3 @@ variable "insights_config" {
 variable "user_name" {
   default = "n8n"
 }
-

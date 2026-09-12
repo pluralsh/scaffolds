@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: n8n-aws
+spec:
+  workdir: test/outputs-n8n-aws
+  automations:
+    - file: ../../setup/catalogs/data/n8n.yaml
+      context: ../contexts/n8n-aws.yaml
+      externalDir: ../../catalogs/data/n8n
