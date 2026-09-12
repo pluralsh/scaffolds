@@ -1,0 +1,29 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: nats-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: nats
+  namespace: nats
+  git:
+    folder: helm/nats
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configurationRef:
+    name: nats-users-{{ context.cluster }}
+    namespace: infra
+  helm:
+    version: "2.14.6"
+    chart: nats
+    release: nats
+    url: https://nats-io.github.io/k8s/helm/charts/
+    valuesFiles:
+    - nats.yaml.liquid
+  cluster: {{ context.cluster }}

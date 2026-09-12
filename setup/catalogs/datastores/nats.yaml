@@ -1,0 +1,44 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: nats
+spec:
+  name: nats
+  icon: https://nats.io/img/nats-icon-color.png
+  identifier: mgmt
+  documentation: |
+    Sets up a single-node, persistent NATS JetStream server on a selected cluster.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/datastores/nats
+    templates:
+    - source: README.md
+      destination: documentation/nats/README.md
+      external: true
+    - source: helm/nats.yaml.liquid
+      destination: helm/nats/nats.yaml.liquid
+      external: true
+    - source: generatedsecret.yaml
+      destination: bootstrap/apps/nats/{{ context.cluster }}/generatedsecret.yaml
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: bootstrap/apps/nats/{{ context.cluster }}/servicedeployment.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: datastores
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "NATS JetStream ({{ context.cluster }})"
+  message: |
+    Sets up a single-node NATS JetStream server on {{ context.cluster }}.
+
+    The deployment uses a 10 GiB RWO volume, internal ClusterIP access on port 4222, and a generated username/password.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster where NATS should run
