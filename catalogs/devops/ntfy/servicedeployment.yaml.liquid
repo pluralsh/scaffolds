@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: ntfy-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: ntfy
+  namespace: ntfy
+  git:
+    ref: main
+    folder: helm/ntfy/{{ context.cluster }}
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    chart: ntfy
+    version: "1.2.2"
+    release: ntfy
+    url: https://repo.helmforge.dev
+    valuesFiles:
+    - values.yaml
+  cluster: {{ context.cluster | quote }}

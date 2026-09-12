@@ -1,0 +1,3 @@
+cluster: notify-b
+baseUrl: 'https://notify.example.org'
+storageClass: fast-rwo
