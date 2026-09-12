@@ -1,0 +1,40 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: blackbox-exporter
+spec:
+  name: blackbox-exporter
+  icon: https://github.com/pluralsh/plural-artifacts/blob/main/monitoring/plural/icons/monitoring.png?raw=true
+  identifier: mgmt
+  documentation: |
+    Sets up a Prometheus Blackbox Exporter on the selected cluster.
+    The default configuration provides safe HTTP probes without exposing a route.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/blackbox-exporter
+    templates:
+    - source: README.md
+      destination: "documentation/blackbox-exporter/README.md"
+      external: true
+    - source: helm/values.yaml.liquid
+      destination: "helm/blackbox-exporter/{{ context.cluster }}/values.yaml"
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: "bootstrap/apps/blackbox-exporter/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Blackbox Exporter setup ({{ context.cluster }})"
+  message: |
+    Sets up a Prometheus Blackbox Exporter on {{ context.cluster }}.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster in which Blackbox Exporter will run
