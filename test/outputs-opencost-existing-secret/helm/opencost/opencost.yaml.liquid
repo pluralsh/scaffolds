@@ -1,0 +1,20 @@
+opencost:
+  exporter:
+    defaultClusterId: {{ cluster.handle }}
+    extraEnv:
+      KUBECOST_SCRAPE_INTERVAL: 30s
+      PROM_CLUSTER_ID_LABEL: cluster
+  prometheus:
+    external:
+      enabled: true
+      url: "https://metrics.example.com/select/0/prometheus"
+    internal:
+      enabled: false
+
+    existingSecretName: "opencost-prometheus"
+    username_key: username
+    password_key: password
+
+  metrics:
+    serviceMonitor:
+      enabled: true

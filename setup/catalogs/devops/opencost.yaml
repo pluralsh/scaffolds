@@ -13,8 +13,8 @@ spec:
       ref: main
       folder: catalogs/devops/opencost
     templates:
-    - source: README.md
-      destination: documentation/opencost/README.md
+    - source: Opencost-Setup-Guide.md
+      destination: documentation/opencost/Opencost-Prometheus-Setup.md
       external: true
     - source: opencost.yaml.liquid
       destination: "helm/opencost/opencost.yaml.liquid"
@@ -49,7 +49,6 @@ spec:
     documentation: |
       Name of an existing Kubernetes secret in the opencost namespace.
       The secret must contain `username` and `password` keys (stringData or data).
-    optional: true
     condition:
       field: auth
       operation: EQ
@@ -57,7 +56,6 @@ spec:
   - name: username
     type: STRING
     documentation: Username for metrics backend authentication.
-    optional: true
     condition:
       field: auth
       operation: EQ
@@ -65,7 +63,6 @@ spec:
   - name: password
     type: STRING
     documentation: Password for metrics backend authentication.
-    optional: true
     condition:
       field: auth
       operation: EQ

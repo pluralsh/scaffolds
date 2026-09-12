@@ -7,16 +7,16 @@ opencost:
   prometheus:
     external:
       enabled: true
-      url: {{ context.prometheusUrl }}
+      url: {{ context.prometheusUrl | json }}
     internal:
       enabled: false
 {% if context.auth == 'existing_secret' %}
-    existingSecretName: '{{ context.secretName }}'
+    existingSecretName: {{ context.secretName | json }}
     username_key: username
     password_key: password
 {% else %}
-    username: '{{ context.username }}'
-    password: '{{ context.password }}'
+    username: {{ context.username | json }}
+    password: {{ context.password | json }}
     username_key: username
     password_key: password
 {% endif %}
