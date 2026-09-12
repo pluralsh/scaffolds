@@ -1,0 +1,31 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: falco
+  namespace: apps
+spec:
+  template:
+    name: falco
+    namespace: falco
+    helm:
+      url: https://falcosecurity.github.io/charts
+      chart: falco
+      version: "9.1.0"
+      values:
+        driver:
+          enabled: true
+          kind: modern_ebpf
+        collectors:
+          enabled: true
+          kubernetes:
+            enabled: true
+        falcosidekick:
+          enabled: false
+        responseActions:
+          enabled: false
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            memory: 1Gi
