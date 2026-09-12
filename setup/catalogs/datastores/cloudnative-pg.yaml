@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: cloudnative-pg
+spec:
+  name: cloudnative-pg
+  icon: https://avatars.githubusercontent.com/u/100373852?v=4
+  identifier: mgmt
+  documentation: Sets up CloudNativePG operator for PostgreSQL on Kubernetes.
+  creates:
+    git:
+      ref: main
+      folder: catalog/datastores/cloudnative-pg
+      repository: "{{ context.repository }}"
+  configuration:
+    - name: repository
+      type: STRING
+      default: bootstrap
+      documentation: the repo to deploy into
+  writes:
+    - yaml:
+        file: catalog/datastores/cloudnative-pg/README.md
+        external: catalogs/datastores/cloudnative-pg/README.md
+    - yaml:
+        file: catalog/datastores/cloudnative-pg/cloudnative-pg.yaml
+        external: catalogs/datastores/cloudnative-pg/cloudnative-pg.yaml
