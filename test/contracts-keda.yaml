@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: keda
+spec:
+  workdir: test/outputs-keda
+  templates:
+    from: catalogs/devops/keda
+    to: test/outputs-keda/catalogs/devops/keda
+  automations:
+  - file: ../../setup/catalogs/devops/keda.yaml
+    context: ../contexts/keda.yaml
