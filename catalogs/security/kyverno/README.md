@@ -6,6 +6,10 @@ This catalog installs the official Kyverno policy engine through the Kyverno Hel
 
 The generated Plural service installs the Kyverno chart in the kyverno namespace. The chart manages Kyverno's CRDs and controllers using the upstream Kyverno Helm repository.
 
+## Chart version and Kubernetes compatibility
+
+The `x.x.x` chart version is a floating selector, not a pinned release, so it can resolve to newer Kyverno chart releases as they are published. Check the [upstream Kyverno release and Kubernetes compatibility table](https://kyverno.io/docs/installation/releases/) for the selected release before deploying. Pin an exact chart version when you need controlled upgrades or reproducible installs.
+
 No Policy or ClusterPolicy objects are included. Installing this catalog does not enforce policies. Teams can add policy resources separately and choose Audit or Enforce explicitly for each policy.
 
 ## Prerequisites
