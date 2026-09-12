@@ -1,12 +1,10 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: grafana-{{ context.cluster }}
+  name: grafana-mgmt
   namespace: apps
 spec:
-{% if context.ai %}
-  agentId: {{ context.ai.session.agent_id }}
-{% endif %}
+
   name: grafana
   namespace: grafana
   git:
@@ -22,17 +20,17 @@ spec:
     url: https://grafana.github.io/helm-charts
     valuesFiles:
     - grafana.yaml.liquid
-{% if context.pluralCloud %}
+
   contexts:
   - "plrl/cloud/observability"
-{% endif %}
+
   imports:
   - stackRef:
-      name: grafana-{{ context.cluster }}
+      name: grafana-mgmt
       namespace: apps
   configuration:
-    cluster: {{ context.cluster }}
-    stackName: grafana-{{ context.cluster }}
+    cluster: mgmt
+    stackName: grafana-mgmt
   clusterRef:
     kind: Cluster
     name: mgmt

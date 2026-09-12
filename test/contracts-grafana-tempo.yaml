@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: grafana-tempo
+spec:
+  workdir: test/outputs-grafana-tempo
+  automations:
+    - file: ../../setup/catalogs/devops/grafana.yaml
+      context: ../contexts/grafana-tempo.yaml
+      externalDir: ../../catalogs/devops/grafana

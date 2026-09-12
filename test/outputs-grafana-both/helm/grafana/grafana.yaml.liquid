@@ -9,25 +9,25 @@ ingress:
     cert-manager.io/cluster-issuer: plural
     nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
   hosts:
-  - {{ context.hostname }}
+  - grafana.example.org
   tls:
   - hosts:
-    - {{ context.hostname }}
+    - grafana.example.org
     secretName: grafana-tls
 
 
 persistence:
   enabled: false
 
-{% assign tempo_url = context.tempoUrl | default: '' | strip %}
-{% assign has_datasources = context.pluralCloud %}
-{% if tempo_url != '' %}{% assign has_datasources = true %}{% endif %}
-{% if has_datasources %}
+
+
+
+
 datasources:
   datasources.yaml:
     apiVersion: 1
     datasources:
-{% if context.pluralCloud %}
+
     - name: prometheus
       type: prometheus
       url: "$GF_PLURAL_PROMETHEUS_URL"
@@ -37,14 +37,14 @@ datasources:
       basicAuthUser: "$GF_PLURAL_PROMETHEUS_USER"
       secureJsonData:
         basicAuthPassword: "$GF_PLURAL_PROMETHEUS_PASSWORD"
-{% endif %}
-{% if tempo_url != '' %}
+
+
     - name: tempo
       type: tempo
-      url: {{ tempo_url | json }}
+      url: "http://tempo.tempo.svc.cluster.local:3200"
       access: proxy
-{% endif %}
-{% endif %}
+
+
 
 envFromSecrets:
 - name: grafana-env
@@ -62,7 +62,7 @@ grafana.ini:
     allow_sign_up: true
     api_url: https://oidc.plural.sh/userinfo
     auth_url: https://oidc.plural.sh/oauth2/auth
-    client_id: {% raw %}{{ imports[configuration.stackName].oidc_client_id }}{% endraw %}
+    client_id: {{ imports[configuration.stackName].oidc_client_id }}
     enabled: true
     groups_attribute_path: groups
     name: Plural
@@ -72,7 +72,7 @@ grafana.ini:
     skip_org_role_sync: 'true'
     token_url: https://oidc.plural.sh/oauth2/token
   server:
-    root_url: https://{{ context.hostname}}
+    root_url: https://grafana.example.org
 
 extraObjects:
 - apiVersion: v1
@@ -80,18 +80,18 @@ extraObjects:
   metadata:
     name: grafana-env
   stringData:
-{% if context.pluralCloud %}
-    GF_PLURAL_PROMETHEUS_URL: {% raw %}{{ contexts["plrl/cloud/observability"].vmetrics.query_url | json }}{% endraw %}
-    GF_PLURAL_PROMETHEUS_USER: {% raw %}{{ contexts["plrl/cloud/observability"].vmetrics.user | json }}{% endraw %}
-    GF_PLURAL_PROMETHEUS_PASSWORD: {% raw %}{{ contexts["plrl/cloud/observability"].vmetrics.password | json }}{% endraw %}
-{% endif %}
-    GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: {% raw %}{{ imports[configuration.stackName].oidc_client_secret }}{% endraw %}
-    GF_DATABASE_HOST: {% raw %}{{ imports[configuration.stackName].postgres_host }}{% endraw %}
-    GF_DATABASE_PASSWORD: {% raw %}{{ imports[configuration.stackName].postgres_password }}{% endraw %}
+
+    GF_PLURAL_PROMETHEUS_URL: {{ contexts["plrl/cloud/observability"].vmetrics.query_url | json }}
+    GF_PLURAL_PROMETHEUS_USER: {{ contexts["plrl/cloud/observability"].vmetrics.user | json }}
+    GF_PLURAL_PROMETHEUS_PASSWORD: {{ contexts["plrl/cloud/observability"].vmetrics.password | json }}
+
+    GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: {{ imports[configuration.stackName].oidc_client_secret }}
+    GF_DATABASE_HOST: {{ imports[configuration.stackName].postgres_host }}
+    GF_DATABASE_PASSWORD: {{ imports[configuration.stackName].postgres_password }}
 - apiVersion: v1
   kind: Secret
   metadata:
     name: grafana-credentials
   stringData:
     admin-user: admin
-    admin-password: {% raw %}{{ imports[configuration.stackName].admin_password }}{% endraw %}
+    admin-password: {{ imports[configuration.stackName].admin_password }}

@@ -1,0 +1,5 @@
+cloud: aws
+cluster: mgmt
+hostname: grafana.example.org
+pluralCloud: true
+tempoUrl: http://tempo.tempo.svc.cluster.local:3200

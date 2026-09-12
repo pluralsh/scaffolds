@@ -1,0 +1,71 @@
+admin:
+  existingSecret: grafana-credentials
+
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: plural
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+  hosts:
+  - grafana.example.org
+  tls:
+  - hosts:
+    - grafana.example.org
+    secretName: grafana-tls
+
+
+persistence:
+  enabled: false
+
+
+
+
+
+
+envFromSecrets:
+- name: grafana-env
+
+grafana.ini:
+  plugins:
+    allow_loading_unsigned_plugins: victoriametrics-datasource
+  log:
+    level: debug
+  database:
+    type: postgres
+    user: grafana
+    name: grafana
+  auth.generic_oauth:
+    allow_sign_up: true
+    api_url: https://oidc.plural.sh/userinfo
+    auth_url: https://oidc.plural.sh/oauth2/auth
+    client_id: {{ imports[configuration.stackName].oidc_client_id }}
+    enabled: true
+    groups_attribute_path: groups
+    name: Plural
+    role_attribute_path: "null"
+    scopes: openid profile
+    auto_assign_org_role: Admin
+    skip_org_role_sync: 'true'
+    token_url: https://oidc.plural.sh/oauth2/token
+  server:
+    root_url: https://grafana.example.org
+
+extraObjects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: grafana-env
+  stringData:
+
+    GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: {{ imports[configuration.stackName].oidc_client_secret }}
+    GF_DATABASE_HOST: {{ imports[configuration.stackName].postgres_host }}
+    GF_DATABASE_PASSWORD: {{ imports[configuration.stackName].postgres_password }}
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: grafana-credentials
+  stringData:
+    admin-user: admin
+    admin-password: {{ imports[configuration.stackName].admin_password }}

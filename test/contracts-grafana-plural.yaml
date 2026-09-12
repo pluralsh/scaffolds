@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: grafana-plural
+spec:
+  workdir: test/outputs-grafana-plural
+  automations:
+    - file: ../../setup/catalogs/devops/grafana.yaml
+      context: ../contexts/grafana-plural.yaml
+      externalDir: ../../catalogs/devops/grafana
