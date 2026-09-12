@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: victoria-metrics
+spec:
+  workdir: test/outputs-victoria-metrics
+  templates:
+    from: catalogs/devops/victoria-metrics
+    to: test/outputs-victoria-metrics/catalogs/devops/victoria-metrics
+  automations:
+  - file: ../../setup/catalogs/devops/victoria-metrics.yaml
+    context: ../contexts/victoria-metrics.yaml

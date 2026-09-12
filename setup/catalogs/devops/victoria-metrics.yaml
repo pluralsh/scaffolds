@@ -1,0 +1,35 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: victoria-metrics
+spec:
+  name: victoria-metrics
+  icon: https://avatars.githubusercontent.com/u/43720803
+  identifier: mgmt
+  documentation: |
+    Sets up VictoriaMetrics single-node metrics storage with persistent
+    retention and a ClusterIP API service.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/victoria-metrics
+    templates:
+    - source: README.md
+      destination: documentation/victoria-metrics/README.md
+      external: true
+    - source: victoria-metrics.yaml
+      destination: bootstrap/apps/victoria-metrics/victoria-metrics.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: VictoriaMetrics setup
+  message: |
+    Sets up VictoriaMetrics single-node metrics storage in the management
+    cluster.
+
+    Plural Service: mgmt/apps
+  configuration: []

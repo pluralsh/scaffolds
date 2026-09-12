@@ -1,0 +1,25 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: victoria-metrics
+  namespace: apps
+spec:
+  template:
+    name: victoria-metrics
+    namespace: victoria-metrics
+    helm:
+      url: https://victoriametrics.github.io/helm-charts
+      chart: victoria-metrics-single
+      version: "0.46.0"
+      values:
+        server:
+          persistentVolume:
+            enabled: true
+            size: 16Gi
+          retentionPeriod: "3"
+          service:
+            type: ClusterIP
+          ingress:
+            enabled: false
+        serviceAccount:
+          create: true
