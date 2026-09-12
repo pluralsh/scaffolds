@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: falco
+spec:
+  workdir: test/outputs-falco
+  templates:
+    from: catalogs/security/falco
+    to: test/outputs-falco/catalogs/security/falco
+  automations:
+  - file: ../../setup/catalogs/security/falco.yaml
+    context: ../contexts/falco.yaml
