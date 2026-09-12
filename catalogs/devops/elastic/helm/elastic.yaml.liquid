@@ -101,3 +101,5 @@ eck-kibana:
       hosts:
       - {{ context.kibanaHostname }}
       secretName: kibana-tls
+# ILM policy, index template, and bootstrap write-alias index are managed by
+# the datastore operator CRs in services/datastores/ (ServiceDeployment datastore-operator).

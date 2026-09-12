@@ -1,0 +1,30 @@
+apiVersion: dbs.plural.sh/v1alpha1
+kind: ElasticsearchILMPolicy
+metadata:
+  name: plrl-logs-rollover
+  namespace: elastic
+  annotations:
+    deployment.plural.sh/sync-wave: "6"
+spec:
+  name: plrl-logs-rollover
+  credentialsRef:
+    name: elasticsearch
+  definition:
+    policy:
+      phases:
+        hot:
+          actions:
+            rollover:
+              max_primary_shard_size: 30gb
+              min_primary_shard_size: 5gb
+              max_primary_shard_docs: 5000000
+              max_size: 100gb
+        warm:
+          min_age: 1d
+          actions:
+            shrink:
+              max_primary_shard_size: 30gb
+        delete:
+          min_age: 7d
+          actions:
+            delete: {}

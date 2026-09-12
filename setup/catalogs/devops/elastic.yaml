@@ -31,8 +31,14 @@ spec:
     - source: stack.yaml
       destination: "bootstrap/apps/elastic/elastic-stack.yaml"
       external: true
+    - source: datastore-operator.yaml
+      destination: "bootstrap/apps/elastic/datastore-operator.yaml"
+      external: true
     - source: services
       destination: services/logstash
+      external: true
+    - source: datastores
+      destination: services/datastores
       external: true
   updates:
     yamlOverlays:

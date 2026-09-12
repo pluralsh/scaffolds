@@ -1,0 +1,30 @@
+apiVersion: dbs.plural.sh/v1alpha1
+kind: ElasticsearchIndex
+metadata:
+  name: plrl-logs-000001
+  namespace: elastic
+  annotations:
+    # After cleanup-plrl-logs-write-index (wave 8)
+    deployment.plural.sh/sync-wave: "9"
+spec:
+  name: plrl-logs-000001
+  credentialsRef:
+    name: elasticsearch
+  definition:
+    aliases:
+      plrl-logs-write:
+        is_write_index: true
+    mappings:
+      properties:
+        "@timestamp":
+          type: date
+    settings:
+      index:
+        number_of_shards: 5
+        number_of_replicas: 1
+        refresh_interval: 30s
+        sort.field: "@timestamp"
+        sort.order: desc
+        lifecycle:
+          name: plrl-logs-rollover
+          rollover_alias: plrl-logs-write
