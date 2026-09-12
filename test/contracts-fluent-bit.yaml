@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: fluent-bit
+spec:
+  workdir: test/outputs-fluent-bit
+  templates:
+    from: catalogs/devops/fluent-bit
+    to: test/outputs-fluent-bit/catalogs/devops/fluent-bit
+  automations:
+  - file: ../../setup/catalogs/devops/fluent-bit.yaml
+    context: ../contexts/fluent-bit.yaml

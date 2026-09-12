@@ -1,0 +1,35 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: fluent-bit
+spec:
+  name: fluent-bit
+  icon: https://fluentbit.io/images/logo.png
+  identifier: mgmt
+  documentation: |
+    Sets up Fluent Bit as a per-node log collector DaemonSet with Kubernetes
+    metadata filters and a metrics endpoint.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/fluent-bit
+    templates:
+    - source: README.md
+      destination: documentation/fluent-bit/README.md
+      external: true
+    - source: fluent-bit.yaml
+      destination: bootstrap/apps/fluent-bit/fluent-bit.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Fluent Bit setup
+  message: |
+    Sets up Fluent Bit node-level log collection in the management cluster
+    using the official Fluent Helm chart.
+
+    Plural Service: mgmt/apps
+  configuration: []
