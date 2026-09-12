@@ -1,0 +1,44 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: meilisearch
+spec:
+  name: meilisearch
+  icon: https://raw.githubusercontent.com/meilisearch/integration-guides/main/assets/logos/logo.svg
+  identifier: mgmt
+  documentation: |
+    Sets up a single-node, persistent Meilisearch search service in production mode on a selected cluster.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/datastores/meilisearch
+    templates:
+    - source: README.md
+      destination: documentation/meilisearch/README.md
+      external: true
+    - source: helm
+      destination: helm/meilisearch/{{ context.cluster }}
+      external: true
+    - source: generatedsecret.yaml
+      destination: bootstrap/apps/meilisearch/{{ context.cluster }}/generatedsecret.yaml
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: bootstrap/apps/meilisearch/{{ context.cluster }}/servicedeployment.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: datastores
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Meilisearch search service ({{ context.cluster }})"
+  message: |
+    Sets up a single-node Meilisearch search service in production mode on {{ context.cluster }}.
+
+    The deployment uses a 10 GiB RWO volume, internal ClusterIP access on port 7700, and a generated master key.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster where Meilisearch should run

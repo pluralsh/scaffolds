@@ -1,0 +1,9 @@
+apiVersion: v2
+name: meilisearch-wrapper
+description: A minimal wrapper that supplies a managed master key to the official Meilisearch chart
+type: application
+version: 0.1.0
+dependencies:
+- name: meilisearch
+  version: 0.38.0
+  repository: https://meilisearch.github.io/meilisearch-kubernetes
