@@ -1,0 +1,30 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: valkey-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: valkey-{{ context.cluster }}
+  namespace: valkey
+  git:
+    folder: helm/valkey
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configurationRef:
+    name: valkey-users-{{ context.cluster }}
+    namespace: infra
+  helm:
+    # Keep chart and image versions paired; review persistence changes before upgrading.
+    version: "0.12.0"
+    chart: valkey
+    release: valkey-{{ context.cluster }}
+    url: https://valkey.io/valkey-helm/
+    valuesFiles:
+    - valkey.yaml.liquid
+  cluster: {{ context.cluster }}
