@@ -1,0 +1,19 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: memos-memos-storage
+  namespace: apps
+spec:
+
+  agentId: memos-test-agent
+
+  name: memos
+  namespace: memos
+  git:
+    ref: main
+    folder: kubernetes/memos/memos-storage
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  cluster: "memos-storage"

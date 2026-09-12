@@ -1,0 +1,16 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: memos
+spec:
+  workdir: test/outputs-memos
+  templates:
+    from: catalogs/devops/memos
+    to: test/outputs-memos/catalogs/devops/memos
+  automations:
+  - file: ../../setup/catalogs/devops/memos.yaml
+    context: ../contexts/memos.yaml
+  - file: ../../setup/catalogs/devops/memos.yaml
+    context: ../contexts/memos-storage.yaml
+  - file: ../../setup/catalogs/devops/memos.yaml
+    context: ../contexts/memos-empty.yaml

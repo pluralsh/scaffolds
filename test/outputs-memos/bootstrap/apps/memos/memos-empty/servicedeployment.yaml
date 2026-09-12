@@ -1,0 +1,17 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: memos-memos-empty
+  namespace: apps
+spec:
+
+  name: memos
+  namespace: memos
+  git:
+    ref: main
+    folder: kubernetes/memos/memos-empty
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  cluster: "memos-empty"
