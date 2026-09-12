@@ -4,13 +4,9 @@ metadata:
   name: cluster-issuers
   namespace: infra
 spec:
-{% if context.cloud == "aws" %}
+
   distro: EKS
-{% elsif context.cloud == "azure" %}
-  distro: AKS
-{% elsif context.cloud == "gcp" %}
-  distro: GKE
-{% endif %}
+
   cascade:
     delete: true
   tags:

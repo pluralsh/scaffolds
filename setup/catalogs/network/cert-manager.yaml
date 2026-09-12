@@ -12,8 +12,11 @@ spec:
       ref: main
       folder: catalogs/network/cert-manager
     templates:
-    - source: helm/cert-manager.yaml.liquid
-      destination: helm/cert-manager.yaml.liquid
+    - source: helm/certmanager.yaml.liquid
+      destination: helm/certmanager.yaml.liquid
+      external: true
+    - source: CertManager-DNS01-Guide.md
+      destination: documentation/cert-manager/CertManager-Fleet-Setup.md
       external: true
     - source: globalservice.yaml
       destination: bootstrap/components/cert-manager.yaml
@@ -37,18 +40,17 @@ spec:
   configuration:
   - name: cloud
     type: ENUM
-    documentation: Cloud provider you want to deploy airbyte to.
+    documentation: Cloud provider to deploy cert-manager and its DNS-01 issuer to.
     values:
     - aws
     - azure
     - gcp
   - name: email
     type: STRING
-    documentation: The email address to register with letsencrypt.  Cert issuance emails will be sent to this address.
+    documentation: ACME account contact email to register with Let's Encrypt.
   - name: dnsZone
     type: STRING
     documentation: The DNS zone name to use for the cert manager issuer.
-    optional: true
     condition:
       field: cloud
       operation: EQ
@@ -56,8 +58,15 @@ spec:
   - name: resourceGroupName
     type: STRING
     documentation: The resource group name to use for the cert manager issuer.
-    optional: true
     condition:
       field: cloud
       operation: EQ
       value: 'azure'
+
+  - name: region
+    type: STRING
+    documentation: AWS region used by the Route53 DNS-01 solver.
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws

@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: certmanager-aws
+spec:
+  workdir: test/outputs-certmanager-aws
+  automations:
+    - file: ../../setup/catalogs/network/cert-manager.yaml
+      context: ../contexts/certmanager-aws.yaml
+      externalDir: ../../catalogs/network/cert-manager

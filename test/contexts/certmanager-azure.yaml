@@ -1,0 +1,4 @@
+cloud: azure
+email: certificates@example.org
+dnsZone: example.org
+resourceGroupName: dns-resource-group

@@ -1,0 +1,10 @@
+
+installCRDs: true
+serviceAccount:
+  name: cert-manager
+  annotations:
+
+    iam.gke.io/gcp-service-account: {{ cluster.metadata.iam.cert_manager }}
+securityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
