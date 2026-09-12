@@ -1,0 +1,3 @@
+cloud: azure
+dnsZone: example.org
+azureConfigSecret: external-dns-azure

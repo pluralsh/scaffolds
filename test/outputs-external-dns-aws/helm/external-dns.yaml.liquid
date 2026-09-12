@@ -1,0 +1,23 @@
+
+provider: aws
+
+
+
+txtOwnerId: plrl-{{ cluster.handle }} # templating in the cluster handle, which is unique, to be the external-dns owner id
+
+policy: upsert-only
+
+domainFilters:
+- example.org
+
+
+
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: {{ cluster.metadata.iam.external_dns }}
+
+
+
+
+
+

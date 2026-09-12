@@ -15,6 +15,9 @@ spec:
     - source: helm/external-dns.yaml.liquid
       destination: helm/external-dns.yaml.liquid
       external: true
+    - source: ExternalDNS-Azure-Workload-Identity.md
+      destination: documentation/external-dns/ExternalDNS-Azure-Setup.md
+      external: true
     - source: globalservice.yaml
       destination: bootstrap/components/external-dns.yaml
       external: true
@@ -38,3 +41,10 @@ spec:
   - name: dnsZone
     type: STRING
     documentation: The DNS zone name for external-dns to write to.
+  - name: azureConfigSecret
+    type: STRING
+    documentation: Name of an existing Secret containing azure.json in the external-dns namespace of every AKS target cluster. See the generated Azure setup guide before deploying.
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure

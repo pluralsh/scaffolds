@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: external-dns-gcp
+spec:
+  workdir: test/outputs-external-dns-gcp
+  automations:
+    - file: ../../setup/catalogs/network/external-dns.yaml
+      context: ../contexts/external-dns-gcp.yaml
+      externalDir: ../../catalogs/network/externaldns

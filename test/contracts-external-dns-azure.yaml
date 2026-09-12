@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: external-dns-azure
+spec:
+  workdir: test/outputs-external-dns-azure
+  automations:
+    - file: ../../setup/catalogs/network/external-dns.yaml
+      context: ../contexts/external-dns-azure.yaml
+      externalDir: ../../catalogs/network/externaldns
