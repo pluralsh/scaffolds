@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: argo-rollouts
+spec:
+  name: argo-rollouts
+  icon: https://argoproj.github.io/argo-rollouts/assets/logo.png
+  identifier: mgmt
+  documentation: |
+    Sets up the Argo Rollouts progressive-delivery controller and CRDs.
+    The dashboard, external routes, and provider-specific RBAC are disabled by default.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/argo-rollouts
+    templates:
+    - source: README.md
+      destination: documentation/argo-rollouts/README.md
+      external: true
+    - source: argo-rollouts.yaml
+      destination: bootstrap/apps/argo-rollouts/argo-rollouts.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Argo Rollouts setup
+  message: |
+    Sets up the Argo Rollouts controller and CRDs with conservative defaults.
+
+    Plural Service: mgmt/apps

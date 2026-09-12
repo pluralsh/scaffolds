@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: argo-rollouts
+spec:
+  workdir: test/outputs-argo-rollouts
+  templates:
+    from: catalogs/devops/argo-rollouts
+    to: test/outputs-argo-rollouts/catalogs/devops/argo-rollouts
+  automations:
+  - file: ../../setup/catalogs/devops/argo-rollouts.yaml
+    context: ../contexts/argo-rollouts.yaml
