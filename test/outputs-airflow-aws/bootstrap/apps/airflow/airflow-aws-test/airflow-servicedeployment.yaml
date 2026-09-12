@@ -1,0 +1,34 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: airflow-airflow-aws-test
+  namespace: apps
+spec:
+
+  namespace: airflow
+  git:
+    folder: helm/airflow/airflow-aws-test
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "8.9.0"
+    chart: airflow
+    release: airflow
+    ignoreHooks: false
+    url: https://airflow-helm.github.io/charts
+    valuesFiles:
+    - airflow.yaml.liquid
+  imports:
+  - stackRef:
+      name: airflow-airflow-aws-test
+      namespace: apps
+  configuration:
+    cluster: airflow-aws-test
+    stackName: airflow-airflow-aws-test
+    hostname: airflow.example.org
+    bucket: synthetic-airflow-logs
+    cloud: aws
+  cluster: airflow-aws-test

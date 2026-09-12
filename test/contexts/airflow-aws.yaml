@@ -1,0 +1,4 @@
+cluster: airflow-aws-test
+cloud: aws
+bucket: synthetic-airflow-logs
+hostname: airflow.example.org
