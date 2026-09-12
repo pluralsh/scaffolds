@@ -1,0 +1,18 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: mlflow-raw-mlflow-aws-test
+  namespace: apps
+spec:
+
+  namespace: mlflow
+  git:
+    folder: services/apps/mlflow
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configuration:
+    hostname: mlflow.example.org
+  cluster: mlflow-aws-test

@@ -1,0 +1,6 @@
+cluster: mlflow-aws-test
+stackCluster: mgmt
+cloud: aws
+bucket: mlflow-artifacts-example-test
+hostname: mlflow.example.org
+region: us-east-2

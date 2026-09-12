@@ -15,5 +15,5 @@ terraform {
 provider "plural" {}
 
 provider "aws" {
-  region = "{{ context.region }}"
+  region = "us-east-2"
 }
