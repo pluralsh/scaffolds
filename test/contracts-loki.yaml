@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: loki
+spec:
+  workdir: test/outputs-loki
+  templates:
+    from: catalogs/devops/loki
+    to: test/outputs-loki/catalogs/devops/loki
+  automations:
+  - file: ../../setup/catalogs/devops/loki.yaml
+    context: ../contexts/loki.yaml
