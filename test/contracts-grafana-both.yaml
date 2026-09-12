@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: grafana-both
+spec:
+  workdir: test/outputs-grafana-both
+  automations:
+    - file: ../../setup/catalogs/devops/grafana.yaml
+      context: ../contexts/grafana-both.yaml
+      externalDir: ../../catalogs/devops/grafana

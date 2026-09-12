@@ -13,6 +13,9 @@ spec:
       ref: main
       folder: catalogs/devops/grafana
     templates:
+    - source: Grafana-Datasource-Guide.md
+      destination: documentation/grafana/Grafana-Provisioning-Setup.md
+      external: true
     - source: helm/grafana.yaml.liquid
       destination: "helm/grafana/grafana.yaml.liquid"
       external: true

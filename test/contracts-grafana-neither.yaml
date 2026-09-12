@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: grafana-neither
+spec:
+  workdir: test/outputs-grafana-neither
+  automations:
+    - file: ../../setup/catalogs/devops/grafana.yaml
+      context: ../contexts/grafana-neither.yaml
+      externalDir: ../../catalogs/devops/grafana

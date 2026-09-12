@@ -1,0 +1,5 @@
+cloud: aws
+cluster: mgmt
+hostname: grafana.example.org
+pluralCloud: false
+tempoUrl: ""
