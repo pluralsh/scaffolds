@@ -1,0 +1,39 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: node-feature-discovery
+spec:
+  name: node-feature-discovery
+  identifier: mgmt
+  documentation: |
+    Install Node Feature Discovery on one cluster to label Linux nodes with discovered features.
+    Requires permission to deploy host-reading DaemonSets and update node metadata.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/node-feature-discovery
+    templates:
+    - source: node-feature-discovery-service.yaml
+      destination: bootstrap/apps/node-feature-discovery/{{ context.cluster }}/node-feature-discovery-service.yaml
+      external: true
+    - source: helm
+      destination: helm/node-feature-discovery/{{ context.cluster }}
+      external: true
+    - source: Node-Feature-Discovery-Guide.md
+      destination: documentation/node-feature-discovery/Node-Feature-Discovery-Deployment-{{ context.cluster }}.md
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural
+  title: Install Node Feature Discovery on {{ context.cluster }}
+  message: |
+    Install Node Feature Discovery on {{ context.cluster }} to publish Linux node feature labels.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: Handle of the target cluster. Check for existing NFD installations, including one managed by a GPU operator, before installing.

@@ -1,0 +1,23 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: node-feature-discovery-workload-east
+  namespace: apps
+spec:
+
+  namespace: node-feature-discovery
+  git:
+    folder: helm/node-feature-discovery/workload-east
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "0.19.0"
+    chart: node-feature-discovery
+    release: node-feature-discovery
+    url: oci://registry.k8s.io/nfd/charts
+    valuesFiles:
+    - node-feature-discovery.yaml.liquid
+  cluster: "workload-east"
