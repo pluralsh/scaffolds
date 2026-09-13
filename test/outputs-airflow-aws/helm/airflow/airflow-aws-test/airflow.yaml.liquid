@@ -1,4 +1,4 @@
-{% raw %}
+
 airflow:
   fernetKey: {{ imports[configuration.stackName].fernet_key | json }}
   webserverSecretKey: {{ imports[configuration.stackName].flask_secret | json }}
@@ -143,4 +143,4 @@ dags:
   ## configs for the git-sync sidecar
   ## [FAQ] https://github.com/airflow-helm/charts/blob/main/charts/airflow/docs/faq/dags/load-dag-definitions.md
   gitSync:
-    enabled: false{% endraw %}
+    enabled: false

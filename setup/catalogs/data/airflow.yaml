@@ -24,8 +24,8 @@ spec:
     - source: airflow-stack.yaml
       destination: "bootstrap/apps/airflow/{{ context.cluster }}/airflow-stack.yaml"
       external: true
-    - source: README.md
-      destination: documentation/airflow/README.md
+    - source: Airflow-Database-Setup.md
+      destination: documentation/airflow/Airflow-Deployment-{{ context.cluster }}.md
       external: true
   repositoryRef:
     name: scaffolds

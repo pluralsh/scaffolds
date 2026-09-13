@@ -1,11 +1,11 @@
 variable "cluster_name" {
   type = string
-  default = "{{ context.cluster }}"
+  default = "airflow-aws-test"
 }
 
 variable "airflow_bucket" {
   type = string
-  default = "{{ context.bucket }}"
+  default = "synthetic-airflow-logs"
 }
 
 variable "force_destroy_bucket" {
@@ -15,7 +15,7 @@ variable "force_destroy_bucket" {
 }
 
 variable "db_name" {
-  default = "plrl-{{ context.cluster }}-airflow"
+  default = "plrl-airflow-aws-test-airflow"
 }
 
 variable "postgres_vsn" {

@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: airflow-aws
+spec:
+  workdir: test/outputs-airflow-aws
+  automations:
+    - file: ../../setup/catalogs/data/airflow.yaml
+      context: ../contexts/airflow-aws.yaml
+      externalDir: ../../catalogs/data/airflow
