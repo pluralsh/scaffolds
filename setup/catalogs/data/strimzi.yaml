@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: strimzi
+spec:
+  name: strimzi
+  icon: https://raw.githubusercontent.com/strimzi/strimzi-kafka-operator/main/documentation/logo/strimzi.png
+  identifier: mgmt
+  documentation: |
+    Sets up the Strimzi operator for running Apache Kafka on Kubernetes.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/data/strimzi
+    templates:
+    - source: README.md
+      destination: documentation/strimzi/README.md
+      external: true
+    - source: strimzi.yaml
+      destination: bootstrap/apps/strimzi/strimzi.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: data
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Strimzi Kafka operator setup
+  message: |
+    Sets up the Strimzi Kafka operator on the management cluster.
+
+    Plural Service: mgmt/apps
+  configuration: []

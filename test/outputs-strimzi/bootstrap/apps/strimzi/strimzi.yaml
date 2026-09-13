@@ -1,0 +1,15 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: strimzi
+  namespace: apps
+spec:
+  template:
+    name: strimzi
+    namespace: strimzi
+    helm:
+      url: https://strimzi.io/charts/
+      chart: strimzi-kafka-operator
+      version: "1.2.0"
+      values:
+          watchAnyNamespace: false

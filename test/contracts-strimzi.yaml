@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: strimzi
+spec:
+  workdir: test/outputs-strimzi
+  templates:
+    from: catalogs/data/strimzi
+    to: test/outputs-strimzi/catalogs/data/strimzi
+  automations:
+  - file: ../../setup/catalogs/data/strimzi.yaml
+    context: ../contexts/strimzi.yaml
