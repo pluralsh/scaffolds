@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: metallb
+spec:
+  name: metallb
+  icon: https://raw.githubusercontent.com/metallb/metallb/main/website/static/images/logo.png
+  identifier: mgmt
+  documentation: |
+    Sets up MetalLB for bare-metal LoadBalancer services.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/network/metallb
+    templates:
+    - source: README.md
+      destination: documentation/metallb/README.md
+      external: true
+    - source: metallb.yaml
+      destination: bootstrap/apps/metallb/metallb.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: network
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: MetalLB setup
+  message: |
+    Sets up MetalLB load balancing on the management cluster.
+
+    Plural Service: mgmt/apps
+  configuration: []

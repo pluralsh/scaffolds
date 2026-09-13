@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: metallb
+spec:
+  workdir: test/outputs-metallb
+  templates:
+    from: catalogs/network/metallb
+    to: test/outputs-metallb/catalogs/network/metallb
+  automations:
+  - file: ../../setup/catalogs/network/metallb.yaml
+    context: ../contexts/metallb.yaml

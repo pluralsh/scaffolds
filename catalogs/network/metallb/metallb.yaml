@@ -1,0 +1,15 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: metallb
+  namespace: apps
+spec:
+  template:
+    name: metallb
+    namespace: metallb
+    helm:
+      url: https://metallb.github.io/metallb
+      chart: metallb
+      version: "0.16.1"
+      values:
+        {}
