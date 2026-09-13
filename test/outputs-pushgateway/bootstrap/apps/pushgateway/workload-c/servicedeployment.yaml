@@ -1,0 +1,24 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: pushgateway-workload-c
+  namespace: apps
+spec:
+
+  name: pushgateway
+  namespace: pushgateway
+  git:
+    ref: main
+    folder: helm/pushgateway/workload-c
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    chart: prometheus-pushgateway
+    version: "3.8.0"
+    release: pushgateway
+    url: https://prometheus-community.github.io/helm-charts
+    valuesFiles:
+    - values.yaml
+  cluster: "workload-c"

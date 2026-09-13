@@ -1,0 +1,54 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: pushgateway
+spec:
+  name: pushgateway
+  identifier: mgmt
+  documentation: |
+    Sets up a persistent Prometheus Pushgateway for service-level batch jobs.
+    Requires a pre-existing web-config Secret with bcrypt basic-auth users in
+    the pushgateway namespace. Prometheus must scrape it with honor_labels.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/pushgateway
+    templates:
+    - source: README.md
+      destination: documentation/pushgateway/README.md
+      external: true
+    - source: helm/values.yaml.liquid
+      destination: "helm/pushgateway/{{ context.cluster }}/values.yaml"
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: "bootstrap/apps/pushgateway/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # Configure this ScmConnection before using the automation.
+  title: "Pushgateway setup ({{ context.cluster }})"
+  message: |
+    Sets up an authenticated, persistent Pushgateway on {{ context.cluster }}.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: target cluster with a ReadWriteOnce StorageClass
+  - name: webConfigSecret
+    type: STRING
+    optional: true
+    documentation: |
+      Name of an existing Secret in namespace pushgateway, containing
+      web-config.yaml with a nonempty basic_auth_users map of bcrypt hashes.
+      Omit or leave blank to use pushgateway-web-config. Supply only the Secret
+      name here; never credentials or the configuration contents.
+  - name: storageClass
+    type: STRING
+    optional: true
+    documentation: |
+      Optional StorageClass for the 2Gi ReadWriteOnce metrics volume. Omit or
+      leave blank to use the cluster's default StorageClass.
