@@ -1,0 +1,30 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: goldilocks
+  namespace: apps
+spec:
+  template:
+    name: goldilocks
+    namespace: goldilocks
+    helm:
+      url: https://charts.fairwinds.com/stable
+      chart: goldilocks
+      version: 11.1.0
+      values:
+        # Goldilocks only makes recommendations by creating VerticalPodAutoscaler
+        # objects, so a VPA installation must exist somewhere in the cluster. The
+        # chart ships VPA as a sub-chart; set this to false if your cluster already
+        # runs one (see the README for the details).
+        vpa:
+          enabled: true
+        controller:
+          enabled: true
+          flags:
+            # Monitor every namespace out of the box, rather than requiring each
+            # namespace to be explicitly labelled.
+            on-by-default: "true"
+        dashboard:
+          enabled: true
+          flags:
+            on-by-default: "true"

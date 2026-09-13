@@ -1,0 +1,28 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: goldilocks
+spec:
+  name: goldilocks
+  icon: https://raw.githubusercontent.com/FairwindsOps/charts/master/stable/goldilocks/icon.png
+  identifier: mgmt
+  documentation: Sets up the Goldilocks VerticalPodAutoscaler recommendation toolkit.
+  creates:
+    git:
+      ref: main # TODO set to main
+      folder: catalogs/devops/goldilocks
+    templates:
+      - source: README.md
+        destination: documentation/goldilocks/README.md
+        external: true
+      - source: goldilocks.yaml
+        destination: bootstrap/apps/goldilocks/goldilocks.yaml
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: Goldilocks setup
+  message: Sets up Goldilocks for VerticalPodAutoscaler recommendations.
