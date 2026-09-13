@@ -1,0 +1,16 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: pushgateway
+spec:
+  workdir: test/outputs-pushgateway
+  templates:
+    from: catalogs/devops/pushgateway
+    to: test/outputs-pushgateway/catalogs/devops/pushgateway
+  automations:
+  - file: ../../setup/catalogs/devops/pushgateway.yaml
+    context: ../contexts/pushgateway.yaml
+  - file: ../../setup/catalogs/devops/pushgateway.yaml
+    context: ../contexts/pushgateway-storage.yaml
+  - file: ../../setup/catalogs/devops/pushgateway.yaml
+    context: ../contexts/pushgateway-empty.yaml

@@ -1,0 +1,6 @@
+cluster: workload-b
+webConfigSecret: ' batch-metrics-auth '
+storageClass: ' fast-rwo '
+ai:
+  session:
+    agent_id: test-agent-pushgateway

@@ -1,0 +1,64 @@
+fullnameOverride: pushgateway
+image:
+  tag: v1.11.3
+
+replicaCount: 1
+runAsStatefulSet: false
+strategy:
+  type: Recreate
+
+service:
+  type: ClusterIP
+  port: 9091
+  targetPort: 9091
+ingress:
+  enabled: false
+route:
+  main:
+    enabled: false
+serviceMonitor:
+  enabled: false
+
+serviceAccount:
+  create: true
+automountServiceAccountToken: false
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+    - ALL
+
+# Keep credentials outside the generated Git repository. Blank inputs still
+# reference a required Secret instead of silently turning authentication off.
+
+webConfiguration:
+  existingSecret:
+    name: "pushgateway-web-config"
+
+extraArgs:
+- --persistence.file=/data/pushgateway.data
+- --persistence.interval=5s
+persistentVolume:
+  enabled: true
+  size: 2Gi
+  mountPath: /data
+  accessModes:
+  - ReadWriteOnce
+
+
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
