@@ -1,0 +1,20 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: metrics-server
+  namespace: apps
+spec:
+  template:
+    name: metrics-server
+    namespace: kube-system
+    helm:
+      url: https://kubernetes-sigs.github.io/metrics-server
+      chart: metrics-server
+      version: "3.14.0"
+      values:
+        replicas: 2
+        podDisruptionBudget:
+          enabled: true
+          minAvailable: 1
+        apiService:
+          create: true

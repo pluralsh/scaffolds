@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: metrics-server
+spec:
+  workdir: test/outputs-metrics-server
+  templates:
+    from: catalogs/devops/metrics-server
+    to: test/outputs-metrics-server/catalogs/devops/metrics-server
+  automations:
+  - file: ../../setup/catalogs/devops/metrics-server.yaml
+    context: ../contexts/metrics-server.yaml
