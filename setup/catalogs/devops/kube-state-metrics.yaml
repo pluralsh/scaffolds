@@ -1,0 +1,35 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: kube-state-metrics
+spec:
+  name: kube-state-metrics
+  icon: https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.png
+  identifier: mgmt
+  documentation: |
+    Sets up kube-state-metrics with two auto-sharded replicas exposing
+    Kubernetes object state metrics for Prometheus scraping.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/kube-state-metrics
+    templates:
+    - source: README.md
+      destination: documentation/kube-state-metrics/README.md
+      external: true
+    - source: kube-state-metrics.yaml
+      destination: bootstrap/apps/kube-state-metrics/kube-state-metrics.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: kube-state-metrics setup
+  message: |
+    Sets up kube-state-metrics cluster object metrics in the management
+    cluster using the prometheus-community Helm chart.
+
+    Plural Service: mgmt/apps
+  configuration: []

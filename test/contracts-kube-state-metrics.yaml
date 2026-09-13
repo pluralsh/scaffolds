@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: kube-state-metrics
+spec:
+  workdir: test/outputs-kube-state-metrics
+  templates:
+    from: catalogs/devops/kube-state-metrics
+    to: test/outputs-kube-state-metrics/catalogs/devops/kube-state-metrics
+  automations:
+  - file: ../../setup/catalogs/devops/kube-state-metrics.yaml
+    context: ../contexts/kube-state-metrics.yaml
