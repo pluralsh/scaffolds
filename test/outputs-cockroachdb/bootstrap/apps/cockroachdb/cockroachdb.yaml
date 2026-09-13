@@ -1,0 +1,19 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: cockroachdb
+  namespace: apps
+spec:
+  template:
+    name: cockroachdb
+    namespace: cockroachdb
+    helm:
+      url: https://charts.cockroachdb.com
+      chart: cockroachdb
+      version: "22.0.3"
+      values:
+          statefulset:
+            replicas: 3
+          storage:
+            persistentVolume:
+              size: 10Gi

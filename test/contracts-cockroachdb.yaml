@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: cockroachdb
+spec:
+  workdir: test/outputs-cockroachdb
+  templates:
+    from: catalogs/datastores/cockroachdb
+    to: test/outputs-cockroachdb/catalogs/datastores/cockroachdb
+  automations:
+  - file: ../../setup/catalogs/datastores/cockroachdb.yaml
+    context: ../contexts/cockroachdb.yaml

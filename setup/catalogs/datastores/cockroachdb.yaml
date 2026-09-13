@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: cockroachdb
+spec:
+  name: cockroachdb
+  icon: https://raw.githubusercontent.com/cockroachdb/cockroach/master/docs/media/cockroach_db.png
+  identifier: mgmt
+  documentation: |
+    Sets up a CockroachDB cluster with persistent storage.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/datastores/cockroachdb
+    templates:
+    - source: README.md
+      destination: documentation/cockroachdb/README.md
+      external: true
+    - source: cockroachdb.yaml
+      destination: bootstrap/apps/cockroachdb/cockroachdb.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: datastores
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: CockroachDB setup
+  message: |
+    Sets up a CockroachDB cluster on the management cluster.
+
+    Plural Service: mgmt/apps
+  configuration: []
