@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: opentelemetry-omitted
+spec:
+  workdir: test/outputs-opentelemetry-omitted
+  automations:
+    - file: ../../setup/catalogs/devops/opentelemetry.yaml
+      context: ../contexts/opentelemetry-omitted.yaml
+      externalDir: ../../catalogs/devops/opentelemetry
