@@ -1,0 +1,14 @@
+crds:
+  enabled: true
+  keep: true
+app:
+  trust:
+    namespace: "trust-sources"
+  webhook:
+    tls:
+      helmCert:
+        enabled: false
+secretTargets:
+  enabled: false
+  authorizedSecretsAll: false
+  authorizedSecrets: []

@@ -1,0 +1,2 @@
+cluster: workload-west
+trustNamespace: organization-trust

@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: trust-manager-custom
+spec:
+  workdir: test/outputs-trust-manager-custom
+  automations:
+  - file: ../../setup/catalogs/security/trust-manager.yaml
+    context: ../contexts/trust-manager-custom.yaml
+    externalDir: ../../catalogs/security/trust-manager

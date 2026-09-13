@@ -1,0 +1,25 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: trust-manager-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  namespace: trust-manager
+  git:
+    folder: helm/trust-manager/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "v0.25.0"
+    chart: trust-manager
+    release: trust-manager
+    url: https://charts.jetstack.io
+    valuesFiles:
+    - trust-manager.yaml.liquid
+  cluster: {{ context.cluster | json }}
