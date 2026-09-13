@@ -4,14 +4,14 @@ metadata:
   name: opentelemetry-collector
   namespace: apps
 spec:
-  {% if context.tags and context.tags != "" %}
+{% if context.tags and context.tags != "" %}
   tags:
-    {% assign tags_list = context.tags | split: ',' %}
-    {% for tag in tags_list %}
-    {% assign key_value = tag | split: '=' %}
-    {{ key_value[0] }}: {{ key_value[1] }}
-    {% endfor %}
-  {% endif %}
+{% assign tags_list = context.tags | split: ',' %}
+{% for tag in tags_list %}
+{% assign key_value = tag | split: '=' %}
+    {{ key_value[0] | json }}: {{ key_value[1] | json }}
+{% endfor %}
+{% endif %}
   template:
     name: opentelemetry-collector
     namespace: monitoring

@@ -1,19 +1,12 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: GlobalService
 metadata:
-  name: opentelemetry-ebpf
+  name: opentelemetry-collector
   namespace: apps
 spec:
-{% if context.tags and context.tags != "" %}
-  tags:
-{% assign tags_list = context.tags | split: ',' %}
-{% for tag in tags_list %}
-{% assign key_value = tag | split: '=' %}
-    {{ key_value[0] | json }}: {{ key_value[1] | json }}
-{% endfor %}
-{% endif %}
+
   template:
-    name: opentelemetry-ebpf
+    name: opentelemetry-collector
     namespace: monitoring
     git:
       ref: main
@@ -24,7 +17,8 @@ spec:
       namespace: infra
     helm:
       url: https://open-telemetry.github.io/opentelemetry-helm-charts
-      chart: opentelemetry-ebpf
+      chart: opentelemetry-collector
+      release: opentelemetry-collector
       version: 'x.x.x'
       valuesFiles:
-        - opentelemetry-ebpf.yaml.liquid
+        - opentelemetry-collector.yaml.liquid

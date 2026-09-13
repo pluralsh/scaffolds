@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: opentelemetry-tagged
+spec:
+  workdir: test/outputs-opentelemetry-tagged
+  automations:
+    - file: ../../setup/catalogs/devops/opentelemetry.yaml
+      context: ../contexts/opentelemetry-tagged.yaml
+      externalDir: ../../catalogs/devops/opentelemetry

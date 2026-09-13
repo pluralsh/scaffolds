@@ -4,14 +4,20 @@ metadata:
   name: opentelemetry-ebpf
   namespace: apps
 spec:
-{% if context.tags and context.tags != "" %}
+
   tags:
-{% assign tags_list = context.tags | split: ',' %}
-{% for tag in tags_list %}
-{% assign key_value = tag | split: '=' %}
-    {{ key_value[0] | json }}: {{ key_value[1] | json }}
-{% endfor %}
-{% endif %}
+
+
+
+    "release": "1.0"
+
+
+    "enabled": "true"
+
+
+    "tier": "01"
+
+
   template:
     name: opentelemetry-ebpf
     namespace: monitoring

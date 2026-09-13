@@ -13,8 +13,8 @@ spec:
       ref: main
       folder: catalogs/devops/opentelemetry
     templates:
-      - source: README.md
-        destination: "documentation/opentelemetry/README.md"
+      - source: OpenTelemetry-Tag-Setup-Guide.md
+        destination: "documentation/opentelemetry/OpenTelemetry-Tag-Setup-Guide.md"
         external: true
       - source: opentelemetry-ebpf.yaml
         destination: "bootstrap/apps/opentelemetry/opentelemetry-ebpf.yaml"
@@ -38,4 +38,4 @@ spec:
     - name: tags
       type: STRING
       optional: true
-      documentation: "Optional list of tags that should be applied to global service in a format: 'mytag=myvalue,mytag2=test"
+      documentation: "Optional comma-separated key=value tags applied to both GlobalServices, for example release=1.0,enabled=true,tier=01. Keys and values remain strings. Omit or leave empty to apply no tag filter."
