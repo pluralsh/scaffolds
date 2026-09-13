@@ -1,0 +1,2 @@
+cluster: workload-a
+clientNamespace: document-jobs

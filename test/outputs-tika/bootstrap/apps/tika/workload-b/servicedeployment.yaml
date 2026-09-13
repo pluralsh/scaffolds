@@ -1,0 +1,22 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: tika-workload-b
+  namespace: apps
+spec:
+
+  agentId: tika-test-agent
+
+  name: tika
+  namespace: tika
+  git:
+    ref: main
+    folder: kubernetes/tika/workload-b
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  kustomize:
+    path: '.'
+    enableHelm: false
+  cluster: "workload-b"

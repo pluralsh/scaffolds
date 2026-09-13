@@ -1,0 +1,22 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: tika-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: tika
+  namespace: tika
+  git:
+    ref: main
+    folder: kubernetes/tika/{{ context.cluster }}
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  kustomize:
+    path: '.'
+    enableHelm: false
+  cluster: {{ context.cluster | quote }}

@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tika
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tika
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+
+          kubernetes.io/metadata.name: "document-jobs"
+      podSelector:
+        matchLabels:
+          tika-client: "true"
+    ports:
+    - protocol: TCP
+      port: 9998
+  egress: []
