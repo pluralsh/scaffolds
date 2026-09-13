@@ -32,7 +32,7 @@ output "oidc_client_secret" {
 }
 
 output "fernet_key" {
-  value = random_password.fernet.result
+  value = var.fernet_key != null ? var.fernet_key : replace(replace(random_bytes.fernet.base64, "+", "-"), "/", "_")
   sensitive = true
 }
 

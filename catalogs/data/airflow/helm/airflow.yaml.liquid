@@ -1,5 +1,7 @@
 {% raw %}
 airflow:
+  fernetKey: {{ imports[configuration.stackName].fernet_key | json }}
+  webserverSecretKey: {{ imports[configuration.stackName].flask_secret | json }}
   image:
     repository: apache/airflow # extend and customize this image with your own airflow build to import dags
     tag: 2.8.4-python3.9
@@ -39,8 +41,6 @@ externalDatabase:
 
 web:
   baseUrl: {{ configuration.hostname }}
-
-  webserverSecretKey: {{ imports[configuration.stackName].flask_secret | quote }}
 
   webserverConfig:
     stringOverride: |-
@@ -123,8 +123,6 @@ ingress:
     tls:
       enabled: true
       secretName: airflow-tls
-
-fernetKey: {{ imports[configuration.stackName].fernet_key | quote }}
 
 serviceAccount:
   annotations:

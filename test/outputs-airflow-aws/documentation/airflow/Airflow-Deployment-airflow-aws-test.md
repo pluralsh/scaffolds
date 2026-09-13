@@ -16,9 +16,26 @@ This changes the database actually used by the application. If a previous deploy
 
 Complete the Terraform stack and configure the target cluster, cloud/network contexts, DNS, ingress and certificate issuer before relying on the deployment. The database endpoint must be reachable from the Airflow pods. Review the retained `externalDatabase.properties` and PgBouncer TLS settings against your database's encryption requirements; the local rendering test does not validate network access or TLS negotiation.
 
-Key management is an existing separate prerequisite: the catalog's current `fernetKey` and `web.webserverSecretKey` values are not the `airflow.fernetKey` and `airflow.webserverSecretKey` settings consumed by this chart. The Terraform Fernet output is a 20-character password, rather than the URL-safe base64 encoding of a 32-byte Fernet key. Do not simply move that invalid value to the active setting. Configure valid, stable keys through the chart's supported settings and plan key migration for an existing database before production use. This database-routing change does not modify those keys or the OAuth configuration.
+## Persistent keys and migration
 
-Local validation renders the pinned chart with synthetic stack outputs and checks database routing, credentials and resource selection. It does not provision AWS resources, migrate data or prove live Airflow startup/database connectivity. See the [pinned chart documentation](https://github.com/airflow-helm/charts/tree/airflow-8.9.0/charts/airflow) for its configuration contract.
+For a new installation, Terraform's `random_bytes.fernet` generates 32 random bytes once and persists them in Terraform state. The sensitive `fernet_key` output converts standard Base64 to URL-safe Base64, retaining its padding. It remains stable across normal applies while the resource state is preserved. The existing persistent Flask password supplies `flask_secret`. The chart consumes these outputs at `airflow.fernetKey` and `airflow.webserverSecretKey`, distributing them through its configuration Secret to the Airflow processes.
+
+The Random provider requires version 3.6 or newer within major version 3. Protect and back up Terraform state and stack outputs; do not replace the random-key resource or discard its state as a way to redeploy the application.
+
+Before updating an existing installation, securely identify and preserve its **effective deployed Fernet key or key list**, together with a database backup. The old top-level `fernetKey` and `web.webserverSecretKey` values were ignored by the chart. Its old 20-character Terraform Fernet output is not a valid Fernet key and is not evidence of which key encrypted the database. An unmodified chart used its own default, but operators may have overridden it; inspect the actual effective configuration rather than assuming the default. An intentionally empty Fernet setting also needs a separate migration plan; it must not be treated as an encrypted database using the unused Terraform output.
+
+The sensitive Terraform input `fernet_key` accepts an existing valid key or a comma-separated rotation list. Supply it through a private Terraform variable input, not a committed plaintext file. Set it to the effective old key before the first upgrade if you need to retain that key. The default `null` selects the newly generated key and must not be applied blindly to existing encrypted data.
+
+For planned rotation, follow the [Airflow 2.8.4 Fernet rotation procedure](https://airflow.apache.org/docs/apache-airflow/2.8.4/security/secrets/fernet.html):
+
+1. Back up the database and old key, and pause writers and drain active work during a controlled rollout so processes do not write data with keys that other processes cannot read.
+2. Prepend the new valid key to the entire existing key list (for a single old key, use `new_key,old_key`). Update all Airflow processes to use that list before resuming writers.
+3. Run `airflow rotate-fernet-key` against the intended database, verify successful re-encryption and normal access to existing connection credentials and variables, then set the override to only `new_key` and roll out consistently.
+4. Keep that final override unless you have deliberately synchronized the generated Terraform key with the active key. Clearing the override selects the separate generated key and can make existing data unreadable.
+
+Changing the effective Flask secret invalidates existing web sessions. Plan for users to sign in again, and ensure all applicable Airflow processes receive the same stable value. The OAuth configuration itself is unchanged. Coordinate this key rollout with the database migration above; neither change migrates existing data automatically.
+
+Local validation renders the pinned chart with synthetic stack outputs and checks database routing, credentials, key delivery and resource selection. It does not provision AWS resources, migrate data or prove live Airflow startup/database connectivity. See the [pinned chart documentation](https://github.com/airflow-helm/charts/tree/airflow-8.9.0/charts/airflow) for its configuration contract.
 
 ## Managing DAGs
 
