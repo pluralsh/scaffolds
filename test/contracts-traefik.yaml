@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: traefik
+spec:
+  workdir: test/outputs-traefik
+  templates:
+    from: catalogs/network/traefik
+    to: test/outputs-traefik/catalogs/network/traefik
+  automations:
+  - file: ../../setup/catalogs/network/traefik.yaml
+    context: ../contexts/traefik.yaml

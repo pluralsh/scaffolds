@@ -1,0 +1,16 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: traefik
+  namespace: apps
+spec:
+  template:
+    name: traefik
+    namespace: traefik
+    helm:
+      url: https://traefik.github.io/charts
+      chart: traefik
+      version: "v3.20.13"
+      values:
+          service:
+            type: ClusterIP

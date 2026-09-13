@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: traefik
+spec:
+  name: traefik
+  icon: https://raw.githubusercontent.com/traefik/traefik/master/docs/content/assets/img/traefik.logo.png
+  identifier: mgmt
+  documentation: |
+    Sets up Traefik as an ingress controller and reverse proxy.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/network/traefik
+    templates:
+    - source: README.md
+      destination: documentation/traefik/README.md
+      external: true
+    - source: traefik.yaml
+      destination: bootstrap/apps/traefik/traefik.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: network
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Traefik setup
+  message: |
+    Sets up the Traefik ingress controller on the management cluster.
+
+    Plural Service: mgmt/apps
+  configuration: []
