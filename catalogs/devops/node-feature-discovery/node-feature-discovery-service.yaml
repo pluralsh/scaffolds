@@ -1,0 +1,25 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: node-feature-discovery-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  namespace: node-feature-discovery
+  git:
+    folder: helm/node-feature-discovery/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "0.19.0"
+    chart: node-feature-discovery
+    release: node-feature-discovery
+    url: oci://registry.k8s.io/nfd/charts
+    valuesFiles:
+    - node-feature-discovery.yaml.liquid
+  cluster: {{ context.cluster | json }}

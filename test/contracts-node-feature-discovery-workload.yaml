@@ -1,0 +1,10 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: node-feature-discovery-workload
+spec:
+  workdir: test/outputs-node-feature-discovery-workload
+  automations:
+  - file: ../../setup/catalogs/devops/node-feature-discovery.yaml
+    context: ../contexts/node-feature-discovery-workload.yaml
+    externalDir: ../../catalogs/devops/node-feature-discovery
