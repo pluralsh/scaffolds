@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: headlamp
+spec:
+  workdir: test/outputs-headlamp
+  templates:
+    from: catalogs/devops/headlamp
+    to: test/outputs-headlamp/catalogs/devops/headlamp
+  automations:
+  - file: ../../setup/catalogs/devops/headlamp.yaml
+    context: ../contexts/headlamp.yaml

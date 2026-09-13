@@ -1,0 +1,20 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: headlamp
+  namespace: apps
+spec:
+  template:
+    name: headlamp
+    namespace: headlamp
+    helm:
+      url: https://kubernetes-sigs.github.io/headlamp/
+      chart: headlamp
+      version: "0.45.0"
+      values:
+          service:
+            type: ClusterIP
+          ingress:
+            enabled: false
+          persistentVolumeClaim:
+            enabled: false

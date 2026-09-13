@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: headlamp
+spec:
+  name: headlamp
+  icon: https://raw.githubusercontent.com/kubernetes-sigs/headlamp/main/frontend/public/logo192.png
+  identifier: mgmt
+  documentation: |
+    Sets up Headlamp, an extensible Kubernetes web UI, exposed via ClusterIP.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/headlamp
+    templates:
+    - source: README.md
+      destination: documentation/headlamp/README.md
+      external: true
+    - source: headlamp.yaml
+      destination: bootstrap/apps/headlamp/headlamp.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Headlamp setup
+  message: |
+    Sets up Headlamp Kubernetes web UI on the management cluster.
+
+    Plural Service: mgmt/apps
+  configuration: []
