@@ -1,0 +1,15 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: descheduler
+  namespace: apps
+spec:
+  template:
+    name: descheduler
+    namespace: descheduler
+    helm:
+      url: https://kubernetes-sigs.github.io/descheduler/
+      chart: descheduler
+      version: "0.36.0"
+      values:
+          kind: Deployment

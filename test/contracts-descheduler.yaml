@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: descheduler
+spec:
+  workdir: test/outputs-descheduler
+  templates:
+    from: catalogs/infra/descheduler
+    to: test/outputs-descheduler/catalogs/infra/descheduler
+  automations:
+  - file: ../../setup/catalogs/infra/descheduler.yaml
+    context: ../contexts/descheduler.yaml

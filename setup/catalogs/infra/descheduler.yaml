@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: descheduler
+spec:
+  name: descheduler
+  icon: https://raw.githubusercontent.com/kubernetes-sigs/descheduler/master/logo/descheduler-stacked-color.png
+  identifier: mgmt
+  documentation: |
+    Sets up the Kubernetes descheduler to evict pods for better resource balance.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/infra/descheduler
+    templates:
+    - source: README.md
+      destination: documentation/descheduler/README.md
+      external: true
+    - source: descheduler.yaml
+      destination: bootstrap/apps/descheduler/descheduler.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: infra
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Descheduler setup
+  message: |
+    Sets up the Kubernetes descheduler on the management cluster.
+
+    Plural Service: mgmt/apps
+  configuration: []
