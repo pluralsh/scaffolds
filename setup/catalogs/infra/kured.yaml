@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: kured
+spec:
+  name: kured
+  icon: https://raw.githubusercontent.com/kubereboot/kured/main/img/logo.png
+  identifier: mgmt
+  documentation: |
+    Sets up Kured for safe automatic node reboots after OS updates.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/infra/kured
+    templates:
+    - source: README.md
+      destination: documentation/kured/README.md
+      external: true
+    - source: kured.yaml
+      destination: bootstrap/apps/kured/kured.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: infra
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Kured setup
+  message: |
+    Sets up Kured node reboot daemon on the management cluster.
+
+    Plural Service: mgmt/apps
+  configuration: []

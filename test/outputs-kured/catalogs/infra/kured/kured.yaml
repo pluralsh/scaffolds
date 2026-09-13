@@ -1,0 +1,15 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: kured
+  namespace: apps
+spec:
+  template:
+    name: kured
+    namespace: kured
+    helm:
+      url: https://kubereboot.github.io/charts/
+      chart: kured
+      version: "6.1.0"
+      values:
+        {}
