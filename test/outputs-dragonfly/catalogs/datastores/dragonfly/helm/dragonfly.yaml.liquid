@@ -1,0 +1,22 @@
+replicaCount: 1
+
+service:
+  type: ClusterIP
+
+storage:
+  enabled: true
+  requests: {{ context.storageSize | default: "1Gi" }}
+
+passwordFromSecret:
+  enable: true
+  existingSecret:
+    name: dragonfly-auth
+    key: requirepass
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

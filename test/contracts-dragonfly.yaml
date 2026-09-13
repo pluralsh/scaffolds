@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: dragonfly
+spec:
+  workdir: test/outputs-dragonfly
+  templates:
+    from: catalogs/datastores/dragonfly
+    to: test/outputs-dragonfly/catalogs/datastores/dragonfly
+  automations:
+  - file: ../../setup/catalogs/datastores/dragonfly.yaml
+    context: ../contexts/dragonfly.yaml
