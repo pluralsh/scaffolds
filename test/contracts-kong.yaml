@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: kong
+spec:
+  workdir: test/outputs-kong
+  templates:
+    from: catalogs/network/kong
+    to: test/outputs-kong/catalogs/network/kong
+  automations:
+  - file: ../../setup/catalogs/network/kong.yaml
+    context: ../contexts/kong.yaml

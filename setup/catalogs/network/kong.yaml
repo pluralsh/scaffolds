@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: kong
+spec:
+  name: kong
+  icon: https://raw.githubusercontent.com/Kong/kong/main/logo.png
+  identifier: mgmt
+  documentation: |
+    Sets up Kong Gateway with the Kong Ingress Controller in DB-less mode.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/network/kong
+    templates:
+    - source: README.md
+      destination: documentation/kong/README.md
+      external: true
+    - source: kong.yaml
+      destination: bootstrap/apps/kong/kong.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: network
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Kong Gateway setup
+  message: |
+    Sets up Kong Gateway (DB-less) with the Kong Ingress Controller on the management cluster.
+
+    Plural Service: mgmt/apps
+  configuration: []

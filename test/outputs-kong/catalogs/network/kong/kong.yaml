@@ -1,0 +1,23 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: kong
+  namespace: apps
+spec:
+  template:
+    name: kong
+    namespace: kong
+    helm:
+      url: https://charts.konghq.com
+      chart: kong
+      version: "11.9.13"
+      values:
+          env:
+            database: "off"
+          ingressController:
+            enabled: true
+            installCRDs: false
+          proxy:
+            type: ClusterIP
+          admin:
+            enabled: false
