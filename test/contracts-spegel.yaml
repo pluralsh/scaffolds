@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: spegel
+spec:
+  workdir: test/outputs-spegel
+  templates:
+    from: catalogs/devops/spegel
+    to: test/outputs-spegel/catalogs/devops/spegel
+  automations:
+  - file: ../../setup/catalogs/devops/spegel.yaml
+    context: ../contexts/spegel.yaml
