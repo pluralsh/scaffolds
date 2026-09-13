@@ -1,0 +1,41 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: spegel
+spec:
+  name: spegel
+  icon: https://raw.githubusercontent.com/spegel-org/website/main/static/images/logo-transparent.svg
+  identifier: mgmt
+  documentation: |
+    Installs Spegel, a cluster-local OCI registry mirror, on a selected compatible Containerd-based Kubernetes cluster.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/spegel
+    templates:
+    - source: README.md
+      destination: documentation/spegel/README.md
+      external: true
+    - source: helm
+      destination: "helm/spegel/{{ context.cluster }}"
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: "bootstrap/apps/spegel/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Spegel setup ({{ context.cluster }})"
+  message: |
+    Installs Spegel on {{ context.cluster }} using the official OCI Helm chart.
+
+    Confirm the target cluster satisfies Spegel's Containerd compatibility requirements before merging the generated PR.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the compatible Containerd-based Kubernetes cluster where Spegel should run

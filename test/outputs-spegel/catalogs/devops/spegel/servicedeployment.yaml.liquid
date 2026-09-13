@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: spegel-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: spegel
+  namespace: spegel
+  git:
+    folder: helm/spegel/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    url: oci://ghcr.io/spegel-org/helm-charts
+    chart: spegel
+    version: "0.7.4"
+    release: spegel
+    valuesFiles:
+    - spegel.yaml.liquid
+  cluster: {{ context.cluster }}
