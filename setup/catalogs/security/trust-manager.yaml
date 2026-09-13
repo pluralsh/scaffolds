@@ -1,0 +1,43 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: trust-manager
+spec:
+  name: trust-manager
+  identifier: mgmt
+  documentation: |
+    Install trust-manager on one cluster to distribute explicitly configured CA bundles.
+    Requires a healthy cert-manager installation and an existing trust source namespace.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/security/trust-manager
+    templates:
+    - source: trust-manager-service.yaml
+      destination: bootstrap/apps/trust-manager/{{ context.cluster }}/trust-manager-service.yaml
+      external: true
+    - source: helm
+      destination: helm/trust-manager/{{ context.cluster }}
+      external: true
+    - source: Trust-Manager-Guide.md
+      destination: documentation/trust-manager/Trust-Manager-Deployment-{{ context.cluster }}.md
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: security
+  scmConnectionRef:
+    name: plural
+  title: Install trust-manager on {{ context.cluster }}
+  message: |
+    Install trust-manager on {{ context.cluster }} with sources in {{ context.trustNamespace }}.
+    Bundle distribution is configured separately after the controller is ready.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: Handle of the cluster with a healthy cert-manager installation. Install only one trust-manager per cluster.
+  - name: trustNamespace
+    type: STRING
+    documentation: Existing namespace for trust sources. Prefer a dedicated namespace such as trust-sources containing only public CA certificates.
