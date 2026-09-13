@@ -1,0 +1,55 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: tika
+spec:
+  name: tika
+  identifier: mgmt
+  documentation: |
+    Sets up Apache Tika 4 for internal document text and metadata extraction.
+    Requires a NetworkPolicy-enforcing CNI. Only pods labeled tika-client=true
+    in the selected client namespace may connect; outbound traffic is denied.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/data/tika
+    templates:
+    - source: README.md
+      destination: documentation/tika/README.md
+      external: true
+    - source: kubernetes/kustomization.yaml
+      destination: "kubernetes/tika/{{ context.cluster }}/kustomization.yaml"
+      external: true
+    - source: kubernetes/tika-config.json
+      destination: "kubernetes/tika/{{ context.cluster }}/tika-config.json"
+      external: true
+    - source: kubernetes/resources.yaml
+      destination: "kubernetes/tika/{{ context.cluster }}/resources.yaml"
+      external: true
+    - source: kubernetes/network-policy.yaml.liquid
+      destination: "kubernetes/tika/{{ context.cluster }}/network-policy.yaml"
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: "bootstrap/apps/tika/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: data
+  scmConnectionRef:
+    name: plural # Configure this ScmConnection before using the automation.
+  title: "Tika setup ({{ context.cluster }})"
+  message: |
+    Sets up a bounded, internal Tika document-extraction service on {{ context.cluster }}.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: Linux cluster with a CNI that enforces ingress and egress NetworkPolicy
+  - name: clientNamespace
+    type: STRING
+    documentation: |
+      Existing namespace containing trusted client pods. Also label those pods
+      tika-client=true. Both selectors must match; no wildcard namespace is
+      used. The caller must have egress permission to the Tika service.

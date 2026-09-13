@@ -1,0 +1,16 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: tika
+spec:
+  workdir: test/outputs-tika
+  templates:
+    from: catalogs/data/tika
+    to: test/outputs-tika/catalogs/data/tika
+  automations:
+  - file: ../../setup/catalogs/data/tika.yaml
+    context: ../contexts/tika.yaml
+  - file: ../../setup/catalogs/data/tika.yaml
+    context: ../contexts/tika-ai.yaml
+  - file: ../../setup/catalogs/data/tika.yaml
+    context: ../contexts/tika-empty.yaml

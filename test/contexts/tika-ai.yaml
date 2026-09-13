@@ -1,0 +1,5 @@
+cluster: workload-b
+clientNamespace: ' team-docs '
+ai:
+  session:
+    agent_id: tika-test-agent
