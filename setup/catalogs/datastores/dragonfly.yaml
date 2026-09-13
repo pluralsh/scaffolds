@@ -1,0 +1,43 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: dragonfly
+spec:
+  name: dragonfly
+  icon: https://www.dragonflydb.io/favicon.ico
+  identifier: mgmt
+  documentation: |
+    Sets up an internal, persistent DragonflyDB datastore with generated authentication.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/datastores/dragonfly
+    templates:
+    - source: README.md
+      destination: documentation/dragonfly/README.md
+      external: true
+    - source: helm/dragonfly.yaml.liquid
+      destination: helm/dragonfly/dragonfly.yaml.liquid
+      external: true
+    - source: globalservice.yaml
+      destination: bootstrap/apps/dragonfly/globalservice.yaml
+      external: true
+    - source: generatedsecret.yaml
+      destination: bootstrap/apps/dragonfly/generatedsecret.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: datastores
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "DragonflyDB setup"
+  message: |
+    Sets up an internal, persistent DragonflyDB datastore.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: storageSize
+    type: STRING
+    documentation: Requested persistent volume size for DragonflyDB.
+    default: 1Gi
