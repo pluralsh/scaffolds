@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: reloader
+spec:
+  workdir: test/outputs
+  templates:
+    from: catalogs/devops/reloader
+    to: test/outputs/catalogs/devops/reloader
+  automations:
+  - file: ../../setup/catalogs/devops/reloader.yaml
+    context: ../contexts/reloader.yaml
