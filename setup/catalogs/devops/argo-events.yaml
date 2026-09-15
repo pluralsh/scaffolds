@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: argo-events
+spec:
+  name: argo-events
+  icon: https://raw.githubusercontent.com/cncf/artwork/main/projects/argo/icon/color/argo-icon-color.svg
+  identifier: mgmt
+  documentation: |
+    Sets up Argo Events event-driven automation as a cluster-wide GlobalService.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/argo-events
+    templates:
+    - source: README.md
+      destination: documentation/argo-events/README.md
+      external: true
+    - source: argo-events.yaml
+      destination: bootstrap/apps/argo-events/argo-events.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Global Argo Events Setup"
+  message: |
+    Sets up Argo Events as a GlobalService Helm deployment.
+
+    Plural Service: mgmt/apps
+  configuration: []
