@@ -17,6 +17,11 @@ resource "aws_iam_policy" "invoke" {
 
 # The provider does not support `approval` yet, so every tool is invokable without human
 # approval. Only register functions that change nothing until that is supported.
+# TODO(PROD-5251): add `approval` to plural_workbench_tool in terraform-provider-plural and
+# set it here for every function that changes resources.
+# TODO(PROD-5251): fix the plural_cloud_connection data source (cloud_provider and
+# configuration are required, so it cannot look connections up by name) and accept a
+# connection name instead of cloud_connection_id.
 resource "plural_workbench_tool" "function" {
   for_each = local.functions
 

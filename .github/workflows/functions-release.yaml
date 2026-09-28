@@ -3,6 +3,10 @@ name: Functions Release
 # Push a functions/vX.Y.Z tag to publish function zips and SHA256SUMS as a GitHub release.
 # Tags with a suffix (functions/vX.Y.Z-rc.1) are published as pre-releases.
 # A manual run builds the artifacts without publishing anything.
+#
+# TODO(PROD-5251): also upload the AWS zips to the Plural-hosted public S3 bucket of every
+# supported region (s3://<bucket>-<region>/functions/<version>/<binary>.zip), using AWS
+# credentials obtained through GitHub OIDC. Terraform reads them via artifact_s3_bucket.
 on:
   push:
     tags:

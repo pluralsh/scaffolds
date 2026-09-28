@@ -1,6 +1,9 @@
 # Temporary artifact path used until the zips are published to per-region S3 buckets
 # (artifact_s3_bucket). The zip is downloaded on every run and written next to the module,
 # which stores it in state and makes local_file show as created on every plan.
+# TODO(PROD-5251): once the release workflow uploads zips to the Plural-hosted per-region
+# S3 buckets, default artifact_s3_bucket to them and remove this file, artifact_base_url
+# and the http/local providers.
 
 data "http" "artifact" {
   for_each = { for key, fn in local.functions : key => fn if local.download }
