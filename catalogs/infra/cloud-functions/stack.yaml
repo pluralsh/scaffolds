@@ -1,0 +1,29 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: cloud-functions-{{ context.name }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/cloud-functions/{{ context.name }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  variables:
+    name: {{ context.name }}
+    region: {{ context.region }}
+    cloud_connection_id: {{ context.cloudConnectionId }}
+    artifact_version: {{ context.version }}
+    functions: {{ context.functions | default: '["echo"]' }}
+  clusterRef:
+    name: mgmt
+    namespace: infra
