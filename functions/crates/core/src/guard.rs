@@ -10,14 +10,26 @@ pub struct Guard {
 
 impl Guard {
     pub fn pass(name: impl Into<String>, detail: impl Into<String>) -> Self {
-        Self { name: name.into(), passed: true, detail: detail.into() }
+        Self {
+            name: name.into(),
+            passed: true,
+            detail: detail.into(),
+        }
     }
 
     pub fn fail(name: impl Into<String>, detail: impl Into<String>) -> Self {
-        Self { name: name.into(), passed: false, detail: detail.into() }
+        Self {
+            name: name.into(),
+            passed: false,
+            detail: detail.into(),
+        }
     }
 
     pub fn check(name: impl Into<String>, passed: bool, detail: impl Into<String>) -> Self {
-        Self { name: name.into(), passed, detail: detail.into() }
+        Self {
+            name: name.into(),
+            passed,
+            detail: detail.into(),
+        }
     }
 }

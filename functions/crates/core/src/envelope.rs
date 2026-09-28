@@ -58,17 +58,39 @@ pub struct Response<R> {
 impl<R> Response<R> {
     /// Response to a plan: [`Outcome::Planned`] if every guard passed, [`Outcome::Refused`] otherwise.
     pub fn planned(guards: Vec<Guard>, result: R) -> Self {
-        let outcome = if guards.iter().all(|g| g.passed) { Outcome::Planned } else { Outcome::Refused };
-        Self { action: Action::Plan, outcome, guards, operation_id: None, result: Some(result) }
+        let outcome = if guards.iter().all(|g| g.passed) {
+            Outcome::Planned
+        } else {
+            Outcome::Refused
+        };
+        Self {
+            action: Action::Plan,
+            outcome,
+            guards,
+            operation_id: None,
+            result: Some(result),
+        }
     }
 
     /// Execute refused because at least one guard failed.
     pub fn refused(guards: Vec<Guard>) -> Self {
-        Self { action: Action::Execute, outcome: Outcome::Refused, guards, operation_id: None, result: None }
+        Self {
+            action: Action::Execute,
+            outcome: Outcome::Refused,
+            guards,
+            operation_id: None,
+            result: None,
+        }
     }
 
     pub fn done(guards: Vec<Guard>, result: R) -> Self {
-        Self { action: Action::Execute, outcome: Outcome::Done, guards, operation_id: None, result: Some(result) }
+        Self {
+            action: Action::Execute,
+            outcome: Outcome::Done,
+            guards,
+            operation_id: None,
+            result: Some(result),
+        }
     }
 
     pub fn pending(guards: Vec<Guard>, operation_id: impl Into<String>) -> Self {
@@ -90,7 +112,8 @@ mod tests {
 
     #[test]
     fn request_defaults_to_plan() {
-        let req: Request<Map<String, Value>> = serde_json::from_value(json!({"volumeId": "vol-1"})).unwrap();
+        let req: Request<Map<String, Value>> =
+            serde_json::from_value(json!({"volumeId": "vol-1"})).unwrap();
 
         assert_eq!(req.action, Action::Plan);
         assert_eq!(req.operation_id, None);
@@ -109,14 +132,18 @@ mod tests {
 
     #[test]
     fn request_rejects_unknown_action() {
-        let res = serde_json::from_value::<Request<Map<String, Value>>>(json!({"action": "delete"}));
+        let res =
+            serde_json::from_value::<Request<Map<String, Value>>>(json!({"action": "delete"}));
 
         assert!(res.is_err());
     }
 
     #[test]
     fn plan_is_refused_when_any_guard_fails() {
-        let guards = vec![Guard::pass("unattached", "no attachments"), Guard::fail("tagged", "missing tag")];
+        let guards = vec![
+            Guard::pass("unattached", "no attachments"),
+            Guard::fail("tagged", "missing tag"),
+        ];
 
         assert_eq!(Response::planned(guards, ()).outcome, Outcome::Refused);
     }

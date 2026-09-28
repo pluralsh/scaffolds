@@ -16,8 +16,15 @@ struct Echo {
     params: Map<String, Value>,
 }
 
-async fn handle(sts: &aws_sdk_sts::Client, req: Request<Map<String, Value>>) -> Result<Response<Echo>, Error> {
-    let identity = sts.get_caller_identity().send().await.map_err(provider_error)?;
+async fn handle(
+    sts: &aws_sdk_sts::Client,
+    req: Request<Map<String, Value>>,
+) -> Result<Response<Echo>, Error> {
+    let identity = sts
+        .get_caller_identity()
+        .send()
+        .await
+        .map_err(provider_error)?;
     let guards = vec![Guard::pass("identity", "resolved caller identity")];
     let echo = Echo {
         account: identity.account().map(str::to_owned),

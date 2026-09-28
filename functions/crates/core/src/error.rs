@@ -26,4 +26,13 @@ impl Error {
     pub fn provider(msg: impl Display) -> Self {
         Self::Provider(msg.to_string())
     }
+
+    /// Stable, machine-readable error category reported to the caller as the error type.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Self::InvalidRequest(_) => "InvalidRequest",
+            Self::UnsupportedAction(_) => "UnsupportedAction",
+            Self::Provider(_) => "Provider",
+        }
+    }
 }

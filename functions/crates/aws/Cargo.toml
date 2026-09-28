@@ -15,4 +15,3 @@ aws-config.workspace = true
 aws-smithy-types.workspace = true
 lambda_runtime.workspace = true
 serde.workspace = true
-tracing.workspace = true

@@ -1,0 +1,17 @@
+dist := "dist"
+
+# Format check, lint and unit tests.
+check:
+    cargo fmt --check
+    cargo clippy --all-targets -- -D warnings
+    cargo test
+
+# Build every function as an arm64 Lambda zip under target/lambda/<fn>/bootstrap.zip.
+build:
+    cargo lambda build --release --arm64 --output-format zip
+
+# Collect the zips into dist/<fn>.zip with a SHA256SUMS file, the layout published on releases.
+package: build
+    rm -rf {{dist}} && mkdir -p {{dist}}
+    for dir in target/lambda/*/; do cp "$dir/bootstrap.zip" "{{dist}}/$(basename "$dir").zip"; done
+    cd {{dist}} && shasum -a 256 *.zip > SHA256SUMS
