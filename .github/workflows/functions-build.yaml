@@ -1,0 +1,48 @@
+name: Functions Build
+
+# Shared by functions-ci and functions-release so both build exactly the same artifacts.
+on:
+  workflow_call: {}
+
+env:
+  CARGO_LAMBDA_VERSION: 1.9.2
+
+jobs:
+  build:
+    name: check and package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+        name: checkout repo
+
+      # Installs the toolchain, components and targets pinned in functions/rust-toolchain.toml.
+      - name: install rust toolchain
+        run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: functions
+
+      - uses: extractions/setup-just@v2
+
+      # The PyPI package is the documented CI install and pulls in Zig for cross-compilation.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: install cargo-lambda
+        run: pip install "cargo-lambda==${CARGO_LAMBDA_VERSION}"
+
+      - run: just check
+      - run: just package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: functions-dist
+          path: functions/dist/
+          if-no-files-found: error
+          retention-days: 7

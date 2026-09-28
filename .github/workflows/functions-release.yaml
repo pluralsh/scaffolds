@@ -1,0 +1,60 @@
+name: Functions Release
+
+# Push a functions/vX.Y.Z tag to publish function zips and SHA256SUMS as a GitHub release.
+# Tags with a suffix (functions/vX.Y.Z-rc.1) are published as pre-releases.
+# A manual run builds the artifacts without publishing anything.
+on:
+  push:
+    tags:
+    - functions/v*
+  workflow_dispatch: {}
+
+concurrency:
+  group: functions-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/functions-build.yaml
+    permissions:
+      contents: read
+
+  release:
+    name: publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/functions/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: functions-dist
+          path: dist
+
+      - name: verify checksums
+        working-directory: dist
+        run: sha256sum --check SHA256SUMS
+
+      - name: create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          prerelease=""
+          if [[ "$TAG" == *-* ]]; then prerelease="--prerelease"; fi
+
+          {
+            echo "Operational cloud functions ${TAG#functions/}."
+            echo
+            echo '```'
+            cat dist/SHA256SUMS
+            echo '```'
+          } > notes.md
+
+          gh release create "$TAG" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$TAG" \
+            --notes-file notes.md \
+            --verify-tag \
+            $prerelease

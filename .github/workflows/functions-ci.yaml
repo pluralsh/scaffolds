@@ -1,0 +1,15 @@
+name: Functions CI
+
+on:
+  pull_request:
+    branches:
+    - main
+    paths:
+    - functions/**
+    - .github/workflows/functions-*.yaml
+
+jobs:
+  build:
+    uses: ./.github/workflows/functions-build.yaml
+    permissions:
+      contents: read
