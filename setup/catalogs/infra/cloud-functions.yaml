@@ -1,0 +1,69 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: cloud-functions
+spec:
+  name: cloud-functions
+  icon: https://docs.plural.sh/favicon-128.png
+  identifier: mgmt
+  documentation: |
+    Deploys operational cloud functions (orphaned resource cleanup, node group resizing, ...)
+    and registers them as Plural workbench tools.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/infra/cloud-functions
+    templates:
+      - source: stack.yaml
+        destination: "bootstrap/apps/cloud-functions/{{ context.name }}/stack.yaml"
+        external: true
+      - source: "terraform/{{ context.cloud }}"
+        destination: terraform/apps/cloud-functions/{{ context.name }}
+        external: true
+      - source: README.md
+        destination: documentation/cloud-functions/README.md
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: infra
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up cloud functions {{ context.name }} on {{ context.cloud }}"
+  message: |
+    Set up cloud functions {{ context.name }} ({{ context.cloud }}, {{ context.region }})
+
+    Will deploy the operational cloud functions from release {{ context.version }} and
+    register them as workbench tools.
+
+    Plural Service: mgmt/apps
+  confirmation:
+    text: |
+      The functions are invoked by workbenches through a cloud connection, which needs
+      permission to invoke them. Workbench tools are registered without approval for now,
+      so only functions that change nothing are available.
+    checklist:
+      - label: "I will attach the invoke_policy_arn stack output to the IAM principal of the cloud connection."
+      - label: "The cloud connection region matches the region the functions are deployed to."
+  configuration:
+    - name: name
+      type: STRING
+      documentation: Name of this installation, used as a prefix for every function, role and workbench tool.
+      validation:
+        regex: "^[a-z][a-z0-9-]{0,39}$"
+    - name: cloud
+      type: ENUM
+      documentation: Cloud provider to deploy the functions to.
+      values:
+        - aws
+    - name: region
+      type: STRING
+      documentation: Region to deploy the functions to. Must match the region of the cloud connection.
+    - name: cloudConnectionId
+      type: STRING
+      documentation: ID of the Plural cloud connection workbenches use to invoke the functions.
+    - name: version
+      type: STRING
+      documentation: Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds).
+      validation:
+        regex: "^v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.]+)?$"

@@ -19,11 +19,10 @@ spec:
     name: infra
     namespace: infra
   variables:
-    name: {{ context.name }}
-    region: {{ context.region }}
-    cloud_connection_id: {{ context.cloudConnectionId }}
-    artifact_version: {{ context.version }}
-    functions: {{ context.functions | default: '["echo"]' }}
+    name: "{{ context.name }}"
+    region: "{{ context.region }}"
+    cloud_connection_id: "{{ context.cloudConnectionId }}"
+    artifact_version: "{{ context.version }}"
   clusterRef:
     name: mgmt
     namespace: infra

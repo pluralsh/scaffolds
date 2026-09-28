@@ -1,0 +1,5 @@
+name: ops
+cloud: aws
+region: us-east-2
+cloudConnectionId: 00000000-0000-0000-0000-000000000000
+version: v0.1.0-spike.1

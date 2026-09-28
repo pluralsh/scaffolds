@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: cloud-functions-ops
+  namespace: apps
+spec:
+
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/cloud-functions/ops
+  repositoryRef:
+    name: infra
+    namespace: infra
+  variables:
+    name: "ops"
+    region: "us-east-2"
+    cloud_connection_id: "00000000-0000-0000-0000-000000000000"
+    artifact_version: "v0.1.0-spike.1"
+  clusterRef:
+    name: mgmt
+    namespace: infra

@@ -10,3 +10,6 @@ spec:
   automations:
   - file: ../../setup/catalogs/data/airbyte.yaml
     context: ../contexts/airbyte.yaml
+  - file: ../../setup/catalogs/infra/cloud-functions.yaml
+    context: ../contexts/cloud-functions-aws.yaml
+    externalDir: ../../catalogs/infra/cloud-functions
