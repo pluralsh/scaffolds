@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-use crate::Action;
-
 /// Failures that prevent a function from producing a [`crate::Response`].
 ///
 /// Guard failures are not errors: they are reported as [`crate::Outcome::Refused`] so the
@@ -10,9 +8,6 @@ use crate::Action;
 pub enum Error {
     #[error("invalid request: {0}")]
     InvalidRequest(String),
-
-    #[error("action {0:?} is not supported by this function")]
-    UnsupportedAction(Action),
 
     #[error("cloud provider error: {0}")]
     Provider(String),
@@ -31,7 +26,6 @@ impl Error {
     pub fn kind(&self) -> &'static str {
         match self {
             Self::InvalidRequest(_) => "InvalidRequest",
-            Self::UnsupportedAction(_) => "UnsupportedAction",
             Self::Provider(_) => "Provider",
         }
     }

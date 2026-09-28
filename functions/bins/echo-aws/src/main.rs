@@ -35,7 +35,6 @@ async fn handle(
     match req.action {
         Action::Plan => Ok(Response::planned(guards, echo)),
         Action::Execute => Ok(Response::done(guards, echo)),
-        Action::Status => Err(Error::UnsupportedAction(req.action)),
     }
 }
 

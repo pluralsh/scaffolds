@@ -11,8 +11,6 @@ pub enum Action {
     Plan,
     /// Re-evaluate guards and make the change if they all pass.
     Execute,
-    /// Report progress of a long-running operation started by a previous execute.
-    Status,
 }
 
 /// Tool input sent by the workbench. Operation-specific fields sit next to the envelope
@@ -22,8 +20,6 @@ pub enum Action {
 pub struct Request<P> {
     #[serde(default)]
     pub action: Action,
-    #[serde(default)]
-    pub operation_id: Option<String>,
     #[serde(flatten)]
     pub params: P,
 }
@@ -36,21 +32,17 @@ pub enum Outcome {
     Planned,
     /// At least one guard failed, nothing was changed.
     Refused,
-    /// The change was made.
+    /// The change was submitted. Functions return without waiting for it to complete and
+    /// report the resource state they observed instead.
     Done,
-    /// The change was started and can be followed with [`Action::Status`].
-    Pending,
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Response<R> {
     pub action: Action,
     pub outcome: Outcome,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub guards: Vec<Guard>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub operation_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<R>,
 }
@@ -67,7 +59,6 @@ impl<R> Response<R> {
             action: Action::Plan,
             outcome,
             guards,
-            operation_id: None,
             result: Some(result),
         }
     }
@@ -78,7 +69,6 @@ impl<R> Response<R> {
             action: Action::Execute,
             outcome: Outcome::Refused,
             guards,
-            operation_id: None,
             result: None,
         }
     }
@@ -88,18 +78,7 @@ impl<R> Response<R> {
             action: Action::Execute,
             outcome: Outcome::Done,
             guards,
-            operation_id: None,
             result: Some(result),
-        }
-    }
-
-    pub fn pending(guards: Vec<Guard>, operation_id: impl Into<String>) -> Self {
-        Self {
-            action: Action::Execute,
-            outcome: Outcome::Pending,
-            guards,
-            operation_id: Some(operation_id.into()),
-            result: None,
         }
     }
 }
@@ -116,26 +95,26 @@ mod tests {
             serde_json::from_value(json!({"volumeId": "vol-1"})).unwrap();
 
         assert_eq!(req.action, Action::Plan);
-        assert_eq!(req.operation_id, None);
         assert_eq!(req.params["volumeId"], "vol-1");
     }
 
     #[test]
-    fn request_reads_envelope_fields() {
+    fn request_reads_action() {
         let req: Request<Map<String, Value>> =
-            serde_json::from_value(json!({"action": "status", "operationId": "op-1"})).unwrap();
+            serde_json::from_value(json!({"action": "execute"})).unwrap();
 
-        assert_eq!(req.action, Action::Status);
-        assert_eq!(req.operation_id.as_deref(), Some("op-1"));
+        assert_eq!(req.action, Action::Execute);
         assert!(req.params.is_empty());
     }
 
     #[test]
     fn request_rejects_unknown_action() {
-        let res =
-            serde_json::from_value::<Request<Map<String, Value>>>(json!({"action": "delete"}));
+        for action in ["delete", "status"] {
+            let res =
+                serde_json::from_value::<Request<Map<String, Value>>>(json!({"action": action}));
 
-        assert!(res.is_err());
+            assert!(res.is_err(), "{action} should be rejected");
+        }
     }
 
     #[test]
