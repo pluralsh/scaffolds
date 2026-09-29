@@ -16,12 +16,15 @@ workbench tools. The function sources live in `functions/` of
     own system-assigned managed identity, in the resource group of the mgmt cluster; a role
     allowing only to resolve the function keys, and one `AZURE_FUNCTION` workbench tool per
     function.
+  - GCP: one Cloud Run service per function running as its own service account, in the
+    project of the mgmt cluster, reachable only by identities granted `roles/run.invoker`,
+    and one `CLOUD_RUN` workbench tool per function.
 
 ## Available functions
 
 | Function | Clouds | Changes resources | Description |
 |---|---|---|---|
-| `echo` | AWS, Azure | No | Echoes its input and the identity the function runs as. Verifies the setup. |
+| `echo` | AWS, Azure, GCP | No | Echoes its input and the identity the function runs as. Verifies the setup. |
 
 ## After the stack is applied
 
@@ -29,6 +32,8 @@ workbench tools. The function sources live in `functions/` of
    - AWS: attach the `invoke_policy_arn` output to the IAM principal of the cloud connection.
    - Azure: assign the `invoke_role_definition_id` output to the service principal of the
      cloud connection on the resource group.
+   - GCP: set the invoker service account when installing, or grant the cloud connection
+     service account `roles/run.invoker` on the services.
 2. Add the tools from the `workbench_tool_ids` output to a workbench.
 
 ## Invocation contract
@@ -39,9 +44,9 @@ submit the change and report the resource state without waiting for it to comple
 
 ## Customizations
 
-Terraform variables not set by the stack, such as `log_retention_days` (AWS), `resource_group_name`
-and `instance_memory_in_mb` (Azure) or `tags`, can be
-added to `variables` in the stack.
+Terraform variables not set by the stack, such as `log_retention_days` (AWS),
+`resource_group_name` and `instance_memory_in_mb` (Azure), `image_repository` (GCP) or
+`tags`, can be added to `variables` in the stack.
 
 ## Contributing
 

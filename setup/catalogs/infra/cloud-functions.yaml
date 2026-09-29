@@ -43,7 +43,7 @@ spec:
       permission to invoke them. Workbench tools are registered without approval for now,
       so only functions that change nothing are available.
     checklist:
-      - label: "I will grant the cloud connection the invoke permission from the stack outputs (AWS: attach invoke_policy_arn to its IAM principal; Azure: assign invoke_role_definition_id to its service principal on the resource group)."
+      - label: "I will grant the cloud connection the invoke permission from the stack outputs (AWS: attach invoke_policy_arn to its IAM principal; Azure: assign invoke_role_definition_id to its service principal on the resource group; GCP: set the invoker service account or grant it roles/run.invoker)."
       - label: "The cloud connection is in the same AWS region, or Azure subscription, as the functions."
   configuration:
     - name: name
@@ -57,12 +57,21 @@ spec:
       values:
         - aws
         - azure
+        - gcp
     - name: region
       type: STRING
-      documentation: Region (AWS) or location (Azure) to deploy the functions to. On AWS it must match the region of the cloud connection, on Azure it must support the Flex Consumption plan.
+      documentation: Region (AWS, GCP) or location (Azure) to deploy the functions to. On AWS it must match the region of the cloud connection, on Azure it must support the Flex Consumption plan.
     - name: cloudConnectionId
       type: STRING
       documentation: ID of the Plural cloud connection workbenches use to invoke the functions.
+    - name: invokerServiceAccount
+      type: STRING
+      documentation: Email of the cloud connection service account. When set, it is granted roles/run.invoker on every function.
+      optional: true
+      condition:
+        field: cloud
+        operation: EQ
+        value: 'gcp'
     - name: version
       type: STRING
       documentation: Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds).

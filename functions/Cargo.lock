@@ -814,6 +814,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "echo-gcp"
+version = "0.1.0"
+dependencies = [
+ "functions-core",
+ "functions-gcp",
+ "functions-http",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "either"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -929,6 +942,15 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "functions-gcp"
+version = "0.1.0"
+dependencies = [
+ "functions-core",
+ "reqwest",
+ "serde",
 ]
 
 [[package]]

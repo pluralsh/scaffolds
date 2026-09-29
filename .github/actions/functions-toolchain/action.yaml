@@ -1,0 +1,30 @@
+name: Functions toolchain
+description: Installs the Rust toolchain, just and cargo-lambda used to build functions/.
+
+inputs:
+  cargo-lambda-version:
+    description: cargo-lambda release to install.
+    default: 1.9.2
+
+runs:
+  using: composite
+  steps:
+    # Installs the toolchain, components and targets pinned in functions/rust-toolchain.toml.
+    - name: install rust toolchain
+      shell: bash
+      working-directory: functions
+      run: rustup toolchain install
+
+    - uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: functions
+
+    - uses: extractions/setup-just@v2
+
+    # The PyPI package is the documented CI install and pulls in Zig for cross-compilation.
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: install cargo-lambda
+      shell: bash
+      run: pip install "cargo-lambda==${{ inputs.cargo-lambda-version }}"

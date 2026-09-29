@@ -16,3 +16,6 @@ spec:
   - file: ../../setup/catalogs/infra/cloud-functions.yaml
     context: ../contexts/cloud-functions-azure.yaml
     externalDir: ../../catalogs/infra/cloud-functions
+  - file: ../../setup/catalogs/infra/cloud-functions.yaml
+    context: ../contexts/cloud-functions-gcp.yaml
+    externalDir: ../../catalogs/infra/cloud-functions

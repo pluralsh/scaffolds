@@ -1,0 +1,6 @@
+name: ops-gcp
+cloud: gcp
+region: us-central1
+cloudConnectionId: 00000000-0000-0000-0000-000000000000
+invokerServiceAccount: plural-workbench@my-project.iam.gserviceaccount.com
+version: v0.1.0-spike.1

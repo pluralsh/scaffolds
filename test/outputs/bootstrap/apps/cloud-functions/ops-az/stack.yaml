@@ -21,6 +21,7 @@ spec:
     region: "eastus"
     cloud_connection_id: "00000000-0000-0000-0000-000000000000"
     artifact_version: "v0.1.0-spike.1"
+    
   
   jobSpec:
     namespace: plrl-deploy-operator

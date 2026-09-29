@@ -1,7 +1,7 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
-  name: cloud-functions-ops
+  name: cloud-functions-ops-gcp
   namespace: apps
 spec:
 
@@ -12,15 +12,17 @@ spec:
   actor: console@plural.sh
   git:
     ref: main
-    folder: terraform/apps/cloud-functions/ops
+    folder: terraform/apps/cloud-functions/ops-gcp
   repositoryRef:
     name: infra
     namespace: infra
   variables:
-    name: "ops"
-    region: "us-east-2"
+    name: "ops-gcp"
+    region: "us-central1"
     cloud_connection_id: "00000000-0000-0000-0000-000000000000"
     artifact_version: "v0.1.0-spike.1"
+    
+    invoker_service_account: "plural-workbench@my-project.iam.gserviceaccount.com"
     
   
   clusterRef:

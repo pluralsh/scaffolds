@@ -1,9 +1,10 @@
 dist := "dist"
-azure_target := "x86_64-unknown-linux-musl"
+musl_target := "x86_64-unknown-linux-musl"
 
 # Functions are grouped by cloud through their bin name suffix, e.g. echo-aws, echo-azure.
 aws_bins := `ls bins | grep -- '-aws$' | tr '\n' ' '`
 azure_bins := `ls bins | grep -- '-azure$' | tr '\n' ' '`
+gcp_bins := `ls bins | grep -- '-gcp$' | tr '\n' ' '`
 
 # Format check, lint and unit tests.
 check:
@@ -11,19 +12,20 @@ check:
     cargo clippy --all-targets -- -D warnings
     cargo test
 
-build: build-aws build-azure
+build: build-aws build-musl
 
 # Build AWS functions as arm64 Lambda zips under target/lambda/<bin>/bootstrap.zip.
 build-aws:
     cargo lambda build --release --arm64 --output-format zip $(printf -- '--bin %s ' {{aws_bins}})
 
-# Build Azure functions as static x86_64 Linux binaries under target/lambda/<bin>/bootstrap.
+# Build Azure and GCP functions as static x86_64 Linux binaries under target/lambda/<bin>/bootstrap,
+# run by Azure Functions custom handlers and Cloud Run images.
 # cargo-lambda is only used for its zig-based cross-compilation here.
-build-azure:
-    cargo lambda build --release --target {{azure_target}} $(printf -- '--bin %s ' {{azure_bins}})
+build-musl:
+    cargo lambda build --release --target {{musl_target}} $(printf -- '--bin %s ' {{azure_bins}} {{gcp_bins}})
 
-# Collect every function into dist/<bin>.zip with a SHA256SUMS file, the layout published on releases.
-# Azure zips hold host.json, <function>/function.json and the handler binary.
+# Collect the AWS and Azure functions into dist/<bin>.zip with a SHA256SUMS file, the layout
+# published on releases. Azure zips hold host.json, <function>/function.json and the handler.
 package: build
     #!/usr/bin/env bash
     set -euo pipefail
@@ -40,3 +42,18 @@ package: build
       (cd "$stage" && zip -qrX "$OLDPWD/{{dist}}/$bin.zip" .)
     done
     cd {{dist}} && shasum -a 256 *.zip > SHA256SUMS
+
+# Build one Cloud Run image per GCP function, tagged <repository>/<bin>:<tag>.
+images repository tag: build-musl
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for bin in {{gcp_bins}}; do
+      stage="target/gcp/$bin"
+      rm -rf "$stage" && mkdir -p "$stage"
+      cp "target/lambda/$bin/bootstrap" "$stage/function"
+      docker build --platform linux/amd64 -f gcp/Dockerfile -t "{{repository}}/$bin:{{tag}}" "$stage"
+    done
+
+# Push the images built by `images`.
+push-images repository tag:
+    for bin in {{gcp_bins}}; do docker push "{{repository}}/$bin:{{tag}}"; done

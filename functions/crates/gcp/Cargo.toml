@@ -1,0 +1,15 @@
+[package]
+name = "functions-gcp"
+description = "Google Cloud identity and SDK helpers for Plural operational functions."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+functions-core.workspace = true
+
+reqwest.workspace = true
+serde.workspace = true

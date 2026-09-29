@@ -62,3 +62,41 @@ jobs:
             --notes-file notes.md \
             --verify-tag \
             $prerelease
+
+  # Publishes one Cloud Run image per GCP function to the public Plural Artifact Registry as
+  # <GCP_FUNCTIONS_REPOSITORY>/<bin>:<version>. Skipped until the repository variables exist.
+  # TODO(PROD-5251): create the public Artifact Registry repository (allUsers reader) and the
+  # workload identity pool for this repo, then set the GCP_FUNCTIONS_REPOSITORY,
+  # GCP_WORKLOAD_IDENTITY_PROVIDER and GCP_SERVICE_ACCOUNT repository variables.
+  images:
+    name: publish gcp images
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/functions/v') && vars.GCP_FUNCTIONS_REPOSITORY != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: functions
+    env:
+      REPOSITORY: ${{ vars.GCP_FUNCTIONS_REPOSITORY }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        name: checkout repo
+
+      - uses: ./.github/actions/functions-toolchain
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: build and push images
+        run: |
+          gcloud auth configure-docker "${REPOSITORY%%/*}" --quiet
+          just images "$REPOSITORY" "${TAG#functions/}"
+          just push-images "$REPOSITORY" "${TAG#functions/}"
