@@ -1,4 +1,9 @@
 dist := "dist"
+azure_target := "x86_64-unknown-linux-musl"
+
+# Functions are grouped by cloud through their bin name suffix, e.g. echo-aws, echo-azure.
+aws_bins := `ls bins | grep -- '-aws$' | tr '\n' ' '`
+azure_bins := `ls bins | grep -- '-azure$' | tr '\n' ' '`
 
 # Format check, lint and unit tests.
 check:
@@ -6,12 +11,32 @@ check:
     cargo clippy --all-targets -- -D warnings
     cargo test
 
-# Build every function as an arm64 Lambda zip under target/lambda/<fn>/bootstrap.zip.
-build:
-    cargo lambda build --release --arm64 --output-format zip
+build: build-aws build-azure
 
-# Collect the zips into dist/<fn>.zip with a SHA256SUMS file, the layout published on releases.
+# Build AWS functions as arm64 Lambda zips under target/lambda/<bin>/bootstrap.zip.
+build-aws:
+    cargo lambda build --release --arm64 --output-format zip $(printf -- '--bin %s ' {{aws_bins}})
+
+# Build Azure functions as static x86_64 Linux binaries under target/lambda/<bin>/bootstrap.
+# cargo-lambda is only used for its zig-based cross-compilation here.
+build-azure:
+    cargo lambda build --release --target {{azure_target}} $(printf -- '--bin %s ' {{azure_bins}})
+
+# Collect every function into dist/<bin>.zip with a SHA256SUMS file, the layout published on releases.
+# Azure zips hold host.json, <function>/function.json and the handler binary.
 package: build
+    #!/usr/bin/env bash
+    set -euo pipefail
     rm -rf {{dist}} && mkdir -p {{dist}}
-    for dir in target/lambda/*/; do cp "$dir/bootstrap.zip" "{{dist}}/$(basename "$dir").zip"; done
+    for bin in {{aws_bins}}; do
+      cp "target/lambda/$bin/bootstrap.zip" "{{dist}}/$bin.zip"
+    done
+    for bin in {{azure_bins}}; do
+      stage="target/azure/$bin"
+      rm -rf "$stage" && mkdir -p "$stage/${bin%-azure}"
+      cp azure/host.json "$stage/"
+      cp "bins/$bin/function.json" "$stage/${bin%-azure}/"
+      cp "target/lambda/$bin/bootstrap" "$stage/handler"
+      (cd "$stage" && zip -qrX "$OLDPWD/{{dist}}/$bin.zip" .)
+    done
     cd {{dist}} && shasum -a 256 *.zip > SHA256SUMS
