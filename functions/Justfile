@@ -12,20 +12,24 @@ check:
     cargo clippy --all-targets -- -D warnings
     cargo test
 
+# Build every function.
 build: build-aws build-musl
 
 # Build AWS functions as arm64 Lambda zips under target/lambda/<bin>/bootstrap.zip.
 build-aws:
     cargo lambda build --release --arm64 --output-format zip $(printf -- '--bin %s ' {{aws_bins}})
 
-# Build Azure and GCP functions as static x86_64 Linux binaries under target/lambda/<bin>/bootstrap,
-# run by Azure Functions custom handlers and Cloud Run images.
-# cargo-lambda is only used for its zig-based cross-compilation here.
+# The binaries run in Azure Functions custom handlers and Cloud Run images. cargo-lambda is
+# only used for its zig-based cross-compilation here.
+#
+# Build Azure and GCP functions as static x86_64 Linux binaries under target/lambda/<bin>/bootstrap.
 build-musl:
     cargo lambda build --release --target {{musl_target}} $(printf -- '--bin %s ' {{azure_bins}} {{gcp_bins}})
 
-# Collect the AWS and Azure functions into dist/<bin>.zip with a SHA256SUMS file, the layout
-# published on releases. Azure zips hold host.json, <function>/function.json and the handler.
+# This is the layout published on releases. Azure zips hold host.json, <function>/function.json
+# and the handler binary.
+#
+# Package AWS and Azure functions into dist/<bin>.zip with a SHA256SUMS file.
 package: build
     #!/usr/bin/env bash
     set -euo pipefail
@@ -39,6 +43,8 @@ package: build
       cp azure/host.json "$stage/"
       cp "bins/$bin/function.json" "$stage/${bin%-azure}/"
       cp "target/lambda/$bin/bootstrap" "$stage/handler"
+      # Fixed timestamps keep the zip, and so its checksum, reproducible.
+      find "$stage" -exec touch -t 202001010000 {} +
       (cd "$stage" && zip -qrX "$OLDPWD/{{dist}}/$bin.zip" .)
     done
     cd {{dist}} && shasum -a 256 *.zip > SHA256SUMS
