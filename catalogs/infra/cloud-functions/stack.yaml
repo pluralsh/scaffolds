@@ -23,6 +23,13 @@ spec:
     region: "{{ context.region }}"
     cloud_connection_id: "{{ context.cloudConnectionId }}"
     artifact_version: "{{ context.version }}"
+  {% if context.cloud == 'azure' %}
+  jobSpec:
+    namespace: plrl-deploy-operator
+    labels:
+      azure.workload.identity/use: "true"
+    serviceAccount: "stacks"
+  {% endif %}
   clusterRef:
     name: mgmt
     namespace: infra

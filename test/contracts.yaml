@@ -13,3 +13,6 @@ spec:
   - file: ../../setup/catalogs/infra/cloud-functions.yaml
     context: ../contexts/cloud-functions-aws.yaml
     externalDir: ../../catalogs/infra/cloud-functions
+  - file: ../../setup/catalogs/infra/cloud-functions.yaml
+    context: ../contexts/cloud-functions-azure.yaml
+    externalDir: ../../catalogs/infra/cloud-functions
