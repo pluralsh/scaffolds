@@ -1,6 +1,9 @@
-# Allows resolving the function URLs and keys, which is how workbenches invoke Azure
-# functions, and nothing else. Assign it to the service principal of the workbench cloud
-# connection on the resource group.
+# Allows resolving a function's URL and its own key, which is how workbenches invoke Azure
+# functions, and nothing else. Host keys are left out on purpose: they include the app's
+# master key, which allows calling any function of the app (e.g. ssh-access's timer) and
+# managing its keys; cloud-query only falls back to them when a function has no key of its
+# own. Assign it to the service principal of the workbench cloud connection on each of
+# invoke_scopes.
 resource "azurerm_role_definition" "invoke" {
   name              = "${var.name}-invoke-${substr(local.hash, 0, 6)}"
   scope             = data.azurerm_resource_group.functions.id
@@ -11,7 +14,6 @@ resource "azurerm_role_definition" "invoke" {
     actions = [
       "Microsoft.Web/sites/functions/read",
       "Microsoft.Web/sites/functions/listsecrets/action",
-      "Microsoft.Web/sites/host/listkeys/action",
     ]
   }
 }

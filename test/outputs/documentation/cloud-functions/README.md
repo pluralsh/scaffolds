@@ -14,8 +14,8 @@ workbench tools. The function sources live in `functions/` of
     `LAMBDA` workbench tool per function.
   - Azure: one Flex Consumption function app (custom handler) per function, each with its
     own system-assigned managed identity, in the resource group of the mgmt cluster; a role
-    allowing only to resolve the function keys, and one `AZURE_FUNCTION` workbench tool per
-    function.
+    allowing only to resolve each function's URL and its own key (not the app's host or
+    master keys), and one `AZURE_FUNCTION` workbench tool per function.
   - GCP: one Cloud Run service per function running as its own service account, in the
     project of the mgmt cluster, reachable only by identities granted `roles/run.invoker`,
     and one `CLOUD_RUN` workbench tool per function. The services run the function binary
