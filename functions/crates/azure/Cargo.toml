@@ -16,3 +16,11 @@ azure_identity.workspace = true
 reqwest = { workspace = true, features = ["json", "query"] }
 serde.workspace = true
 serde_json.workspace = true
+tokio = { workspace = true, features = ["time"] }
+
+# The in-process ARM mock for handler tests.
+async-trait = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+
+[features]
+mock = ["dep:async-trait", "dep:axum", "tokio/net", "tokio/rt"]

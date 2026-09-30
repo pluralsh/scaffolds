@@ -19,11 +19,26 @@ spec:
   variables:
     name: "ops-az"
     region: "eastus"
-    cloud_connection_id: "00000000-0000-0000-0000-000000000000"
+    cloud_connection: "azure-workbench"
     artifact_version: "v0.1.0-spike.1"
     
     
-    volume_delete_scopes: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
+    # Functions are deployed for the resource groups they may act on.
+    functions:
+      - volume-delete
+      - lb-frontend-delete
+      
+      
+      
+      
+    scopes:
+      volume-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
+      lb-frontend-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
+      
+      
+      
+      
+    
     
   # The init container downloads the release's function packages for this cloud (function zips
   # for AWS and Azure, the source zip of all functions for GCP), verified against SHA256SUMS,

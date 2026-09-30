@@ -1,0 +1,26 @@
+[package]
+name = "ssh-access-azure"
+description = "Grants an Entra ID user short-lived SSH login to an Azure VM through Entra ID authentication and Azure Bastion."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+functions-azure.workspace = true
+functions-core.workspace = true
+functions-http.workspace = true
+
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+time.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+tracing.workspace = true
+
+[dev-dependencies]
+functions-azure = { workspace = true, features = ["mock"] }
+time.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }

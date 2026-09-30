@@ -13,7 +13,8 @@ locals {
 
   # Every function that can be deployed. `statements` is the minimal IAM the function needs
   # on top of writing its own logs. `destructive` functions change or delete resources and are
-  # only registered as workbench tools when register_destructive_tools is set.
+  # only registered as workbench tools when register_destructive_tools is set,
+  # and every call of their tools requires human approval.
   catalog = {
     volume-delete = {
       binary      = "volume-delete-aws"

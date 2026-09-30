@@ -13,9 +13,9 @@ variable "region" {
   description = "GCP region to deploy the Cloud Run functions to."
 }
 
-variable "cloud_connection_id" {
+variable "cloud_connection" {
   type        = string
-  description = "ID of the Plural cloud connection the workbench uses to invoke the functions."
+  description = "Name of the Plural cloud connection (GCP) the workbench uses to invoke the functions."
 }
 
 variable "invoker_service_account" {
@@ -37,7 +37,7 @@ variable "functions" {
 
 variable "register_destructive_tools" {
   type        = bool
-  description = "Register functions that change or delete resources as workbench tools. Keep false until workbench tools can require approval (see workbench.tf)."
+  description = "Register functions that change or delete resources as workbench tools. Every call of those tools then requires human approval."
   default     = false
 }
 

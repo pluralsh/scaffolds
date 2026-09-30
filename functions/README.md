@@ -10,9 +10,10 @@ functions are Go.
 ```
 crates/core    cloud-agnostic request/response envelope, guards and errors
 crates/aws     AWS Lambda runtime glue and SDK helpers
-crates/azure   Azure SDK helpers
-crates/http    HTTP runtime for Azure Functions custom handlers
-bins/<name>    one Rust binary per operation, for AWS and Azure, e.g. volume-delete-aws
+crates/azure   Azure managed identity and a minimal Azure Resource Manager client
+crates/http    HTTP runtime for Azure Functions custom handlers and Cloud Run
+bins/<name>    one binary per operation and cloud, e.g. volume-delete-aws; Azure bins also
+               hold azure/<function>/function.json for each function of their app
 go/gcp         Go module with every GCP function, one Functions Framework entry point each
 ```
 
@@ -63,5 +64,7 @@ Completion can be confirmed with a read-only cloud query.
 just check   # cargo fmt, clippy and test, then gofmt, go vet, golangci-lint and go test in go/gcp
 ```
 
-`just package` builds the release packages into `dist/` together with `SHA256SUMS`. It needs
-`cargo-lambda` (with Zig) for the Rust functions.
+Azure handlers are tested against an in-process ARM mock (`functions_azure::mock`, behind
+the `mock` feature, which only the bins' dev-dependencies enable): tests script responses by
+method and path and assert on the requests the handler sent, including their bodies and
+`If-Match`/`If-None-Match` headers.

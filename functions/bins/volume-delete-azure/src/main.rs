@@ -5,10 +5,8 @@
 //! disk's resource group, tagged with the disk's resource ID so a later execute finds it.
 
 use std::collections::HashMap;
-use std::sync::Arc;
 
-use functions_azure::ManagedIdentityCredential;
-use functions_azure::arm::{Arm, Disk, DiskId, Snapshot};
+use functions_azure::arm::{self, Connector, Disk, ResourceId, Snapshot};
 use functions_core::volume::{self, KubernetesClaim, SnapshotStatus, Step, Volume};
 use functions_core::{Action, Error, Request, Response};
 use serde::{Deserialize, Serialize};
@@ -43,13 +41,9 @@ struct Output {
     deleted: bool,
 }
 
-async fn handle(
-    client: &reqwest::Client,
-    credential: &ManagedIdentityCredential,
-    req: Request<Params>,
-) -> Result<Response<Output>, Error> {
+async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<Output>, Error> {
     let params = req.params;
-    let id = DiskId::parse(&params.disk_id).ok_or_else(|| {
+    let id = ResourceId::parse(&params.disk_id, &[arm::DISK]).ok_or_else(|| {
         Error::invalid_request(format!(
             "diskId {:?} is not a managed disk resource ID (/subscriptions/<id>/resourceGroups/<group>/providers/Microsoft.Compute/disks/<name>)",
             params.disk_id
@@ -58,7 +52,7 @@ async fn handle(
     volume::validate_pv_name(&params.pv_name)?;
     let snapshot_required = volume::snapshot_required(params.snapshot)?;
 
-    let arm = Arm::connect(client.clone(), credential).await?;
+    let arm = connector.connect().await?;
     let disk = arm.disk(&id).await?;
     let volume = disk.as_ref().map(volume_from);
     let snapshot = match (&disk, &volume, snapshot_required) {
@@ -209,13 +203,11 @@ fn snapshot_name(disk: &str, now: i64) -> String {
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let client = functions_http::https_client().map_err(std::io::Error::other)?;
-    let credential: Arc<ManagedIdentityCredential> =
-        functions_azure::credential().map_err(std::io::Error::other)?;
+    let connector = Connector::from_env(client).map_err(std::io::Error::other)?;
 
     functions_http::run(move |req| {
-        let client = client.clone();
-        let credential = credential.clone();
-        async move { handle(&client, &credential, req).await }
+        let connector = connector.clone();
+        async move { handle(&connector, req).await }
     })
     .await
 }
@@ -453,6 +445,134 @@ mod tests {
 
             assert!(name.len() <= 80, "{name}");
             assert!(!name.contains("-.") && !name.contains(".-"), "{name}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod handler_tests {
+    use functions_azure::mock::{Method, MockArm};
+    use serde_json::{Value, json};
+
+    use super::*;
+
+    const RG: &str = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_rg";
+
+    fn disk_path() -> String {
+        format!("{RG}/providers/Microsoft.Compute/disks/pvc-1")
+    }
+
+    fn snapshots_path() -> String {
+        format!("{RG}/providers/Microsoft.Compute/snapshots")
+    }
+
+    fn disk(state: &str) -> Value {
+        json!({
+            "id": disk_path(), "name": "pvc-1", "location": "eastus",
+            "tags": {PV_NAME_TAG: "pvc-1", PVC_NAME_TAG: "data", PVC_NAMESPACE_TAG: "apps"},
+            "sku": {"name": "Premium_LRS"},
+            "properties": {"diskState": state, "provisioningState": "Succeeded", "diskSizeGB": 32, "uniqueId": "uid-1"}
+        })
+    }
+
+    fn completed_snapshot() -> Value {
+        let created = time::OffsetDateTime::now_utc() - time::Duration::hours(1);
+        json!({
+            "name": "pvc-1-predelete",
+            "tags": {SNAPSHOT_TAG: disk_path().to_lowercase()},
+            "properties": {
+                "provisioningState": "Succeeded",
+                "timeCreated": created.format(&time::format_description::well_known::Rfc3339).unwrap(),
+                "creationData": {"sourceResourceId": disk_path(), "sourceUniqueId": "uid-1"}
+            }
+        })
+    }
+
+    async fn call(mock: &MockArm, action: &str, pv: &str) -> Value {
+        let req =
+            serde_json::from_value(json!({"action": action, "diskId": disk_path(), "pvName": pv}))
+                .unwrap();
+        serde_json::to_value(handle(&mock.connector(), req).await.unwrap()).unwrap()
+    }
+
+    #[tokio::test]
+    async fn plan_reads_only() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, &disk_path(), 200, disk("Unattached"))
+            .on(Method::GET, &snapshots_path(), 200, json!({"value": []}));
+
+        assert_eq!(call(&mock, "plan", "pvc-1").await["outcome"], "planned");
+        assert!(mock.writes().is_empty());
+    }
+
+    #[tokio::test]
+    async fn first_execute_only_snapshots() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, &disk_path(), 200, disk("Unattached"))
+            .on(Method::GET, &snapshots_path(), 200, json!({"value": []}))
+            .on_any(Method::PUT, 201, json!({}));
+
+        let resp = call(&mock, "execute", "pvc-1").await;
+
+        assert_eq!(resp["outcome"], "refused");
+        let writes = mock.writes();
+        assert_eq!(writes.len(), 1, "no delete before the snapshot completes");
+        assert_eq!(writes[0].method, Method::PUT);
+        assert!(
+            writes[0]
+                .path
+                .starts_with(&format!("{}/pvc-1-predelete-", snapshots_path()))
+        );
+        assert_eq!(
+            writes[0].body["properties"]["creationData"]["sourceResourceId"],
+            disk_path()
+        );
+        assert_eq!(
+            writes[0].body["tags"][SNAPSHOT_TAG],
+            disk_path().to_lowercase()
+        );
+    }
+
+    #[tokio::test]
+    async fn deletes_after_a_completed_snapshot() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, &disk_path(), 200, disk("Unattached"))
+            .on(
+                Method::GET,
+                &snapshots_path(),
+                200,
+                json!({"value": [completed_snapshot()]}),
+            )
+            .on(Method::DELETE, &disk_path(), 202, Value::Null);
+
+        let resp = call(&mock, "execute", "pvc-1").await;
+
+        assert_eq!(resp["outcome"], "done", "{resp}");
+        let writes = mock.writes();
+        assert_eq!(writes.len(), 1);
+        assert_eq!(
+            (writes[0].method.clone(), writes[0].path.clone()),
+            (Method::DELETE, disk_path())
+        );
+    }
+
+    #[tokio::test]
+    async fn never_touches_attached_or_other_disks() {
+        for (state, pv) in [("Attached", "pvc-1"), ("Unattached", "pvc-2")] {
+            let mock = MockArm::start().await;
+            mock.on(Method::GET, &disk_path(), 200, disk(state)).on(
+                Method::GET,
+                &snapshots_path(),
+                200,
+                json!({"value": [completed_snapshot()]}),
+            );
+
+            assert_eq!(
+                call(&mock, "execute", pv).await["outcome"],
+                "refused",
+                "{state} {pv}"
+            );
+            assert!(mock.writes().is_empty(), "{state} {pv}");
         }
     }
 }

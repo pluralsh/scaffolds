@@ -13,9 +13,9 @@ variable "region" {
   description = "Azure location to deploy the function apps to. It must support the Flex Consumption plan."
 }
 
-variable "cloud_connection_id" {
+variable "cloud_connection" {
   type        = string
-  description = "ID of the Plural cloud connection the workbench uses to invoke the functions."
+  description = "Name of the Plural cloud connection (AZURE) the workbench uses to invoke the functions."
 }
 
 variable "resource_group_name" {
@@ -37,7 +37,7 @@ variable "functions" {
 
 variable "register_destructive_tools" {
   type        = bool
-  description = "Register functions that change or delete resources as workbench tools. Keep false until workbench tools can require approval (see workbench.tf)."
+  description = "Register functions that change or delete resources as workbench tools. Every call of those tools then requires human approval."
   default     = false
 }
 
@@ -47,14 +47,47 @@ variable "allow_skip_snapshot" {
   default     = false
 }
 
-variable "volume_delete_scopes" {
-  type        = list(string)
-  description = "Resource groups volume-delete may snapshot and delete disks in, as resource group IDs, e.g. the AKS node resource group (MC_...). Required to deploy volume-delete."
-  default     = []
+variable "scopes" {
+  type        = map(list(string))
+  description = "Resource groups each function may act on, by function key, as resource group IDs. Every deployed function needs at least one, e.g. the AKS node resource group (MC_...) for volume-delete and lb-frontend-delete."
+  default     = {}
 
   validation {
-    condition     = alltrue([for s in var.volume_delete_scopes : can(regex("^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$", s))])
-    error_message = "volume_delete_scopes must be resource group IDs (/subscriptions/<id>/resourceGroups/<name>), not subscriptions or other resources."
+    condition     = alltrue([for s in flatten(values(var.scopes)) : can(regex("^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$", s))])
+    error_message = "scopes must be resource group IDs (/subscriptions/<id>/resourceGroups/<name>), not subscriptions or other resources."
+  }
+}
+
+variable "node_pool_max_count" {
+  type        = number
+  description = "Largest node count node-pool-resize may set."
+  default     = 100
+
+  validation {
+    condition     = var.node_pool_max_count >= 1 && var.node_pool_max_count <= 1000
+    error_message = "node_pool_max_count must be between 1 and 1000."
+  }
+}
+
+variable "ssh_access_max_minutes" {
+  type        = number
+  description = "Longest access ssh-access may grant, in minutes."
+  default     = 240
+
+  validation {
+    condition     = var.ssh_access_max_minutes >= 1 && var.ssh_access_max_minutes <= 1440
+    error_message = "ssh_access_max_minutes must be between 1 and 1440 (a day)."
+  }
+}
+
+variable "ssh_bastion_id" {
+  type        = string
+  description = "Resource ID of the Azure Bastion host (Standard SKU or higher, with native client support) users connect through. ssh-access returns an az network bastion ssh command for it; without it, a direct az ssh vm command."
+  default     = null
+
+  validation {
+    condition     = var.ssh_bastion_id == null || can(regex("^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/Microsoft\\.Network/bastionHosts/[^/]+$", var.ssh_bastion_id))
+    error_message = "ssh_bastion_id must be a Bastion host resource ID."
   }
 }
 

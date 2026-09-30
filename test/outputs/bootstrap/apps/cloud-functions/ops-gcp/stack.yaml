@@ -19,7 +19,7 @@ spec:
   variables:
     name: "ops-gcp"
     region: "us-central1"
-    cloud_connection_id: "00000000-0000-0000-0000-000000000000"
+    cloud_connection: "gcp-workbench"
     artifact_version: "v0.1.0-spike.1"
     
     invoker_service_account: "plural-workbench@my-project.iam.gserviceaccount.com"

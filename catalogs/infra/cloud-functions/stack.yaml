@@ -21,13 +21,46 @@ spec:
   variables:
     name: "{{ context.name }}"
     region: "{{ context.region }}"
-    cloud_connection_id: "{{ context.cloudConnectionId }}"
+    cloud_connection: "{{ context.cloudConnection }}"
     artifact_version: "{{ context.version }}"
     {% if context.invokerServiceAccount %}
     invoker_service_account: "{{ context.invokerServiceAccount }}"
     {% endif %}
-    {% if context.volumeDeleteScope %}
-    volume_delete_scopes: ["{{ context.volumeDeleteScope }}"]
+    {% if context.cloud == 'azure' %}
+    # Functions are deployed for the resource groups they may act on.
+    functions:
+      - volume-delete
+      - lb-frontend-delete
+      {% if context.clusterResourceGroup %}
+      - node-pool-resize
+      {% endif %}
+      {% if context.vmResourceGroup %}
+      - vm-delete
+      {% endif %}
+      {% if context.databaseResourceGroup %}
+      - db-restore
+      {% endif %}
+      {% if context.sshResourceGroup %}
+      - ssh-access
+      {% endif %}
+    scopes:
+      volume-delete: ["{{ context.nodeResourceGroup }}"]
+      lb-frontend-delete: ["{{ context.nodeResourceGroup }}"]
+      {% if context.clusterResourceGroup %}
+      node-pool-resize: ["{{ context.clusterResourceGroup }}"]
+      {% endif %}
+      {% if context.vmResourceGroup %}
+      vm-delete: ["{{ context.vmResourceGroup }}"]
+      {% endif %}
+      {% if context.databaseResourceGroup %}
+      db-restore: ["{{ context.databaseResourceGroup }}"]
+      {% endif %}
+      {% if context.sshResourceGroup %}
+      ssh-access: ["{{ context.sshResourceGroup }}"]
+      {% endif %}
+    {% if context.sshBastionId %}
+    ssh_bastion_id: "{{ context.sshBastionId }}"
+    {% endif %}
     {% endif %}
   # The init container downloads the release's function packages for this cloud (function zips
   # for AWS and Azure, the source zip of all functions for GCP), verified against SHA256SUMS,

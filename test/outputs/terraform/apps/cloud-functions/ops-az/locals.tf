@@ -6,11 +6,12 @@ locals {
     for key, prop in local.volume_delete_schema.properties : key => prop if key != "snapshot" || var.allow_skip_snapshot
   }
 
-  # Every function that can be deployed. `function` is the function name inside the app
-  # (the folder holding function.json in the package), `actions` is the minimal set of ARM
-  # actions the function needs and `scopes` the resource groups its managed identity gets
-  # them on. `destructive` functions change or delete resources and are only registered as
-  # workbench tools when register_destructive_tools is set.
+  # Every function that can be deployed. `function` is the HTTP function inside the app (the
+  # folder holding its function.json in the package), `actions` is the minimal set of ARM
+  # actions the function needs, which its managed identity gets on the resource groups in
+  # var.scopes, and `condition` an optional condition on those role assignments. `destructive` functions change or delete resources and are only registered as
+  # workbench tools when register_destructive_tools is set,
+  # and every call of their tools requires human approval.
   catalog = {
     volume-delete = {
       binary      = "volume-delete-azure"
@@ -26,20 +27,127 @@ locals {
         "Microsoft.Compute/snapshots/read",
         "Microsoft.Compute/snapshots/write",
       ]
-      scopes = var.volume_delete_scopes
-      schema = jsonencode(merge(local.volume_delete_schema, { properties = local.volume_delete_properties }))
+      condition = null
+      schema    = jsonencode(merge(local.volume_delete_schema, { properties = local.volume_delete_properties }))
+    }
+    node-pool-resize = {
+      binary      = "node-pool-resize-azure"
+      function    = "node-pool-resize"
+      description = "Sets the node count of a manually scaled AKS node pool; AKS drains the nodes it removes. Pools scaled by the cluster autoscaler are refused. Use action plan first to see the current count and the checks, then execute."
+      destructive = true
+      environment = { MAX_NODE_COUNT = tostring(var.node_pool_max_count) }
+      actions = [
+        "Microsoft.ContainerService/managedClusters/agentPools/read",
+        "Microsoft.ContainerService/managedClusters/agentPools/write",
+      ]
+      condition = null
+      schema    = jsonencode(jsondecode(file("${path.module}/schemas/node-pool-resize.json")))
+    }
+    vm-delete = {
+      binary      = "vm-delete-azure"
+      function    = "vm-delete"
+      description = "Deletes a standalone VM with its OS disk and network interfaces; data disks are detached and kept. VMs of scale sets and AKS nodes are refused. Use action plan first to see what is deleted and kept, then execute; execute again if it reports that the VM is still updating."
+      destructive = true
+      environment = {}
+      actions = [
+        "Microsoft.Compute/virtualMachines/read",
+        "Microsoft.Compute/virtualMachines/write",
+        "Microsoft.Compute/virtualMachines/delete",
+        # The VM update references its disks and network interfaces, and deleting the VM
+        # deletes the OS disk and network interfaces with it.
+        "Microsoft.Compute/disks/read",
+        "Microsoft.Compute/disks/write",
+        "Microsoft.Compute/disks/delete",
+        "Microsoft.Network/networkInterfaces/read",
+        "Microsoft.Network/networkInterfaces/join/action",
+        "Microsoft.Network/networkInterfaces/delete",
+      ]
+      condition = null
+      schema    = jsonencode(jsondecode(file("${path.module}/schemas/vm-delete.json")))
+    }
+    lb-frontend-delete = {
+      binary      = "lb-frontend-delete-azure"
+      function    = "lb-frontend-delete"
+      description = "Removes what a deleted Kubernetes LoadBalancer Service left on an AKS load balancer: its frontend, rules and probes, then its public IP. Before calling it, confirm in the cluster that no Service has the UID in the frontend name. Use action plan first; each execute makes one change, so execute again while the result reports remaining: true."
+      destructive = true
+      environment = {}
+      actions = [
+        "Microsoft.Network/loadBalancers/read",
+        "Microsoft.Network/loadBalancers/write",
+        "Microsoft.Network/loadBalancers/delete",
+        "Microsoft.Network/publicIPAddresses/read",
+        "Microsoft.Network/publicIPAddresses/delete",
+        # Updating the load balancer references the public IPs and subnets of its other frontends.
+        "Microsoft.Network/publicIPAddresses/join/action",
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+        # Backend health of the frontend's rules, checked before removing it.
+        "Microsoft.Network/loadBalancers/loadBalancingRules/health/action",
+      ]
+      condition = null
+      schema    = jsonencode(jsondecode(file("${path.module}/schemas/lb-frontend-delete.json")))
+    }
+    db-restore = {
+      binary      = "db-restore-azure"
+      function    = "db-restore"
+      description = "Restores a PostgreSQL or MySQL flexible server to a point in time as a new server in the same resource group; the source server is never changed. Use action plan first to see the earliest restore point, then execute, and call again with the same parameters to see the new server's state and hostname."
+      destructive = true
+      environment = {}
+      actions = [
+        "Microsoft.DBforPostgreSQL/flexibleServers/read",
+        "Microsoft.DBforPostgreSQL/flexibleServers/write",
+        "Microsoft.DBforMySQL/flexibleServers/read",
+        "Microsoft.DBforMySQL/flexibleServers/write",
+        # Servers in a virtual network are restored into the source's subnet and private DNS zone.
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+        "Microsoft.Network/privateDnsZones/join/action",
+      ]
+      condition = null
+      schema    = jsonencode(jsondecode(file("${path.module}/schemas/db-restore.json")))
+    }
+    ssh-access = {
+      binary      = "ssh-access-azure"
+      function    = "ssh-access"
+      description = "Grants an Entra ID user short-lived SSH login to a Linux VM with Entra ID login enabled, by assigning the Virtual Machine User (or Administrator) Login role on the VM until it expires, and returns the command to connect. revoke: true removes the access right away. Use action plan first to check the VM, then execute."
+      destructive = true
+      environment = merge(
+        {
+          MAX_DURATION_MINUTES = tostring(var.ssh_access_max_minutes)
+          # Resource groups the timer removes expired access in.
+          SCOPES = jsonencode(lookup(var.scopes, "ssh-access", []))
+        },
+        { for key, value in { BASTION_ID = var.ssh_bastion_id } : key => value if value != null },
+      )
+      actions = [
+        "Microsoft.Compute/virtualMachines/read",
+        "Microsoft.Compute/virtualMachines/extensions/read",
+        "Microsoft.Authorization/roleAssignments/read",
+        "Microsoft.Authorization/roleAssignments/write",
+        "Microsoft.Authorization/roleAssignments/delete",
+      ]
+      condition = local.ssh_access_condition
+      schema    = jsonencode(jsondecode(file("${path.module}/schemas/ssh-access.json")))
     }
   }
+
+  # Limits the role assignments ssh-access may create and delete to the VM login roles and to
+  # users, so it can't grant anything else.
+  vm_login_roles = "fb879df8-f326-4884-b1cf-06f3ad86be52, 1c0163c0-47e6-4577-8991-ea5c82e286e4"
+  ssh_access_condition = join(" AND ", [
+    for action, source in { write = "Request", delete = "Resource" } :
+    "((!(ActionMatches{'Microsoft.Authorization/roleAssignments/${action}'})) OR (@${source}[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {${local.vm_login_roles}} AND @${source}[Microsoft.Authorization/roleAssignments:PrincipalType] ForAnyOfAnyValues:StringEqualsIgnoreCase {'User'}))"
+  ])
 
   identity_context    = jsondecode(data.plural_service_context.identity.configuration)
   cluster_context     = jsondecode(data.plural_service_context.cluster.configuration)
   resource_group_name = coalesce(var.resource_group_name, local.cluster_context.resource_group_name)
 
-  functions = { for key, fn in local.catalog : key => fn if contains(var.functions, key) }
+  functions = {
+    for key, fn in local.catalog : key => merge(fn, { scopes = lookup(var.scopes, key, []) }) if contains(var.functions, key)
+  }
   # Functions registered as workbench tools, and the only ones the cloud connection should be
   # allowed to invoke.
   tools   = { for key, fn in local.functions : key => fn if !fn.destructive || var.register_destructive_tools }
-  unknown = setsubtract(var.functions, keys(local.catalog))
+  unknown = setsubtract(concat(var.functions, keys(var.scopes)), keys(local.catalog))
   # The version is part of the path, so a new release changes zip_deploy_file and redeploys.
   artifacts = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }
 

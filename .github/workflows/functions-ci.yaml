@@ -1,5 +1,6 @@
 name: Functions CI
 
+# Pushes to main also build, so the Rust cache that PRs and releases restore is kept warm.
 on:
   pull_request:
     branches:
@@ -7,7 +8,12 @@ on:
     paths:
     - functions/**
     - .github/workflows/functions-*.yaml
-    - .github/actions/functions-toolchain/**
+  push:
+    branches:
+    - main
+    paths:
+    - functions/**
+    - .github/workflows/functions-*.yaml
 
 jobs:
   build:

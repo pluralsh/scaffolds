@@ -38,9 +38,9 @@ build-aws:
 build-azure:
     cargo lambda build --release --target {{musl_target}} $(printf -- '--bin %s ' {{azure_bins}})
 
-# This is the layout published on releases. Azure zips hold host.json, <function>/function.json
-# and the handler binary. The GCP zip holds the Go source of every GCP function at its root,
-# which terraform uploads and Cloud Run functions builds.
+# This is the layout published on releases. Azure zips hold host.json, the bin's
+# azure/<function>/function.json folders and the handler binary; GCP tarballs hold the binary
+# as ./function, which Cloud Run runs on its OS-only base image.
 #
 # Package functions into dist/<bin>.zip (AWS, Azure) and dist/functions-gcp.zip (GCP) with a SHA256SUMS file.
 package: build
@@ -52,9 +52,10 @@ package: build
     done
     for bin in {{azure_bins}}; do
       stage="target/azure/$bin"
-      rm -rf "$stage" && mkdir -p "$stage/${bin%-azure}"
+      rm -rf "$stage" && mkdir -p "$stage"
       cp azure/host.json "$stage/"
-      cp "bins/$bin/function.json" "$stage/${bin%-azure}/"
+      # One folder with a function.json per function of the app, e.g. an HTTP and a timer function.
+      cp -R "bins/$bin/azure/." "$stage/"
       cp "target/lambda/$bin/bootstrap" "$stage/handler"
       # Fixed timestamps keep the zip, and so its checksum, reproducible.
       find "$stage" -exec touch -t 202001010000 {} +
