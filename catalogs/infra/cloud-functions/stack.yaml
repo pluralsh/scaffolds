@@ -21,7 +21,7 @@ spec:
   variables:
     name: "{{ context.name }}"
     region: "{{ context.region }}"
-    cloud_connection_id: "{{ context.cloudConnectionId }}"
+    cloud_connection: "{{ context.cloudConnection }}"
     artifact_version: "{{ context.version }}"
     {% if context.invokerServiceAccount %}
     invoker_service_account: "{{ context.invokerServiceAccount }}"

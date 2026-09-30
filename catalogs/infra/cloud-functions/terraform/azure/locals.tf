@@ -10,7 +10,8 @@ locals {
   # (the folder holding function.json in the package), `actions` is the minimal set of ARM
   # actions the function needs and `scopes` the resource groups its managed identity gets
   # them on. `destructive` functions change or delete resources and are only registered as
-  # workbench tools when register_destructive_tools is set.
+  # workbench tools when register_destructive_tools is set,
+  # and every call of their tools requires human approval.
   catalog = {
     volume-delete = {
       binary      = "volume-delete-azure"

@@ -19,19 +19,25 @@ resource "aws_iam_policy" "invoke" {
   tags        = var.tags
 }
 
-# The provider does not support `approval` yet, so every tool is invokable without human
-# approval. Only register functions that change nothing until that is supported.
-# TODO(PROD-5251): add `approval` to plural_workbench_tool in terraform-provider-plural and
-# set it here for every function that changes resources.
-# TODO(PROD-5251): fix the plural_cloud_connection data source (cloud_provider and
-# configuration are required, so it cannot look connections up by name) and accept a
-# connection name instead of cloud_connection_id.
+data "plural_cloud_connection" "workbench" {
+  name = var.cloud_connection
+
+  lifecycle {
+    postcondition {
+      condition     = self.cloud_provider == "AWS"
+      error_message = "Cloud connection ${var.cloud_connection} is for ${self.cloud_provider}, not AWS."
+    }
+  }
+}
+
+# Tools of functions that change resources require human approval of every call.
 resource "plural_workbench_tool" "function" {
   for_each = local.tools
 
   name                = replace(local.function_names[each.key], "-", "_")
   tool                = "LAMBDA"
-  cloud_connection_id = var.cloud_connection_id
+  cloud_connection_id = data.plural_cloud_connection.workbench.id
+  approval            = each.value.destructive
 
   configuration = {
     lambda = {

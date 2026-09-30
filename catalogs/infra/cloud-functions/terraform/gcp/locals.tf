@@ -9,7 +9,8 @@ locals {
   # Every function that can be deployed. `permissions` is the minimal set of IAM permissions
   # the function needs, granted to its service account through a project custom role.
   # `destructive` functions change or delete resources and are only registered as workbench
-  # tools when register_destructive_tools is set.
+  # tools when register_destructive_tools is set,
+  # and every call of their tools requires human approval.
   catalog = {
     volume-delete = {
       binary      = "volume-delete-gcp"

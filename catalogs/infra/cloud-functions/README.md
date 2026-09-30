@@ -35,8 +35,8 @@ Lambda, Azure and the GCP bucket, so the functions don't depend on the release a
 
 All functions are deployed by default; the stack's `functions` variable selects a subset.
 Functions that change resources are not registered as workbench tools, and can't be invoked by
-the cloud connection, unless `register_destructive_tools` is set, which should wait until
-workbench tools can require human approval. On Azure, volume-delete needs the resource group
+the cloud connection, unless `register_destructive_tools` is set. Every call of their tools then
+requires human approval in the workbench. On Azure, volume-delete needs the resource group
 it may act on (`volumeDeleteScope` when installing, `volume_delete_scopes` in terraform).
 
 ### volume-delete

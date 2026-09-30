@@ -19,7 +19,7 @@ spec:
   variables:
     name: "ops"
     region: "us-east-2"
-    cloud_connection_id: "00000000-0000-0000-0000-000000000000"
+    cloud_connection: "aws-workbench"
     artifact_version: "v0.1.0-spike.1"
     
     

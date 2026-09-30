@@ -13,9 +13,9 @@ variable "region" {
   description = "Azure location to deploy the function apps to. It must support the Flex Consumption plan."
 }
 
-variable "cloud_connection_id" {
+variable "cloud_connection" {
   type        = string
-  description = "ID of the Plural cloud connection the workbench uses to invoke the functions."
+  description = "Name of the Plural cloud connection (AZURE) the workbench uses to invoke the functions."
 }
 
 variable "resource_group_name" {
@@ -37,7 +37,7 @@ variable "functions" {
 
 variable "register_destructive_tools" {
   type        = bool
-  description = "Register functions that change or delete resources as workbench tools. Keep false until workbench tools can require approval (see workbench.tf)."
+  description = "Register functions that change or delete resources as workbench tools. Every call of those tools then requires human approval."
   default     = false
 }
 

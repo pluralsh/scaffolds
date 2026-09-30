@@ -1,6 +1,6 @@
 name: ops-az
 cloud: azure
 region: eastus
-cloudConnectionId: 00000000-0000-0000-0000-000000000000
+cloudConnection: azure-workbench
 version: v0.1.0-spike.1
 volumeDeleteScope: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus

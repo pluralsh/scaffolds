@@ -13,9 +13,9 @@ variable "region" {
   description = "AWS region to deploy the functions to. Must match the region of the workbench cloud connection."
 }
 
-variable "cloud_connection_id" {
+variable "cloud_connection" {
   type        = string
-  description = "ID of the Plural cloud connection the workbench uses to invoke the functions."
+  description = "Name of the Plural cloud connection (AWS) the workbench uses to invoke the functions."
 }
 
 variable "functions" {
@@ -31,7 +31,7 @@ variable "functions" {
 
 variable "register_destructive_tools" {
   type        = bool
-  description = "Register functions that change or delete resources as workbench tools. Keep false until workbench tools can require approval (see workbench.tf)."
+  description = "Register functions that change or delete resources as workbench tools. Every call of those tools then requires human approval."
   default     = false
 }
 
