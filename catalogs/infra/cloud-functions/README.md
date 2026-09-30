@@ -16,15 +16,16 @@ workbench tools. The function sources live in `functions/` of
     own system-assigned managed identity, in the resource group of the mgmt cluster; a role
     allowing only to resolve the function keys, and one `AZURE_FUNCTION` workbench tool per
     function.
-
-  On AWS and Azure, an init container of the stack run downloads the function packages from
-  the GitHub release and verifies them against its `SHA256SUMS`, so the mgmt cluster needs to
-  reach `github.com` and Docker Hub (`curlimages/curl`) while the stack runs. The packages are
-  copied into Lambda and Azure on deploy, so the functions don't depend on the release
-  afterwards.
   - GCP: one Cloud Run service per function running as its own service account, in the
     project of the mgmt cluster, reachable only by identities granted `roles/run.invoker`,
-    and one `CLOUD_RUN` workbench tool per function.
+    and one `CLOUD_RUN` workbench tool per function. The services run the function binary
+    on Cloud Run's OS-only base image without a container build, from a private bucket.
+    This Cloud Run feature is in Preview.
+
+An init container of the stack run downloads the function packages from the GitHub release
+and verifies them against its `SHA256SUMS`, so the mgmt cluster needs to reach `github.com`
+and Docker Hub (`curlimages/curl`) while the stack runs. The packages are deployed into
+Lambda, Azure and the GCP bucket, so the functions don't depend on the release afterwards.
 
 ## Available functions
 
@@ -51,7 +52,7 @@ submit the change and report the resource state without waiting for it to comple
 ## Customizations
 
 Terraform variables not set by the stack, such as `log_retention_days` (AWS),
-`resource_group_name` and `instance_memory_in_mb` (Azure), `image_repository` (GCP) or
+`resource_group_name` and `instance_memory_in_mb` (Azure), `max_instance_count` (GCP) or
 `tags`, can be added to `variables` in the stack.
 
 ## Contributing

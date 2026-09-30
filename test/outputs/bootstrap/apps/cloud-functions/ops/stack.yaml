@@ -22,11 +22,10 @@ spec:
     cloud_connection_id: "00000000-0000-0000-0000-000000000000"
     artifact_version: "v0.1.0-spike.1"
     
-  
-  # The init container downloads the release's function packages for this cloud, verified
-  # against SHA256SUMS, into /artifacts/<version> before terraform runs. GCP pulls images
-  # instead. With raw, the operator ignores the other jobSpec fields, so on Azure the workload
-  # identity is set in raw as well.
+  # The init container downloads the release's function packages for this cloud (zips for AWS
+  # and Azure, tarballs for GCP), verified against SHA256SUMS, into /artifacts/<version> before
+  # terraform runs. With raw, the operator ignores the other jobSpec fields, so on Azure the
+  # workload identity is set in raw as well.
   jobSpec:
     namespace: plrl-deploy-operator
     raw:
@@ -43,7 +42,7 @@ spec:
                   base=https://github.com/pluralsh/scaffolds/releases/download/functions/v0.1.0-spike.1
                   mkdir -p /artifacts/v0.1.0-spike.1 && cd /artifacts/v0.1.0-spike.1
                   curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS"
-                  grep -- '-aws.zip$' SHA256SUMS > packages.sums || { echo "no aws functions in v0.1.0-spike.1"; exit 1; }
+                  grep -E -- '-aws\.(zip|tar\.gz)$' SHA256SUMS > packages.sums || { echo "no aws functions in v0.1.0-spike.1"; exit 1; }
                   for zip in $(awk '{print $2}' packages.sums); do
                     curl -fsSL --retry 3 -o "$zip" "$base/$zip"
                   done
@@ -60,7 +59,6 @@ spec:
           volumes:
             - name: artifacts
               emptyDir: {}
-  
   clusterRef:
     name: mgmt
     namespace: infra

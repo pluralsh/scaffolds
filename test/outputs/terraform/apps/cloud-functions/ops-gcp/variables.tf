@@ -37,15 +37,13 @@ variable "functions" {
 
 variable "artifact_version" {
   type        = string
-  description = "Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds). Used as the image tag."
+  description = "Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds)."
 }
 
-# TODO(PROD-5251): default this to the public Plural Artifact Registry repository once it
-# exists (see the images job in .github/workflows/functions-release.yaml).
-variable "image_repository" {
+variable "artifact_dir" {
   type        = string
-  description = "Artifact Registry repository holding the function images as <repository>/<binary>:<version>."
-  default     = null
+  description = "Directory holding the release's function packages as <artifact_dir>/<artifact_version>/<binary>.tar.gz. The stack's init container downloads them there."
+  default     = "/artifacts"
 }
 
 variable "max_instance_count" {

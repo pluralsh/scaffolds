@@ -19,17 +19,18 @@ build: build-aws build-musl
 build-aws:
     cargo lambda build --release --arm64 --output-format zip $(printf -- '--bin %s ' {{aws_bins}})
 
-# The binaries run in Azure Functions custom handlers and Cloud Run images. cargo-lambda is
-# only used for its zig-based cross-compilation here.
+# The binaries run in Azure Functions custom handlers and on the Cloud Run OS-only base image.
+# cargo-lambda is only used for its zig-based cross-compilation here.
 #
 # Build Azure and GCP functions as static x86_64 Linux binaries under target/lambda/<bin>/bootstrap.
 build-musl:
     cargo lambda build --release --target {{musl_target}} $(printf -- '--bin %s ' {{azure_bins}} {{gcp_bins}})
 
 # This is the layout published on releases. Azure zips hold host.json, <function>/function.json
-# and the handler binary.
+# and the handler binary; GCP tarballs hold the binary as ./function, which Cloud Run runs on
+# its OS-only base image.
 #
-# Package AWS and Azure functions into dist/<bin>.zip with a SHA256SUMS file.
+# Package functions into dist/<bin>.zip (AWS, Azure) and dist/<bin>.tar.gz (GCP) with a SHA256SUMS file.
 package: build
     #!/usr/bin/env bash
     set -euo pipefail
@@ -47,19 +48,14 @@ package: build
       find "$stage" -exec touch -t 202001010000 {} +
       (cd "$stage" && zip -qrX "$OLDPWD/{{dist}}/$bin.zip" .)
     done
-    cd {{dist}} && shasum -a 256 *.zip > SHA256SUMS
-
-# Build one Cloud Run image per GCP function, tagged <repository>/<bin>:<tag>.
-images repository tag: build-musl
-    #!/usr/bin/env bash
-    set -euo pipefail
     for bin in {{gcp_bins}}; do
-      stage="target/gcp/$bin"
-      rm -rf "$stage" && mkdir -p "$stage"
-      cp "target/lambda/$bin/bootstrap" "$stage/function"
-      docker build --platform linux/amd64 -f gcp/Dockerfile -t "{{repository}}/$bin:{{tag}}" "$stage"
+      # Python's tarfile, with fixed owner, mode and timestamps, gives the same archive on every OS.
+      python3 -c 'import gzip, sys, tarfile
+    src, dst = sys.argv[1:]
+    with open(src, "rb") as f, gzip.GzipFile(dst, "wb", mtime=0) as gz, tarfile.open(fileobj=gz, mode="w") as tar:
+        info = tarfile.TarInfo("function")
+        info.size, info.mode, info.mtime = f.seek(0, 2), 0o755, 0
+        f.seek(0)
+        tar.addfile(info, f)' "target/lambda/$bin/bootstrap" "{{dist}}/$bin.tar.gz"
     done
-
-# Push the images built by `images`.
-push-images repository tag:
-    for bin in {{gcp_bins}}; do docker push "{{repository}}/$bin:{{tag}}"; done
+    cd {{dist}} && shasum -a 256 *.zip *.tar.gz > SHA256SUMS

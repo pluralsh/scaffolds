@@ -4,7 +4,12 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 6.0"
+      version = ">= 7.15"
+    }
+    # Deploying source without build (source_code on Cloud Run containers) is in beta.
+    google-beta = {
+      source  = "hashicorp/google-beta"
+      version = ">= 7.15"
     }
     plural = {
       source  = "pluralsh/plural"
@@ -14,6 +19,11 @@ terraform {
 }
 
 provider "google" {
+  project = local.project_id
+  region  = var.region
+}
+
+provider "google-beta" {
   project = local.project_id
   region  = var.region
 }
