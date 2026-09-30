@@ -38,23 +38,24 @@ Lambda, Azure and the GCP bucket, so the functions don't depend on the release a
 | `db-restore` | Azure | Restores a PostgreSQL or MySQL flexible server to a point in time, as a new server. |
 | `ssh-access` | Azure | Grants an Entra ID user short-lived SSH login to a Linux VM. |
 
-Only `volume-delete` is deployed by default; the stack's `functions` variable selects others.
 Every function changes resources, so none is registered as a workbench tool, or can be
 invoked by the cloud connection, unless `register_destructive_tools` is set. Every call of
 their tools then requires human approval in the workbench.
 
-On Azure, every function also needs the resource groups it may act on in `scopes`, by
-function key, and gets its permissions only there. The installation sets
-`scopes["volume-delete"]` from `volumeDeleteScope`; to deploy more functions, add them to
-`functions` and to that `scopes` map in the stack's variables, e.g.:
+On AWS and GCP, the installation deploys `volume-delete`. On Azure, every function gets its
+permissions only on the resource groups it may act on (`scopes` in terraform, by function
+key), and the installation deploys a function for each resource group it is given:
 
-```yaml
-functions: [volume-delete, lb-frontend-delete, node-pool-resize]
-scopes:
-  volume-delete: [/subscriptions/<id>/resourceGroups/MC_<group>_<cluster>_<location>]
-  lb-frontend-delete: [/subscriptions/<id>/resourceGroups/MC_<group>_<cluster>_<location>]
-  node-pool-resize: [/subscriptions/<id>/resourceGroups/<cluster resource group>]
-```
+| Installation field | Functions |
+|---|---|
+| `nodeResourceGroup` (required) | `volume-delete`, `lb-frontend-delete` in the AKS node resource group (`MC_...`) |
+| `clusterResourceGroup` | `node-pool-resize` for the AKS clusters in it |
+| `vmResourceGroup` | `vm-delete` for the standalone VMs in it |
+| `databaseResourceGroup` | `db-restore` for the flexible servers in it |
+| `sshResourceGroup`, `sshBastionId` | `ssh-access` for the Linux VMs in it, optionally through that Bastion host |
+
+The stack's `functions` and `scopes` variables can be edited later, e.g. to give a function
+more resource groups.
 
 All functions share the same safety model: `plan` never changes anything and reports the
 checks; `execute` checks again and only acts when every check passes. Functions that need

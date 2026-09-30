@@ -3,4 +3,4 @@ cloud: azure
 region: eastus
 cloudConnection: azure-workbench
 version: v0.1.0-spike.1
-volumeDeleteScope: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus
+nodeResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus

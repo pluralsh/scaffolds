@@ -44,7 +44,7 @@ spec:
       registered as workbench tools, and can't be invoked, until register_destructive_tools is
       set on the stack. Every call of their tools then requires human approval.
     checklist:
-      - label: "I will grant the cloud connection the invoke permission from the stack outputs (AWS: attach invoke_policy_arn to its IAM principal; Azure: assign invoke_role_definition_id to its service principal on the resource group; GCP: set the invoker service account or grant it roles/run.invoker)."
+      - label: "I will grant the cloud connection the invoke permission from the stack outputs (AWS: attach invoke_policy_arn to its IAM principal; Azure: assign invoke_role_definition_id to its service principal on each of invoke_scopes; GCP: set the invoker service account or grant it roles/run.invoker)."
       - label: "The cloud connection is in the same AWS region, or Azure subscription, as the functions."
   configuration:
     - name: name
@@ -73,9 +73,18 @@ spec:
         field: cloud
         operation: EQ
         value: 'gcp'
-    - name: volumeDeleteScope
+    - name: nodeResourceGroup
       type: STRING
-      documentation: Resource group ID volume-delete may snapshot and delete disks in, usually the AKS node resource group (/subscriptions/<id>/resourceGroups/MC_...). Required on Azure.
+      documentation: Resource group ID of the AKS node resource group (/subscriptions/<id>/resourceGroups/MC_...). volume-delete and lb-frontend-delete are deployed and may only act on disks and load balancers there.
+      condition:
+        field: cloud
+        operation: EQ
+        value: 'azure'
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    - name: clusterResourceGroup
+      type: STRING
+      documentation: Resource group ID of AKS clusters whose node pools node-pool-resize may resize. Leave empty to not deploy node-pool-resize.
       optional: true
       condition:
         field: cloud
@@ -83,6 +92,46 @@ spec:
         value: 'azure'
       validation:
         regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    - name: vmResourceGroup
+      type: STRING
+      documentation: Resource group ID of standalone VMs vm-delete may delete. Leave empty to not deploy vm-delete.
+      optional: true
+      condition:
+        field: cloud
+        operation: EQ
+        value: 'azure'
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    - name: databaseResourceGroup
+      type: STRING
+      documentation: Resource group ID of PostgreSQL and MySQL flexible servers db-restore may restore (into new servers in the same resource group). Leave empty to not deploy db-restore.
+      optional: true
+      condition:
+        field: cloud
+        operation: EQ
+        value: 'azure'
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    - name: sshResourceGroup
+      type: STRING
+      documentation: Resource group ID of Linux VMs ssh-access may grant Entra ID login to. Leave empty to not deploy ssh-access.
+      optional: true
+      condition:
+        field: cloud
+        operation: EQ
+        value: 'azure'
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    - name: sshBastionId
+      type: STRING
+      documentation: Resource ID of the Azure Bastion host (Standard SKU or higher, native client support) users connect through; ssh-access returns the az network bastion ssh command for it. Leave empty for a direct az ssh vm command.
+      optional: true
+      condition:
+        field: sshResourceGroup
+        operation: PREFIX
+        value: '/subscriptions/'
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/Microsoft\\.Network/bastionHosts/[^/]+$"
     - name: version
       type: STRING
       documentation: Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds).

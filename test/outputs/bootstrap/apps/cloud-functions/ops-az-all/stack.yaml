@@ -1,7 +1,7 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
-  name: cloud-functions-ops-az
+  name: cloud-functions-ops-az-all
   namespace: apps
 spec:
 
@@ -12,12 +12,12 @@ spec:
   actor: console@plural.sh
   git:
     ref: main
-    folder: terraform/apps/cloud-functions/ops-az
+    folder: terraform/apps/cloud-functions/ops-az-all
   repositoryRef:
     name: infra
     namespace: infra
   variables:
-    name: "ops-az"
+    name: "ops-az-all"
     region: "eastus"
     cloud_connection: "azure-workbench"
     artifact_version: "v0.1.0-spike.1"
@@ -28,16 +28,34 @@ spec:
       - volume-delete
       - lb-frontend-delete
       
+      - node-pool-resize
       
       
+      - vm-delete
+      
+      
+      - db-restore
+      
+      
+      - ssh-access
       
     scopes:
       volume-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
       lb-frontend-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
       
+      node-pool-resize: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mgmt"]
       
       
+      vm-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms"]
       
+      
+      db-restore: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/databases"]
+      
+      
+      ssh-access: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms"]
+      
+    
+    ssh_bastion_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/hub/providers/Microsoft.Network/bastionHosts/hub-bastion"
     
     
   # The init container downloads the release's function packages for this cloud (zips for AWS
