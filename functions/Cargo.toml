@@ -5,7 +5,7 @@ members = ["crates/*", "bins/*"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.98"
 license = "Apache-2.0"
 repository = "https://github.com/pluralsh/scaffolds"
 publish = false
@@ -14,7 +14,6 @@ publish = false
 functions-core = { path = "crates/core" }
 functions-aws = { path = "crates/aws" }
 functions-azure = { path = "crates/azure" }
-functions-gcp = { path = "crates/gcp" }
 functions-http = { path = "crates/http" }
 
 aws-config = { version = "1", features = ["behavior-version-latest"] }

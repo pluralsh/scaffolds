@@ -931,16 +931,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "functions-gcp"
-version = "0.1.0"
-dependencies = [
- "functions-core",
- "reqwest",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "functions-http"
 version = "0.1.0"
 dependencies = [
@@ -2785,20 +2775,6 @@ dependencies = [
  "functions-http",
  "reqwest",
  "serde",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "volume-delete-gcp"
-version = "0.1.0"
-dependencies = [
- "functions-core",
- "functions-gcp",
- "functions-http",
- "reqwest",
- "serde",
- "serde_json",
  "tokio",
  "tracing",
 ]

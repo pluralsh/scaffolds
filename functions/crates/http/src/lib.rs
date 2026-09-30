@@ -1,6 +1,6 @@
 //! HTTP runtime: serves a handler that speaks the [`functions_core`] envelope.
 //!
-//! Used behind Azure Functions custom handlers (request forwarding) and Cloud Run. Every
+//! Used behind Azure Functions custom handlers (request forwarding). Every
 //! `POST`, whatever the path, is an invocation: the body is the workbench tool input and
 //! the response body is the [`Response`]. Errors use the same `errorType`/`errorMessage`
 //! shape as Lambda function errors, with a 4xx/5xx status that callers report as failures.
@@ -18,7 +18,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use tracing_subscriber::EnvFilter;
 
-/// Port variables set by the Azure Functions host and by Cloud Run, in that order.
+/// Port variables set by the Azure Functions host and, as a fallback for local runs, `PORT`.
 const PORT_VARS: [&str; 2] = ["FUNCTIONS_CUSTOMHANDLER_PORT", "PORT"];
 const DEFAULT_PORT: u16 = 8080;
 
@@ -57,7 +57,7 @@ where
 /// HTTPS client for cloud APIs, trusting the built-in Mozilla root certificates only.
 ///
 /// The roots are compiled in, so TLS doesn't depend on the CA certificates of the host
-/// image, which can be minimal (e.g. Cloud Run's OS-only base image).
+/// image, which can be minimal.
 pub fn https_client() -> Result<reqwest::Client, Error> {
     let roots = webpki_root_certs::TLS_SERVER_ROOT_CERTS
         .iter()

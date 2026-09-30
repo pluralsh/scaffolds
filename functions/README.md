@@ -1,16 +1,35 @@
 # Plural operational functions
 
-Rust implementations of common out-of-IaC cloud operations (orphaned volume, instance and
+Implementations of common out-of-IaC cloud operations (orphaned volume, instance and
 load balancer cleanup, node group resizing, short-lived SSH access, ...) packaged for each
-cloud's FaaS and invokable as Plural workbench tools.
+cloud's FaaS and invokable as Plural workbench tools. AWS and Azure functions are Rust, GCP
+functions are Go.
 
 ## Layout
 
 ```
 crates/core    cloud-agnostic request/response envelope, guards and errors
 crates/aws     AWS Lambda runtime glue and SDK helpers
-bins/<name>    one binary per operation and cloud, e.g. volume-delete-aws
+crates/azure   Azure SDK helpers
+crates/http    HTTP runtime for Azure Functions custom handlers
+bins/<name>    one Rust binary per operation, for AWS and Azure, e.g. volume-delete-aws
+go/gcp         Go module with every GCP function, one Functions Framework entry point each
 ```
+
+The Go module registers the entry points in `functions.go` and keeps everything else under
+`internal/`:
+
+```
+internal/core          request/response envelope, guards, errors and the HTTP server
+internal/compute       Compute Engine client (interface, SDK implementation, connector)
+internal/volume        cloud-agnostic volume deletion rules
+internal/volumedelete  the VolumeDelete function
+```
+
+`just check` needs `golangci-lint` v2, configured by `go/gcp/.golangci.yml`.
+
+The GCP functions are not compiled here. The release holds their source as `functions-gcp.zip`,
+which terraform uploads and Cloud Run functions builds (Cloud Functions 2nd gen, `go127`).
 
 ## Invocation contract
 
@@ -18,7 +37,7 @@ Functions receive the workbench tool input as a JSON object and answer with JSON
 
 ```jsonc
 // request
-{ "action": "plan", "volumeId": "vol-0123" }   // action: plan (default) | execute
+{ "action": "plan", "volumeId": "vol-0123", "pvName": "pvc-1234" }   // action: plan (default) | execute
 
 // response
 {
@@ -41,6 +60,8 @@ Completion can be confirmed with a read-only cloud query.
 ## Development
 
 ```bash
-cargo test
-cargo clippy --all-targets -- -D warnings
+just check   # cargo fmt, clippy and test, then gofmt, go vet, golangci-lint and go test in go/gcp
 ```
+
+`just package` builds the release packages into `dist/` together with `SHA256SUMS`. It needs
+`cargo-lambda` (with Zig) for the Rust functions.

@@ -1,6 +1,6 @@
 variable "name" {
   type        = string
-  description = "Name of this installation, used as a prefix for every service, service account and workbench tool."
+  description = "Name of this installation, used as a prefix for every function, service account and workbench tool."
 
   validation {
     condition     = can(regex("^[a-z][a-z0-9-]{0,39}$", var.name))
@@ -10,7 +10,7 @@ variable "name" {
 
 variable "region" {
   type        = string
-  description = "GCP region to deploy the Cloud Run services to."
+  description = "GCP region to deploy the Cloud Run functions to."
 }
 
 variable "cloud_connection_id" {
@@ -20,7 +20,7 @@ variable "cloud_connection_id" {
 
 variable "invoker_service_account" {
   type        = string
-  description = "Email of the cloud connection service account. When set, it is granted roles/run.invoker on every function."
+  description = "Email of the cloud connection service account. When set, it is granted roles/run.invoker on the functions registered as workbench tools."
   default     = null
 }
 
@@ -54,13 +54,13 @@ variable "artifact_version" {
 
 variable "artifact_dir" {
   type        = string
-  description = "Directory holding the release's function packages as <artifact_dir>/<artifact_version>/<binary>.tar.gz. The stack's init container downloads them there."
+  description = "Directory holding the release's function source package as <artifact_dir>/<artifact_version>/functions-gcp.zip. The stack's init container downloads it there."
   default     = "/artifacts"
 }
 
 variable "max_instance_count" {
   type        = number
-  description = "Maximum number of instances each service scales out to."
+  description = "Maximum number of instances each function scales out to."
   default     = 5
 }
 

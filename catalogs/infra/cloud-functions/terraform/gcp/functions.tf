@@ -1,5 +1,18 @@
-resource "google_project_service" "run" {
-  service            = "run.googleapis.com"
+locals {
+  # Cloud Functions builds the source with Cloud Build into an image in Artifact Registry and
+  # runs it on Cloud Run, so all four APIs are needed.
+  apis = toset([
+    "cloudfunctions.googleapis.com",
+    "run.googleapis.com",
+    "cloudbuild.googleapis.com",
+    "artifactregistry.googleapis.com",
+  ])
+}
+
+resource "google_project_service" "api" {
+  for_each = local.apis
+
+  service            = each.value
   disable_on_destroy = false
 }
 
@@ -26,10 +39,26 @@ resource "google_project_iam_member" "function" {
   member  = "serviceAccount:${google_service_account.function[each.key].email}"
 }
 
-data "google_project" "current" {
+# Cloud Build builds the functions as this service account instead of the Compute Engine
+# default service account, which is broadly privileged (it is often granted Editor). It gets
+# the roles Google documents for a custom Cloud Functions build service account
+# (https://cloud.google.com/functions/docs/building): logging.logWriter for the build logs,
+# artifactregistry.writer for the built images, and storage.objectViewer for the source, which
+# is granted on the source bucket only.
+resource "google_service_account" "build" {
+  account_id   = local.build_service_account
+  display_name = "${var.name} operational functions build"
 }
 
-# Private bucket holding the function packages that Cloud Run deploys without a build.
+resource "google_project_iam_member" "build" {
+  for_each = toset(["roles/logging.logWriter", "roles/artifactregistry.writer"])
+
+  project = local.project_id
+  role    = each.value
+  member  = "serviceAccount:${google_service_account.build.email}"
+}
+
+# Private bucket holding the function source that Cloud Build reads.
 resource "google_storage_bucket" "functions" {
   name                        = local.bucket_name
   location                    = var.region
@@ -39,83 +68,68 @@ resource "google_storage_bucket" "functions" {
   labels                      = var.labels
 }
 
-# Cloud Run's service agent reads the packages when it deploys a revision.
-resource "google_storage_bucket_iam_member" "run_agent" {
+resource "google_storage_bucket_iam_member" "build" {
   bucket = google_storage_bucket.functions.name
   role   = "roles/storage.objectViewer"
-  member = "serviceAccount:service-${data.google_project.current.number}@serverless-robot-prod.iam.gserviceaccount.com"
+  member = "serviceAccount:${google_service_account.build.email}"
 }
 
-# The package is read from the directory the stack's init container downloads the release
-# to. The version is part of the object name, so a new release deploys a new revision.
-resource "google_storage_bucket_object" "function" {
-  for_each = local.functions
+data "google_project" "current" {
+}
 
-  name   = "${each.value.binary}/${var.artifact_version}.tar.gz"
+# The source is read from the directory the stack's init container downloads the release to.
+# It holds the Go module of every GCP function, and the version is part of the object name, so
+# a new release uploads a new object and redeploys the functions.
+resource "google_storage_bucket_object" "source" {
+  name   = "functions-gcp/${var.artifact_version}.zip"
   bucket = google_storage_bucket.functions.name
-  source = local.artifacts[each.key]
+  source = local.artifact
 
   lifecycle {
     precondition {
-      condition     = fileexists(local.artifacts[each.key])
-      error_message = "${local.artifacts[each.key]} not found. The stack's fetch-functions init container downloads it; check that it ran and that ${var.artifact_version} contains ${each.value.binary}.tar.gz."
+      condition     = fileexists(local.artifact)
+      error_message = "${local.artifact} not found. The stack's fetch-functions init container downloads it; check that it ran and that ${var.artifact_version} contains functions-gcp.zip."
     }
   }
 }
 
-# One service per function, so each function runs as its own service account with only the
-# permissions it needs. Ingress is public but no allUsers invoker binding exists, so only
-# identities granted roles/run.invoker can call it. The package runs on Cloud Run's OS-only
-# base image without a container build, which needs the google-beta provider.
-resource "google_cloud_run_v2_service" "function" {
-  provider = google-beta
+# One Cloud Run function (2nd gen) per function, so each runs as its own service account with
+# only the permissions it needs. Ingress is public but no allUsers invoker binding exists, so
+# only identities granted roles/run.invoker (see workbench.tf) can call it.
+resource "google_cloudfunctions2_function" "function" {
   for_each = local.functions
 
-  name                = local.service_names[each.key]
-  location            = var.region
-  ingress             = "INGRESS_TRAFFIC_ALL"
-  deletion_protection = false
-  labels              = var.labels
+  name     = local.service_names[each.key]
+  location = var.region
+  labels   = var.labels
 
-  template {
-    service_account = google_service_account.function[each.key].email
-    timeout         = each.value.timeout
+  build_config {
+    runtime         = "go127"
+    entry_point     = each.value.entry_point
+    service_account = "projects/${local.project_id}/serviceAccounts/${google_service_account.build.email}"
 
-    scaling {
-      max_instance_count = var.max_instance_count
-    }
-
-    containers {
-      image          = "scratch"
-      base_image_uri = "${var.region}-docker.pkg.dev/serverless-runtimes/google-24/runtimes/osonly24"
-      command        = ["./function"]
-
-      dynamic "env" {
-        for_each = each.value.environment
-
-        content {
-          name  = env.key
-          value = env.value
-        }
-      }
-
-      source_code {
-        cloud_storage_source {
-          bucket     = google_storage_bucket.functions.name
-          object     = google_storage_bucket_object.function[each.key].name
-          generation = google_storage_bucket_object.function[each.key].generation
-        }
-      }
-
-      resources {
-        cpu_idle = true
-        limits = {
-          cpu    = "1"
-          memory = each.value.memory
-        }
+    source {
+      storage_source {
+        bucket     = google_storage_bucket.functions.name
+        object     = google_storage_bucket_object.source.name
+        generation = google_storage_bucket_object.source.generation
       }
     }
   }
 
-  depends_on = [google_project_service.run, google_storage_bucket_iam_member.run_agent]
+  service_config {
+    service_account_email          = google_service_account.function[each.key].email
+    available_memory               = each.value.memory
+    timeout_seconds                = each.value.timeout
+    max_instance_count             = var.max_instance_count
+    ingress_settings               = "ALLOW_ALL"
+    all_traffic_on_latest_revision = true
+    environment_variables          = each.value.environment
+  }
+
+  depends_on = [
+    google_project_service.api,
+    google_project_iam_member.build,
+    google_storage_bucket_iam_member.build,
+  ]
 }

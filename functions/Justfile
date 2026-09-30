@@ -1,36 +1,48 @@
 dist := "dist"
 musl_target := "x86_64-unknown-linux-musl"
 
-# Functions are grouped by cloud through their bin name suffix, e.g. volume-delete-aws.
+# Rust functions are grouped by cloud through their bin name suffix, e.g. volume-delete-aws.
+# GCP functions are Go, in go/gcp: Google builds them from source, so there is nothing to build here.
 aws_bins := `ls bins | grep -- '-aws$' | tr '\n' ' '`
 azure_bins := `ls bins | grep -- '-azure$' | tr '\n' ' '`
-gcp_bins := `ls bins | grep -- '-gcp$' | tr '\n' ' '`
 
-# Format check, lint and unit tests.
-check:
+# Format check, lint and unit tests for the Rust and Go functions.
+check: check-rust check-go
+
+check-rust:
     cargo fmt --check
     cargo clippy --all-targets -- -D warnings
     cargo test
 
-# Build every function.
-build: build-aws build-musl
+check-go:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd go/gcp
+    unformatted="$(gofmt -l .)"
+    if [ -n "$unformatted" ]; then echo "gofmt needed:"; echo "$unformatted"; exit 1; fi
+    go vet ./...
+    golangci-lint run ./...
+    go test -race ./...
+
+# Build every function that needs building (the GCP functions are built by Google).
+build: build-aws build-azure
 
 # Build AWS functions as arm64 Lambda zips under target/lambda/<bin>/bootstrap.zip.
 build-aws:
     cargo lambda build --release --arm64 --output-format zip $(printf -- '--bin %s ' {{aws_bins}})
 
-# The binaries run in Azure Functions custom handlers and on the Cloud Run OS-only base image.
-# cargo-lambda is only used for its zig-based cross-compilation here.
+# The binaries run in Azure Functions custom handlers. cargo-lambda is only used for its
+# zig-based cross-compilation here.
 #
-# Build Azure and GCP functions as static x86_64 Linux binaries under target/lambda/<bin>/bootstrap.
-build-musl:
-    cargo lambda build --release --target {{musl_target}} $(printf -- '--bin %s ' {{azure_bins}} {{gcp_bins}})
+# Build Azure functions as static x86_64 Linux binaries under target/lambda/<bin>/bootstrap.
+build-azure:
+    cargo lambda build --release --target {{musl_target}} $(printf -- '--bin %s ' {{azure_bins}})
 
 # This is the layout published on releases. Azure zips hold host.json, <function>/function.json
-# and the handler binary; GCP tarballs hold the binary as ./function, which Cloud Run runs on
-# its OS-only base image.
+# and the handler binary. The GCP zip holds the Go source of every GCP function at its root,
+# which terraform uploads and Cloud Run functions builds.
 #
-# Package functions into dist/<bin>.zip (AWS, Azure) and dist/<bin>.tar.gz (GCP) with a SHA256SUMS file.
+# Package functions into dist/<bin>.zip (AWS, Azure) and dist/functions-gcp.zip (GCP) with a SHA256SUMS file.
 package: build
     #!/usr/bin/env bash
     set -euo pipefail
@@ -48,14 +60,28 @@ package: build
       find "$stage" -exec touch -t 202001010000 {} +
       (cd "$stage" && zip -qrX "$OLDPWD/{{dist}}/$bin.zip" .)
     done
-    for bin in {{gcp_bins}}; do
-      # Python's tarfile, with fixed owner, mode and timestamps, gives the same archive on every OS.
-      python3 -c 'import gzip, sys, tarfile
+    # The go module without its tests. Python's zipfile, with sorted entries, fixed timestamps
+    # and permissions, and no compression (deflate output can differ between zlib versions),
+    # gives the same archive on every OS. Files that go:embed reads are not included.
+    python3 - go/gcp "{{dist}}/functions-gcp.zip" <<'PY'
+    import os, sys, zipfile
     src, dst = sys.argv[1:]
-    with open(src, "rb") as f, gzip.GzipFile(dst, "wb", mtime=0) as gz, tarfile.open(fileobj=gz, mode="w") as tar:
-        info = tarfile.TarInfo("function")
-        info.size, info.mode, info.mtime = f.seek(0, 2), 0o755, 0
-        f.seek(0)
-        tar.addfile(info, f)' "target/lambda/$bin/bootstrap" "{{dist}}/$bin.tar.gz"
-    done
-    cd {{dist}} && shasum -a 256 *.zip *.tar.gz > SHA256SUMS
+    names = []
+    for root, dirs, files in os.walk(src):
+        dirs[:] = [d for d in dirs if d != "testdata"]
+        for name in files:
+            rel = os.path.relpath(os.path.join(root, name), src).replace(os.sep, "/")
+            if rel in ("go.mod", "go.sum") or (rel.endswith(".go") and not rel.endswith("_test.go")):
+                names.append(rel)
+    if "go.mod" not in names:
+        sys.exit("no go.mod in " + src)
+    with zipfile.ZipFile(dst, "w", zipfile.ZIP_STORED) as zf:
+        for rel in sorted(names):
+            info = zipfile.ZipInfo(rel, date_time=(2020, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_STORED
+            info.create_system = 3
+            info.external_attr = 0o644 << 16
+            with open(os.path.join(src, rel), "rb") as f:
+                zf.writestr(info, f.read())
+    PY
+    cd {{dist}} && shasum -a 256 *.zip > SHA256SUMS

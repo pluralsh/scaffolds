@@ -1,9 +1,9 @@
 output "functions" {
   description = "Deployed functions by key."
   value = {
-    for key, svc in google_cloud_run_v2_service.function : key => {
-      service = svc.name
-      uri     = svc.uri
+    for key, fn in google_cloudfunctions2_function.function : key => {
+      service = local.run_services[key]
+      uri     = fn.service_config[0].uri
     }
   }
 

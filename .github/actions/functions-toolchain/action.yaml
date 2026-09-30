@@ -1,10 +1,13 @@
 name: Functions toolchain
-description: Installs the Rust toolchain, just and cargo-lambda used to build functions/.
+description: Installs the Rust and Go toolchains, just and cargo-lambda used to check and package functions/.
 
 inputs:
   cargo-lambda-version:
     description: cargo-lambda release to install.
     default: 1.9.2
+  golangci-lint-version:
+    description: golangci-lint release to install.
+    default: v2.12.2
 
 runs:
   using: composite
@@ -18,6 +21,19 @@ runs:
     - uses: Swatinem/rust-cache@v2
       with:
         workspaces: functions
+
+    # The Go version comes from the GCP functions' go.mod, and the module cache is keyed on go.sum.
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: functions/go/gcp/go.mod
+        cache-dependency-path: functions/go/gcp/go.sum
+
+    # Lints the GCP functions with functions/go/gcp/.golangci.yml.
+    - name: install golangci-lint
+      shell: bash
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh \
+          | sh -s -- -b "$(go env GOPATH)/bin" "${{ inputs.golangci-lint-version }}"
 
     - uses: extractions/setup-just@v2
 

@@ -16,16 +16,20 @@ workbench tools. The function sources live in `functions/` of
     own system-assigned managed identity, in the resource group of the mgmt cluster; a role
     allowing only to resolve the function keys, and one `AZURE_FUNCTION` workbench tool per
     function.
-  - GCP: one Cloud Run service per function running as its own service account, in the
-    project of the mgmt cluster, reachable only by identities granted `roles/run.invoker`,
-    and one `CLOUD_RUN` workbench tool per function. The services run the function binary
-    on Cloud Run's OS-only base image without a container build, from a private bucket.
-    This Cloud Run feature is in Preview.
+  - GCP: one Cloud Run function (2nd gen) per function running as its own service account,
+    in the project of the mgmt cluster, reachable only by identities granted
+    `roles/run.invoker`, and one `CLOUD_RUN` workbench tool per function. The functions are
+    written in Go. Terraform uploads their source to a private bucket and Cloud Build builds
+    it as a dedicated service account with only the build permissions, so no Preview feature
+    is involved.
 
 An init container of the stack run downloads the function packages from the GitHub release
 and verifies them against its `SHA256SUMS`, so the mgmt cluster needs to reach `github.com`
 and Docker Hub (`curlimages/curl`) while the stack runs. The packages are deployed into
 Lambda, Azure and the GCP bucket, so the functions don't depend on the release afterwards.
+On GCP the package is the Go source of all functions (`functions-gcp.zip`), and the project
+needs the Cloud Functions, Cloud Run, Cloud Build and Artifact Registry APIs, which the stack
+enables.
 
 ## Available functions
 
@@ -80,7 +84,7 @@ kept; delete them once they are no longer needed.
    - Azure: assign the `invoke_role_definition_id` output to the service principal of the
      cloud connection on each of the `invoke_scopes` (the function apps of registered tools).
    - GCP: set the invoker service account when installing, or grant the cloud connection
-     service account `roles/run.invoker` on the services.
+     service account `roles/run.invoker` on the Cloud Run services behind the functions.
 2. Add the tools from the `workbench_tool_ids` output to a workbench.
 
 ## Invocation contract

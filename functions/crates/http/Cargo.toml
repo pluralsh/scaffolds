@@ -1,6 +1,6 @@
 [package]
 name = "functions-http"
-description = "HTTP runtime for Plural operational functions hosted behind Azure Functions custom handlers or Cloud Run."
+description = "HTTP runtime for Plural operational functions hosted behind Azure Functions custom handlers."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

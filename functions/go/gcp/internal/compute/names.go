@@ -1,0 +1,44 @@
+package compute
+
+import "strings"
+
+// Zone is the name of a Compute Engine zone.
+type Zone string
+
+// Valid reports whether the zone is `<region>-<zone letter>`, e.g. `us-central1-a` or
+// `northamerica-northeast1-b`.
+func (z Zone) Valid() bool {
+	zone := string(z)
+	i := strings.LastIndexByte(zone, '-')
+	if i < 0 {
+		return false
+	}
+	region, letter := zone[:i], zone[i+1:]
+	area, location, ok := strings.Cut(region, "-")
+	if !ok {
+		return false
+	}
+	lower := func(s string) bool {
+		return s != "" && strings.IndexFunc(s, func(r rune) bool { return r < 'a' || r > 'z' }) < 0
+	}
+	digits := strings.IndexAny(location, "0123456789")
+	return lower(area) && len(letter) == 1 && lower(letter) && digits > 0 &&
+		lower(location[:digits]) && strings.Trim(location[digits:], "0123456789") == ""
+}
+
+// ResourceName is the name of a Compute Engine resource, such as a disk or a snapshot.
+type ResourceName string
+
+// Valid reports whether the name is an RFC 1035 name as Compute Engine requires:
+// `[a-z]([-a-z0-9]{0,61}[a-z0-9])?`.
+func (n ResourceName) Valid() bool {
+	if n == "" || len(n) > 63 || n[0] < 'a' || n[0] > 'z' || n[len(n)-1] == '-' {
+		return false
+	}
+	for i := range len(n) {
+		if b := n[i]; (b < 'a' || b > 'z') && (b < '0' || b > '9') && b != '-' {
+			return false
+		}
+	}
+	return true
+}
