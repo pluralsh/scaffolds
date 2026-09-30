@@ -1,0 +1,39 @@
+name: Cloud Functions Terraform
+
+on:
+  pull_request:
+    branches:
+    - main
+    paths:
+    - catalogs/infra/cloud-functions/terraform/**
+    - .github/workflows/cloud-functions-terraform.yaml
+
+jobs:
+  validate:
+    name: validate ${{ matrix.cloud }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud:
+        - aws
+        - azure
+        - gcp
+    defaults:
+      run:
+        working-directory: catalogs/infra/cloud-functions/terraform/${{ matrix.cloud }}
+    steps:
+      - uses: actions/checkout@v4
+        name: checkout repo
+
+      # The minimum required_version of the modules, so features newer than it are caught too.
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+          terraform_wrapper: false
+
+      - run: terraform fmt -check -diff
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
