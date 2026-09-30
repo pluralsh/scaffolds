@@ -52,8 +52,8 @@ resource "aws_cloudwatch_log_group" "function" {
   tags              = var.tags
 }
 
-# Code updates are driven by artifact_version, which is part of both the S3 key and the
-# local file name. Release assets are immutable, so no source_code_hash is needed.
+# The package is read from the directory the stack's init container downloads the release
+# to. Lambda copies it on deploy, so nothing depends on the release afterwards.
 resource "aws_lambda_function" "function" {
   for_each = local.functions
 
@@ -66,9 +66,10 @@ resource "aws_lambda_function" "function" {
   memory_size   = each.value.memory
   timeout       = each.value.timeout
 
-  filename  = try(local_file.artifact[each.key].filename, null)
-  s3_bucket = local.download ? null : var.artifact_s3_bucket
-  s3_key    = local.download ? null : local.artifact_key[each.key]
+  filename = local.artifacts[each.key]
+  # Guarded so that a missing package fails with the precondition below instead of a
+  # function error.
+  source_code_hash = fileexists(local.artifacts[each.key]) ? filebase64sha256(local.artifacts[each.key]) : null
 
   logging_config {
     log_format = "JSON"
@@ -78,4 +79,11 @@ resource "aws_lambda_function" "function" {
   tags = var.tags
 
   depends_on = [aws_iam_role_policy.function]
+
+  lifecycle {
+    precondition {
+      condition     = fileexists(local.artifacts[each.key])
+      error_message = "${local.artifacts[each.key]} not found. The stack's fetch-functions init container downloads it; check that it ran and that ${var.artifact_version} contains ${each.value.binary}.zip."
+    }
+  }
 }

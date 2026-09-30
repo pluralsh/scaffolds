@@ -26,20 +26,25 @@ spec:
     {% if context.invokerServiceAccount %}
     invoker_service_account: "{{ context.invokerServiceAccount }}"
     {% endif %}
-  {% if context.cloud == 'azure' %}
-  # The init container downloads the release's Azure function packages, verified against
-  # SHA256SUMS, into /artifacts/<version> before terraform runs. With raw, the operator ignores
-  # the other jobSpec fields, so the workload identity is set in raw as well.
+  {% if context.cloud != 'gcp' %}
+  # The init container downloads the release's function packages for this cloud, verified
+  # against SHA256SUMS, into /artifacts/<version> before terraform runs. GCP pulls images
+  # instead. With raw, the operator ignores the other jobSpec fields, so on Azure the workload
+  # identity is set in raw as well.
   jobSpec:
     namespace: plrl-deploy-operator
     raw:
       template:
+        {% if context.cloud == 'azure' %}
         metadata:
           namespace: plrl-deploy-operator
           labels:
             azure.workload.identity/use: "true"
+        {% endif %}
         spec:
+          {% if context.cloud == 'azure' %}
           serviceAccountName: stacks
+          {% endif %}
           initContainers:
             - name: fetch-functions
               image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
@@ -49,11 +54,11 @@ spec:
                   base=https://github.com/pluralsh/scaffolds/releases/download/functions/{{ context.version }}
                   mkdir -p /artifacts/{{ context.version }} && cd /artifacts/{{ context.version }}
                   curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS"
-                  grep -- '-azure.zip$' SHA256SUMS > azure.sums || { echo "no Azure functions in {{ context.version }}"; exit 1; }
-                  for zip in $(awk '{print $2}' azure.sums); do
+                  grep -- '-{{ context.cloud }}.zip$' SHA256SUMS > packages.sums || { echo "no {{ context.cloud }} functions in {{ context.version }}"; exit 1; }
+                  for zip in $(awk '{print $2}' packages.sums); do
                     curl -fsSL --retry 3 -o "$zip" "$base/$zip"
                   done
-                  sha256sum -c azure.sums
+                  sha256sum -c packages.sums
               volumeMounts:
                 - name: artifacts
                   mountPath: /artifacts

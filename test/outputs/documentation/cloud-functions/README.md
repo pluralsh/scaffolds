@@ -15,9 +15,13 @@ workbench tools. The function sources live in `functions/` of
   - Azure: one Flex Consumption function app (custom handler) per function, each with its
     own system-assigned managed identity, in the resource group of the mgmt cluster; a role
     allowing only to resolve the function keys, and one `AZURE_FUNCTION` workbench tool per
-    function. The function packages are downloaded from the GitHub release and verified
-    against its `SHA256SUMS` by an init container of the stack run, so the mgmt cluster needs
-    to reach `github.com` and Docker Hub (`curlimages/curl`).
+    function.
+
+  On AWS and Azure, an init container of the stack run downloads the function packages from
+  the GitHub release and verifies them against its `SHA256SUMS`, so the mgmt cluster needs to
+  reach `github.com` and Docker Hub (`curlimages/curl`) while the stack runs. The packages are
+  copied into Lambda and Azure on deploy, so the functions don't depend on the release
+  afterwards.
   - GCP: one Cloud Run service per function running as its own service account, in the
     project of the mgmt cluster, reachable only by identities granted `roles/run.invoker`,
     and one `CLOUD_RUN` workbench tool per function.

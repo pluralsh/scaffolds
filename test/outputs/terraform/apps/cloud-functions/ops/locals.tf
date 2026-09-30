@@ -16,6 +16,5 @@ locals {
   functions      = { for key, fn in local.catalog : key => fn if contains(var.functions, key) }
   unknown        = setsubtract(var.functions, keys(local.catalog))
   function_names = { for key, _ in local.functions : key => "${var.name}-${key}" }
-  download       = var.artifact_s3_bucket == null
-  artifact_key   = { for key, fn in local.functions : key => "functions/${var.artifact_version}/${fn.binary}.zip" }
+  artifacts      = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }
 }

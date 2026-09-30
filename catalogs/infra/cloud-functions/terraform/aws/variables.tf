@@ -34,16 +34,10 @@ variable "artifact_version" {
   description = "Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds)."
 }
 
-variable "artifact_s3_bucket" {
+variable "artifact_dir" {
   type        = string
-  description = "S3 bucket in var.region hosting the release zips under functions/<version>/<binary>.zip. When null, zips are downloaded from artifact_base_url during the run instead (temporary, see README)."
-  default     = null
-}
-
-variable "artifact_base_url" {
-  type        = string
-  description = "Base URL of the GitHub releases zips are downloaded from when artifact_s3_bucket is null."
-  default     = "https://github.com/pluralsh/scaffolds/releases/download"
+  description = "Directory holding the release's function packages as <artifact_dir>/<artifact_version>/<binary>.zip. The stack's init container downloads them there."
+  default     = "/artifacts"
 }
 
 variable "log_retention_days" {
