@@ -86,7 +86,7 @@ resource "azurerm_role_definition" "function" {
   lifecycle {
     precondition {
       condition     = length(each.value.scopes) > 0
-      error_message = "${each.key} needs the resource groups it may act on, e.g. volume_delete_scopes with the AKS node resource group."
+      error_message = "${each.key} needs the resource groups it may act on: set scopes[\"${each.key}\"], e.g. to the AKS node resource group."
     }
   }
 }
@@ -102,4 +102,7 @@ resource "azurerm_role_assignment" "function" {
   scope              = each.value.scope
   role_definition_id = each.value.role
   principal_id       = azurerm_function_app_flex_consumption.function[each.value.key].identity[0].principal_id
+  principal_type     = "ServicePrincipal"
+  condition          = local.functions[each.value.key].condition
+  condition_version  = local.functions[each.value.key].condition == null ? null : "2.0"
 }

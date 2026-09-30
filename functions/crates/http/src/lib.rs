@@ -13,6 +13,7 @@ use axum::Router;
 use axum::body::Bytes;
 use axum::http::{Method, StatusCode};
 use axum::response::{IntoResponse, Response as HttpResponse};
+use axum::routing::post;
 use functions_core::{Error, Request, Response};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -37,21 +38,76 @@ where
     F: Fn(Request<P>) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = Result<Response<R>, Error>> + Send + 'static,
 {
+    serve(router(handler)).await
+}
+
+/// Serves `handler` like [`run`], and runs `timer` whenever the Azure Functions host invokes
+/// the timer-triggered function `timer_function` of the same app.
+///
+/// The host sends non-HTTP triggers to `/<function name>` in its invocation format, which
+/// only reaches the handler from the host itself: HTTP requests are forwarded to the paths of
+/// the HTTP triggers (`/api/...`).
+pub async fn run_with_timer<P, R, F, Fut, T, TFut>(
+    handler: F,
+    timer_function: &str,
+    timer: T,
+) -> std::io::Result<()>
+where
+    P: DeserializeOwned + Send + 'static,
+    R: Serialize + Send + 'static,
+    F: Fn(Request<P>) -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = Result<Response<R>, Error>> + Send + 'static,
+    T: Fn() -> TFut + Send + Sync + 'static,
+    TFut: Future<Output = Result<(), Error>> + Send + 'static,
+{
+    let timer = Arc::new(timer);
+    let app = router(handler).route(
+        &format!("/{timer_function}"),
+        post(move || {
+            let timer = Arc::clone(&timer);
+            async move { timer_response(timer().await) }
+        }),
+    );
+    serve(app).await
+}
+
+fn router<P, R, F, Fut>(handler: F) -> Router
+where
+    P: DeserializeOwned + Send + 'static,
+    R: Serialize + Send + 'static,
+    F: Fn(Request<P>) -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = Result<Response<R>, Error>> + Send + 'static,
+{
+    let handler = Arc::new(handler);
+    Router::new().fallback(move |method: Method, body: Bytes| {
+        let handler = Arc::clone(&handler);
+        async move { dispatch(handler.as_ref(), method, &body).await }
+    })
+}
+
+async fn serve(app: Router) -> std::io::Result<()> {
     tracing_subscriber::fmt()
         .json()
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
         .init();
 
-    let handler = Arc::new(handler);
-    let app = Router::new().fallback(move |method: Method, body: Bytes| {
-        let handler = Arc::clone(&handler);
-        async move { dispatch(handler.as_ref(), method, &body).await }
-    });
-
     let addr = SocketAddr::from((Ipv4Addr::UNSPECIFIED, port()));
     let listener = tokio::net::TcpListener::bind(addr).await?;
     tracing::info!(%addr, "listening");
     axum::serve(listener, app).await
+}
+
+/// Custom handler invocation response: the host fails the invocation on a non-2xx status.
+fn timer_response(result: Result<(), Error>) -> HttpResponse {
+    let (status, logs) = match result {
+        Ok(()) => (StatusCode::OK, vec![]),
+        Err(err) => {
+            tracing::error!(error_type = err.kind(), error = %err, "timer failed");
+            (StatusCode::INTERNAL_SERVER_ERROR, vec![err.to_string()])
+        }
+    };
+    let body = serde_json::json!({ "Outputs": {}, "Logs": logs, "ReturnValue": null });
+    (status, axum::Json(body)).into_response()
 }
 
 /// HTTPS client for cloud APIs, trusting the built-in Mozilla root certificates only.
@@ -172,6 +228,20 @@ mod tests {
             body,
             json!({"errorType": "Provider", "errorMessage": "cloud provider error: AccessDenied: nope"})
         );
+    }
+
+    #[tokio::test]
+    async fn answers_timer_invocations() {
+        let (ok, body) = json_body(timer_response(Ok(()))).await;
+        let (failed, err) = json_body(timer_response(Err(Error::provider("nope")))).await;
+
+        assert_eq!(ok, StatusCode::OK);
+        assert_eq!(
+            body,
+            json!({"Outputs": {}, "Logs": [], "ReturnValue": null})
+        );
+        assert_eq!(failed, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(err["Logs"], json!(["cloud provider error: nope"]));
     }
 
     #[tokio::test]

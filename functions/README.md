@@ -9,7 +9,11 @@ cloud's FaaS and invokable as Plural workbench tools.
 ```
 crates/core    cloud-agnostic request/response envelope, guards and errors
 crates/aws     AWS Lambda runtime glue and SDK helpers
-bins/<name>    one binary per operation and cloud, e.g. volume-delete-aws
+crates/azure   Azure managed identity and a minimal Azure Resource Manager client
+crates/gcp     GCP metadata server credentials and a minimal Compute Engine client
+crates/http    HTTP runtime for Azure Functions custom handlers and Cloud Run
+bins/<name>    one binary per operation and cloud, e.g. volume-delete-aws; Azure bins also
+               hold azure/<function>/function.json for each function of their app
 ```
 
 ## Invocation contract

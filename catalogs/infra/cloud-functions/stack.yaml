@@ -27,7 +27,8 @@ spec:
     invoker_service_account: "{{ context.invokerServiceAccount }}"
     {% endif %}
     {% if context.volumeDeleteScope %}
-    volume_delete_scopes: ["{{ context.volumeDeleteScope }}"]
+    scopes:
+      volume-delete: ["{{ context.volumeDeleteScope }}"]
     {% endif %}
   # The init container downloads the release's function packages for this cloud (zips for AWS
   # and Azure, tarballs for GCP), verified against SHA256SUMS, into /artifacts/<version> before

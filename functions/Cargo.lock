@@ -769,6 +769,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "db-restore-azure"
+version = "0.1.0"
+dependencies = [
+ "functions-azure",
+ "functions-core",
+ "functions-http",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "deranged"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -918,6 +932,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]
@@ -1563,6 +1578,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
+name = "lb-frontend-delete-azure"
+version = "0.1.0"
+dependencies = [
+ "functions-azure",
+ "functions-core",
+ "functions-http",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1632,6 +1661,20 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "node-pool-resize-azure"
+version = "0.1.0"
+dependencies = [
+ "functions-azure",
+ "functions-core",
+ "functions-http",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -2313,6 +2356,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ssh-access-azure"
+version = "0.1.0"
+dependencies = [
+ "functions-azure",
+ "functions-core",
+ "functions-http",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "time",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2760,6 +2818,20 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vm-delete-azure"
+version = "0.1.0"
+dependencies = [
+ "functions-azure",
+ "functions-core",
+ "functions-http",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "volume-delete-aws"

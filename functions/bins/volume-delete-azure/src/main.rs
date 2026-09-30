@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use functions_azure::ManagedIdentityCredential;
-use functions_azure::arm::{Arm, Disk, DiskId, Snapshot};
+use functions_azure::arm::{self, Arm, Disk, ResourceId, Snapshot};
 use functions_core::volume::{self, KubernetesClaim, SnapshotStatus, Step, Volume};
 use functions_core::{Action, Error, Request, Response};
 use serde::{Deserialize, Serialize};
@@ -49,7 +49,7 @@ async fn handle(
     req: Request<Params>,
 ) -> Result<Response<Output>, Error> {
     let params = req.params;
-    let id = DiskId::parse(&params.disk_id).ok_or_else(|| {
+    let id = ResourceId::parse(&params.disk_id, &[arm::DISK]).ok_or_else(|| {
         Error::invalid_request(format!(
             "diskId {:?} is not a managed disk resource ID (/subscriptions/<id>/resourceGroups/<group>/providers/Microsoft.Compute/disks/<name>)",
             params.disk_id

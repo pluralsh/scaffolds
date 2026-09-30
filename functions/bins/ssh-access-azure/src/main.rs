@@ -1,0 +1,705 @@
+//! Grants an Entra ID user short-lived SSH login to an Azure VM.
+//!
+//! Access uses Microsoft Entra ID login for Linux VMs: no keys are pushed to the VM and no
+//! port is opened. Execute assigns the user the Virtual Machine User Login (or Administrator
+//! Login) role on the VM and returns the command to connect, through Azure Bastion when the
+//! installation configures one. Azure role assignments don't expire, so the expiry is kept in
+//! the assignment's description: every execute on the VM and a timer every few minutes
+//! remove the expired assignments this function created, and nothing else. `revoke` removes
+//! the user's access right away.
+//!
+//! The function's own permission to manage role assignments is limited by a role assignment
+//! condition to these two roles and to users, so it can't grant anything else.
+
+use std::collections::hash_map::RandomState;
+use std::hash::{BuildHasher, Hasher};
+use std::sync::Arc;
+
+use functions_azure::ManagedIdentityCredential;
+use functions_azure::arm::{self, Arm, Precondition, ResourceId};
+use functions_core::volume::now;
+use functions_core::{Action, Error, Guard, Request, Response};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+
+const VM_API_VERSION: &str = "2024-07-01";
+const AUTHORIZATION_API_VERSION: &str = "2022-04-01";
+
+/// Built-in roles that allow Entra ID login to a VM.
+const USER_LOGIN_ROLE: &str = "fb879df8-f326-4884-b1cf-06f3ad86be52";
+const ADMIN_LOGIN_ROLE: &str = "1c0163c0-47e6-4577-8991-ea5c82e286e4";
+
+/// Start of the description of the role assignments this function creates, followed by
+/// `expires=<unix seconds>`. Only assignments with it are ever removed.
+const MARKER: &str = "plural.sh ssh-access";
+
+/// VM extension that enables Entra ID login on Linux.
+const LOGIN_EXTENSION: &str = "AADSSHLoginForLinux";
+
+/// The timer function in the app that removes expired assignments.
+const EXPIRE_FUNCTION: &str = "ssh-access-expire";
+
+const DEFAULT_DURATION_MINUTES: i64 = 60;
+const MAX_DURATION_VAR: &str = "MAX_DURATION_MINUTES";
+const DEFAULT_MAX_DURATION_MINUTES: i64 = 240;
+/// Resource ID of the Bastion host users connect through, if the installation has one.
+const BASTION_VAR: &str = "BASTION_ID";
+/// JSON list of the resource groups the function may grant access in, swept by the timer.
+const SCOPES_VAR: &str = "SCOPES";
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum Role {
+    #[default]
+    User,
+    Admin,
+}
+
+impl Role {
+    fn definition(self) -> &'static str {
+        match self {
+            Self::User => USER_LOGIN_ROLE,
+            Self::Admin => ADMIN_LOGIN_ROLE,
+        }
+    }
+
+    fn of(definition_id: &str) -> Option<Self> {
+        let guid = definition_id.rsplit('/').next()?;
+        [Self::User, Self::Admin]
+            .into_iter()
+            .find(|r| guid.eq_ignore_ascii_case(r.definition()))
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Params {
+    vm_id: String,
+    /// Object ID of the Entra ID user.
+    principal_id: String,
+    #[serde(default)]
+    role: Role,
+    #[serde(default = "default_duration")]
+    duration_minutes: i64,
+    /// Remove the user's access to the VM instead of granting it.
+    #[serde(default)]
+    revoke: bool,
+}
+
+fn default_duration() -> i64 {
+    DEFAULT_DURATION_MINUTES
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+struct Vm {
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    properties: VmProperties,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct VmProperties {
+    #[serde(default)]
+    storage_profile: StorageProfile,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StorageProfile {
+    #[serde(default)]
+    os_disk: Option<OsDisk>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct OsDisk {
+    #[serde(default)]
+    os_type: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+struct Extension {
+    #[serde(default)]
+    properties: ExtensionProperties,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ExtensionProperties {
+    #[serde(default, rename = "type")]
+    kind: String,
+    #[serde(default)]
+    provisioning_state: String,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+struct Assignment {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    properties: AssignmentProperties,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AssignmentProperties {
+    #[serde(default)]
+    role_definition_id: String,
+    #[serde(default)]
+    principal_id: String,
+    #[serde(default)]
+    principal_type: Option<String>,
+    #[serde(default)]
+    scope: String,
+    #[serde(default)]
+    description: Option<String>,
+}
+
+impl Assignment {
+    /// Expiry (Unix seconds) of an assignment this function created, `None` for any other.
+    fn expires_at(&self) -> Option<i64> {
+        let props = &self.properties;
+        Role::of(&props.role_definition_id)?;
+        if !props
+            .principal_type
+            .as_deref()
+            .is_some_and(|t| t.eq_ignore_ascii_case("User"))
+        {
+            return None;
+        }
+        let rest = props.description.as_deref()?.strip_prefix(MARKER)?;
+        let expires = rest.trim_start().strip_prefix("expires=")?;
+        let digits: String = expires.chars().take_while(char::is_ascii_digit).collect();
+        digits.parse().ok()
+    }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Output {
+    vm: String,
+    principal_id: String,
+    role: Role,
+    /// When access ends, for a grant.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    expires_at: Option<String>,
+    /// How to connect once access is granted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    command: Option<String>,
+    /// Scopes of the user's other VM login role assignments, which this function neither
+    /// grants nor revokes.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    other_access: Vec<String>,
+    granted: bool,
+    /// Role assignments removed by this call (revoked or expired).
+    removed: usize,
+}
+
+async fn handle(
+    client: &reqwest::Client,
+    credential: &ManagedIdentityCredential,
+    req: Request<Params>,
+) -> Result<Response<Output>, Error> {
+    let params = req.params;
+    let vm_id = ResourceId::parse(&params.vm_id, &[arm::VIRTUAL_MACHINE]).ok_or_else(|| {
+        Error::invalid_request(format!(
+            "vmId {:?} is not a virtual machine resource ID (/subscriptions/<id>/resourceGroups/<group>/providers/Microsoft.Compute/virtualMachines/<name>)",
+            params.vm_id
+        ))
+    })?;
+    if !arm::is_guid(&params.principal_id) {
+        return Err(Error::invalid_request(format!(
+            "principalId {:?} is not an Entra ID object ID",
+            params.principal_id
+        )));
+    }
+    let principal = params.principal_id.to_lowercase();
+    let now = now();
+    // Out-of-range durations are refused by the duration guard; this only keeps them finite.
+    let mut expires = now.saturating_add(params.duration_minutes.saturating_mul(60));
+
+    let arm = Arm::connect(client.clone(), credential).await?;
+    let vm: Option<Vm> = arm.get(&vm_id.id(), VM_API_VERSION).await?;
+    let (extensions, assignments): (Vec<Extension>, Vec<Assignment>) = match vm {
+        Some(_) => (
+            arm.list(&format!("{}/extensions", vm_id.id()), VM_API_VERSION, None)
+                .await?,
+            assignments_at(&arm, &vm_id.id()).await?,
+        ),
+        None => (vec![], vec![]),
+    };
+    let ours: Vec<&Assignment> = assignments
+        .iter()
+        .filter(|a| {
+            a.expires_at().is_some() && a.properties.scope.eq_ignore_ascii_case(&vm_id.id())
+        })
+        .collect();
+    // Login access of the user that this function didn't grant, which revoke doesn't remove.
+    let vm_path = vm_id.id().to_lowercase();
+    let other_access: Vec<String> = assignments
+        .iter()
+        .filter(|a| {
+            let scope = a.properties.scope.to_lowercase();
+            a.expires_at().is_none()
+                && Role::of(&a.properties.role_definition_id).is_some()
+                && a.properties.principal_id.eq_ignore_ascii_case(&principal)
+                && (vm_path == scope || vm_path.starts_with(&format!("{scope}/")))
+        })
+        .map(|a| a.properties.scope.clone())
+        .collect();
+
+    let guards = if params.revoke {
+        vec![match vm {
+            Some(_) => Guard::pass("exists", format!("VM {}", vm_id.name)),
+            None => Guard::fail("exists", "VM not found"),
+        }]
+    } else {
+        evaluate(
+            vm.as_ref(),
+            &extensions,
+            params.duration_minutes,
+            max_duration(std::env::var(MAX_DURATION_VAR).ok().as_deref()),
+        )
+    };
+    let mut output = Output {
+        vm: vm_id.id(),
+        principal_id: principal.clone(),
+        role: params.role,
+        expires_at: (!params.revoke).then(|| format_time(expires)),
+        command: (!params.revoke)
+            .then(|| connect_command(&vm_id, std::env::var(BASTION_VAR).ok().as_deref())),
+        other_access,
+        granted: false,
+        removed: 0,
+    };
+
+    match req.action {
+        Action::Plan => return Ok(Response::planned(guards, output)),
+        Action::Execute if !guards.iter().all(|g| g.passed) => {
+            return Ok(Response::refused(guards).with_result(output));
+        }
+        Action::Execute => {}
+    }
+
+    // The user's assignments when revoking, which must all go, and expired ones of anyone,
+    // which the timer would remove anyway.
+    for assignment in &ours {
+        let own = assignment
+            .properties
+            .principal_id
+            .eq_ignore_ascii_case(&principal);
+        let expired = assignment.expires_at().is_some_and(|e| e <= now);
+        if !(expired || (params.revoke && own)) {
+            continue;
+        }
+        let deleted = arm
+            .delete(
+                &assignment_path(&assignment.properties.scope, &assignment.name),
+                AUTHORIZATION_API_VERSION,
+                Precondition::Always,
+            )
+            .await;
+        match deleted {
+            Ok(()) => {
+                tracing::info!(vm = %vm_id.id(), principal = %assignment.properties.principal_id, "removed ssh access");
+                output.removed += 1;
+            }
+            Err(err) if !(params.revoke && own) => {
+                tracing::warn!(assignment = %assignment.id, error = %err, "couldn't remove expired ssh access");
+            }
+            Err(err) => return Err(err),
+        }
+    }
+    if params.revoke {
+        return Ok(Response::done(guards, output));
+    }
+
+    // A grant for the same user and role updates the existing assignment, and never shortens it.
+    let existing = ours.iter().find(|a| {
+        a.properties.principal_id.eq_ignore_ascii_case(&principal)
+            && Role::of(&a.properties.role_definition_id) == Some(params.role)
+            && a.expires_at().is_some_and(|e| e > now)
+    });
+    if let Some(current) = existing.and_then(|a| a.expires_at()) {
+        expires = expires.max(current);
+        output.expires_at = Some(format_time(expires));
+    }
+    let name = existing.map_or_else(new_guid, |a| a.name.clone());
+    let body = json!({
+        "properties": {
+            "roleDefinitionId": format!(
+                "/subscriptions/{}/providers/Microsoft.Authorization/roleDefinitions/{}",
+                vm_id.subscription,
+                params.role.definition()
+            ),
+            "principalId": principal,
+            "principalType": "User",
+            "description": description(expires),
+        }
+    });
+    arm.put(
+        &assignment_path(&vm_id.id(), &name),
+        AUTHORIZATION_API_VERSION,
+        &body,
+        Precondition::Always,
+    )
+    .await?;
+    tracing::info!(vm = %vm_id.id(), principal = %principal, role = ?params.role, expires, "granted ssh access");
+    output.granted = true;
+    Ok(Response::done(guards, output))
+}
+
+/// Removes the expired role assignments this function created in its resource groups.
+async fn expire(
+    client: &reqwest::Client,
+    credential: &ManagedIdentityCredential,
+) -> Result<(), Error> {
+    let scopes: Vec<String> = match std::env::var(SCOPES_VAR) {
+        Ok(v) => serde_json::from_str(&v)
+            .map_err(|err| Error::provider(format!("{SCOPES_VAR}: {err}")))?,
+        Err(_) => vec![],
+    };
+    let arm = Arm::connect(client.clone(), credential).await?;
+    let now = now();
+    // A failure in one scope or assignment must not keep the others from expiring.
+    let mut failures = Vec::new();
+    for scope in &scopes {
+        let assignments = match assignments_at(&arm, scope).await {
+            Ok(assignments) => assignments,
+            Err(err) => {
+                failures.push(format!("{scope}: {err}"));
+                continue;
+            }
+        };
+        for assignment in assignments {
+            let under_scope = assignment
+                .properties
+                .scope
+                .to_lowercase()
+                .starts_with(&format!("{}/", scope.to_lowercase()));
+            if !under_scope || !assignment.expires_at().is_some_and(|e| e <= now) {
+                continue;
+            }
+            let path = assignment_path(&assignment.properties.scope, &assignment.name);
+            match arm
+                .delete(&path, AUTHORIZATION_API_VERSION, Precondition::Always)
+                .await
+            {
+                Ok(()) => tracing::info!(assignment = %assignment.id, "removed expired ssh access"),
+                Err(err) => failures.push(format!("{}: {err}", assignment.id)),
+            }
+        }
+    }
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(Error::provider(format!(
+            "couldn't remove expired ssh access: {}",
+            failures.join("; ")
+        )))
+    }
+}
+
+/// Role assignments at `scope` and below it.
+async fn assignments_at(arm: &Arm, scope: &str) -> Result<Vec<Assignment>, Error> {
+    arm.list(
+        &format!("{scope}/providers/Microsoft.Authorization/roleAssignments"),
+        AUTHORIZATION_API_VERSION,
+        None,
+    )
+    .await
+}
+
+fn assignment_path(scope: &str, name: &str) -> String {
+    format!("{scope}/providers/Microsoft.Authorization/roleAssignments/{name}")
+}
+
+fn evaluate(vm: Option<&Vm>, extensions: &[Extension], minutes: i64, max: i64) -> Vec<Guard> {
+    let Some(vm) = vm else {
+        return vec![Guard::fail("exists", "VM not found")];
+    };
+    let os = vm
+        .properties
+        .storage_profile
+        .os_disk
+        .as_ref()
+        .and_then(|d| d.os_type.as_deref())
+        .unwrap_or("unknown");
+    let login = extensions
+        .iter()
+        .find(|e| e.properties.kind.eq_ignore_ascii_case(LOGIN_EXTENSION));
+    vec![
+        Guard::pass("exists", format!("VM {}", vm.name)),
+        Guard::check(
+            "linux",
+            os.eq_ignore_ascii_case("Linux"),
+            format!("OS {os}"),
+        ),
+        match login {
+            Some(ext) if ext.properties.provisioning_state == "Succeeded" => {
+                Guard::pass("entra-login", format!("{LOGIN_EXTENSION} installed"))
+            }
+            Some(ext) => Guard::fail(
+                "entra-login",
+                format!("{LOGIN_EXTENSION} is {}", ext.properties.provisioning_state),
+            ),
+            None => Guard::fail(
+                "entra-login",
+                format!("the VM needs the {LOGIN_EXTENSION} extension for Entra ID login"),
+            ),
+        },
+        Guard::check(
+            "duration",
+            (1..=max).contains(&minutes),
+            format!("{minutes} minutes; at most {max} allowed"),
+        ),
+    ]
+}
+
+fn max_duration(value: Option<&str>) -> i64 {
+    value
+        .and_then(|v| v.parse().ok())
+        .filter(|m: &i64| *m > 0)
+        .unwrap_or(DEFAULT_MAX_DURATION_MINUTES)
+}
+
+fn description(expires: i64) -> String {
+    format!("{MARKER} expires={expires} ({})", format_time(expires))
+}
+
+fn format_time(unix: i64) -> String {
+    time::OffsetDateTime::from_unix_timestamp(unix)
+        .ok()
+        .and_then(|t| {
+            t.format(&time::format_description::well_known::Rfc3339)
+                .ok()
+        })
+        .unwrap_or_else(|| unix.to_string())
+}
+
+/// Command to connect: through the Bastion host if there is one, directly otherwise.
+fn connect_command(vm: &ResourceId, bastion: Option<&str>) -> String {
+    match bastion.and_then(|b| ResourceId::parse(b, &[arm::BASTION_HOST])) {
+        Some(b) => format!(
+            "az network bastion ssh --subscription {} --resource-group {} --name {} --target-resource-id {} --auth-type AAD",
+            b.subscription,
+            b.resource_group,
+            b.name,
+            vm.id()
+        ),
+        None => format!("az ssh vm --ids {}", vm.id()),
+    }
+}
+
+/// A random role assignment name (GUID).
+fn new_guid() -> String {
+    let random = |salt: u64| {
+        let mut h = RandomState::new().build_hasher();
+        h.write_u64(salt);
+        h.write_i64(now());
+        h.finish()
+    };
+    let (a, b) = (random(1), random(2));
+    format!(
+        "{:08x}-{:04x}-4{:03x}-{:04x}-{:012x}",
+        a >> 32,
+        (a >> 16) & 0xffff,
+        a & 0x0fff,
+        ((b >> 48) & 0x3fff) | 0x8000,
+        b & 0xffff_ffff_ffff
+    )
+}
+
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
+    let client = functions_http::https_client().map_err(std::io::Error::other)?;
+    let credential: Arc<ManagedIdentityCredential> =
+        functions_azure::credential().map_err(std::io::Error::other)?;
+    let (timer_client, timer_credential) = (client.clone(), credential.clone());
+
+    functions_http::run_with_timer(
+        move |req| {
+            let client = client.clone();
+            let credential = credential.clone();
+            async move { handle(&client, &credential, req).await }
+        },
+        EXPIRE_FUNCTION,
+        move || {
+            let client = timer_client.clone();
+            let credential = timer_credential.clone();
+            async move { expire(&client, &credential).await }
+        },
+    )
+    .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SUB: &str = "00000000-0000-0000-0000-000000000000";
+
+    fn vm_id() -> ResourceId {
+        ResourceId::parse(
+            &format!("/subscriptions/{SUB}/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm-1"),
+            &[arm::VIRTUAL_MACHINE],
+        )
+        .unwrap()
+    }
+
+    fn vm(os: &str) -> Vm {
+        serde_json::from_value(
+            json!({"name": "vm-1", "properties": {"storageProfile": {"osDisk": {"osType": os}}}}),
+        )
+        .unwrap()
+    }
+
+    fn extension(kind: &str, state: &str) -> Extension {
+        serde_json::from_value(json!({"properties": {"type": kind, "provisioningState": state}}))
+            .unwrap()
+    }
+
+    fn assignment(role: &str, principal_type: &str, description: Option<&str>) -> Assignment {
+        serde_json::from_value(json!({
+            "id": "i", "name": "n",
+            "properties": {
+                "roleDefinitionId": format!("/subscriptions/{SUB}/providers/Microsoft.Authorization/roleDefinitions/{role}"),
+                "principalId": "p", "principalType": principal_type, "scope": vm_id().id(),
+                "description": description,
+            }
+        }))
+        .unwrap()
+    }
+
+    fn failed(guards: &[Guard]) -> Vec<&str> {
+        guards
+            .iter()
+            .filter(|g| !g.passed)
+            .map(|g| g.name.as_str())
+            .collect()
+    }
+
+    #[test]
+    fn grants_to_linux_vms_with_entra_login() {
+        let ok = [extension("AADSSHLoginForLinux", "Succeeded")];
+
+        assert!(failed(&evaluate(Some(&vm("Linux")), &ok, 60, 240)).is_empty());
+        assert_eq!(
+            failed(&evaluate(Some(&vm("Windows")), &ok, 60, 240)),
+            ["linux"]
+        );
+        assert_eq!(
+            failed(&evaluate(Some(&vm("Linux")), &[], 60, 240)),
+            ["entra-login"]
+        );
+        assert_eq!(
+            failed(&evaluate(
+                Some(&vm("Linux")),
+                &[extension("AADSSHLoginForLinux", "Failed")],
+                60,
+                240
+            )),
+            ["entra-login"]
+        );
+        assert_eq!(
+            failed(&evaluate(Some(&vm("Linux")), &ok, 241, 240)),
+            ["duration"]
+        );
+        assert_eq!(
+            failed(&evaluate(Some(&vm("Linux")), &ok, 0, 240)),
+            ["duration"]
+        );
+        assert_eq!(failed(&evaluate(None, &ok, 60, 240)), ["exists"]);
+    }
+
+    #[test]
+    fn only_its_own_assignments_expire() {
+        let ours = assignment(USER_LOGIN_ROLE, "User", Some(&description(1_790_787_600)));
+
+        assert_eq!(ours.expires_at(), Some(1_790_787_600));
+        assert_eq!(
+            assignment(
+                ADMIN_LOGIN_ROLE,
+                "User",
+                Some("plural.sh ssh-access expires=5")
+            )
+            .expires_at(),
+            Some(5)
+        );
+        // Someone's permanent assignment, another role or a group is never touched.
+        for other in [
+            assignment(USER_LOGIN_ROLE, "User", None),
+            assignment(USER_LOGIN_ROLE, "User", Some("break-glass access")),
+            assignment(
+                "8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
+                "User",
+                Some(&description(5)),
+            ),
+            assignment(USER_LOGIN_ROLE, "Group", Some(&description(5))),
+            assignment(
+                USER_LOGIN_ROLE,
+                "User",
+                Some("plural.sh ssh-access expires=soon"),
+            ),
+        ] {
+            assert_eq!(
+                other.expires_at(),
+                None,
+                "{:?}",
+                other.properties.description
+            );
+        }
+    }
+
+    #[test]
+    fn describes_the_expiry_readably() {
+        assert_eq!(
+            description(1_790_787_600),
+            "plural.sh ssh-access expires=1790787600 (2026-09-30T17:00:00Z)"
+        );
+    }
+
+    #[test]
+    fn connects_through_bastion_when_configured() {
+        let bastion = format!(
+            "/subscriptions/{SUB}/resourceGroups/net/providers/Microsoft.Network/bastionHosts/hub"
+        );
+
+        assert_eq!(
+            connect_command(&vm_id(), Some(&bastion)),
+            format!(
+                "az network bastion ssh --subscription {SUB} --resource-group net --name hub --target-resource-id {} --auth-type AAD",
+                vm_id().id()
+            )
+        );
+        assert_eq!(
+            connect_command(&vm_id(), None),
+            format!("az ssh vm --ids {}", vm_id().id())
+        );
+        assert_eq!(
+            connect_command(&vm_id(), Some("not-an-id")),
+            format!("az ssh vm --ids {}", vm_id().id())
+        );
+    }
+
+    #[test]
+    fn maps_roles_and_generates_guids() {
+        assert_eq!(
+            Role::of(&format!(
+                "/x/roleDefinitions/{}",
+                ADMIN_LOGIN_ROLE.to_uppercase()
+            )),
+            Some(Role::Admin)
+        );
+        assert_eq!(Role::of("/x/roleDefinitions/other"), None);
+        let (a, b) = (new_guid(), new_guid());
+        assert!(arm::is_guid(&a) && arm::is_guid(&b) && a != b, "{a} {b}");
+        assert_eq!(max_duration(None), DEFAULT_MAX_DURATION_MINUTES);
+        assert_eq!(max_duration(Some("30")), 30);
+        assert_eq!(max_duration(Some("-1")), DEFAULT_MAX_DURATION_MINUTES);
+    }
+}
