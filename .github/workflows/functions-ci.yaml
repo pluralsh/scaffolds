@@ -7,7 +7,6 @@ on:
     paths:
     - functions/**
     - .github/workflows/functions-*.yaml
-    - .github/actions/functions-toolchain/**
 
 jobs:
   build:
