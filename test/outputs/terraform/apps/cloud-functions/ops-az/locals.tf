@@ -17,9 +17,10 @@ locals {
   cluster_context     = jsondecode(data.plural_service_context.cluster.configuration)
   resource_group_name = coalesce(var.resource_group_name, local.cluster_context.resource_group_name)
 
-  functions    = { for key, fn in local.catalog : key => fn if contains(var.functions, key) }
-  unknown      = setsubtract(var.functions, keys(local.catalog))
-  artifact_key = { for key, fn in local.functions : key => "functions/${var.artifact_version}/${fn.binary}.zip" }
+  functions = { for key, fn in local.catalog : key => fn if contains(var.functions, key) }
+  unknown   = setsubtract(var.functions, keys(local.catalog))
+  # The version is part of the path, so a new release changes zip_deploy_file and redeploys.
+  artifacts = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }
 
   # Function app and storage account names are globally unique, so they get a suffix derived
   # from the subscription, resource group and installation name. App names are limited to 32

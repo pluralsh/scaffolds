@@ -32,7 +32,7 @@ resource "azurerm_service_plan" "function" {
 
 # One app per function, so each function runs as its own managed identity with only the
 # actions it needs. Code updates are driven by artifact_version, which is part of the
-# deployed file name.
+# deployed package path.
 resource "azurerm_function_app_flex_consumption" "function" {
   for_each = local.functions
 
@@ -51,7 +51,7 @@ resource "azurerm_function_app_flex_consumption" "function" {
   instance_memory_in_mb  = var.instance_memory_in_mb
   maximum_instance_count = var.maximum_instance_count
   https_only             = true
-  zip_deploy_file        = local_file.artifact[each.key].filename
+  zip_deploy_file        = local.artifacts[each.key]
 
   identity {
     type = "SystemAssigned"
@@ -60,6 +60,13 @@ resource "azurerm_function_app_flex_consumption" "function" {
   site_config {}
 
   tags = var.tags
+
+  lifecycle {
+    precondition {
+      condition     = fileexists(local.artifacts[each.key])
+      error_message = "${local.artifacts[each.key]} not found. The stack's fetch-functions init container downloads it; check that it ran and that ${var.artifact_version} contains ${each.value.binary}.zip."
+    }
+  }
 }
 
 resource "azurerm_role_definition" "function" {

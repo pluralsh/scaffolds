@@ -23,11 +23,45 @@ spec:
     artifact_version: "v0.1.0-spike.1"
     
   
+  # The init container downloads the release's Azure function packages, verified against
+  # SHA256SUMS, into /artifacts/<version> before terraform runs. With raw, the operator ignores
+  # the other jobSpec fields, so the workload identity is set in raw as well.
   jobSpec:
     namespace: plrl-deploy-operator
-    labels:
-      azure.workload.identity/use: "true"
-    serviceAccount: "stacks"
+    raw:
+      template:
+        metadata:
+          namespace: plrl-deploy-operator
+          labels:
+            azure.workload.identity/use: "true"
+        spec:
+          serviceAccountName: stacks
+          initContainers:
+            - name: fetch-functions
+              image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+              command: ["/bin/sh", "-ec"]
+              args:
+                - |
+                  base=https://github.com/pluralsh/scaffolds/releases/download/functions/v0.1.0-spike.1
+                  mkdir -p /artifacts/v0.1.0-spike.1 && cd /artifacts/v0.1.0-spike.1
+                  curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS"
+                  grep -- '-azure.zip$' SHA256SUMS > azure.sums || { echo "no Azure functions in v0.1.0-spike.1"; exit 1; }
+                  for zip in $(awk '{print $2}' azure.sums); do
+                    curl -fsSL --retry 3 -o "$zip" "$base/$zip"
+                  done
+                  sha256sum -c azure.sums
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+          containers:
+            - name: default
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+                  readOnly: true
+          volumes:
+            - name: artifacts
+              emptyDir: {}
   
   clusterRef:
     name: mgmt

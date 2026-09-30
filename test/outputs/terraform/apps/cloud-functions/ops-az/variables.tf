@@ -40,10 +40,10 @@ variable "artifact_version" {
   description = "Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds)."
 }
 
-variable "artifact_base_url" {
+variable "artifact_dir" {
   type        = string
-  description = "Base URL of the GitHub releases the function zips are downloaded from."
-  default     = "https://github.com/pluralsh/scaffolds/releases/download"
+  description = "Directory holding the release's function packages as <artifact_dir>/<artifact_version>/<binary>.zip. The stack's init container downloads them there."
+  default     = "/artifacts"
 }
 
 variable "instance_memory_in_mb" {
