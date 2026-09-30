@@ -17,10 +17,8 @@
 //! a load balancer itself once it has taken the nodes out of its backend pools.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
 
-use functions_azure::ManagedIdentityCredential;
-use functions_azure::arm::{self, Arm, Precondition, ResourceId};
+use functions_azure::arm::{self, Arm, Connector, Precondition, ResourceId};
 use functions_core::{Action, Error, Guard, Request, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -180,11 +178,7 @@ struct Output {
     remaining: bool,
 }
 
-async fn handle(
-    client: &reqwest::Client,
-    credential: &ManagedIdentityCredential,
-    req: Request<Params>,
-) -> Result<Response<Output>, Error> {
+async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<Output>, Error> {
     let params = req.params;
     let lb_id = ResourceId::parse(&params.load_balancer_id, &[arm::LOAD_BALANCER]).ok_or_else(|| {
         Error::invalid_request(format!(
@@ -211,7 +205,7 @@ async fn handle(
         )
         .ok_or_else(|| Error::invalid_request("frontendName is too long"))?;
 
-    let arm = Arm::connect(client.clone(), credential).await?;
+    let arm = connector.connect().await?;
     let raw: Option<Value> = arm.get(&lb_id.id(), NETWORK_API_VERSION).await?;
     let lb = raw
         .as_ref()
@@ -668,13 +662,11 @@ fn frontend_summary(lb: &LoadBalancer, lb_id: &ResourceId, name: &str) -> Option
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let client = functions_http::https_client().map_err(std::io::Error::other)?;
-    let credential: Arc<ManagedIdentityCredential> =
-        functions_azure::credential().map_err(std::io::Error::other)?;
+    let connector = Connector::from_env(client).map_err(std::io::Error::other)?;
 
     functions_http::run(move |req| {
-        let client = client.clone();
-        let credential = credential.clone();
-        async move { handle(&client, &credential, req).await }
+        let connector = connector.clone();
+        async move { handle(&connector, req).await }
     })
     .await
 }
@@ -973,5 +965,198 @@ mod tests {
 
         assert!(failed(&p.guards).is_empty());
         assert_eq!(p.step, Step::Nothing);
+    }
+}
+
+#[cfg(test)]
+mod handler_tests {
+    use functions_azure::mock::{Method, MockArm};
+    use serde_json::json;
+
+    use super::*;
+
+    const RG: &str = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_rg";
+    const FE: &str = "a0123456789abcdef0123456789abcde";
+
+    fn lb_path() -> String {
+        format!("{RG}/providers/Microsoft.Network/loadBalancers/kubernetes")
+    }
+
+    fn pip_path() -> String {
+        format!("{RG}/providers/Microsoft.Network/publicIPAddresses/kubernetes-{FE}")
+    }
+
+    fn rule() -> String {
+        format!("{FE}-TCP-80")
+    }
+
+    /// The shared load balancer, with or without the Service's frontend next to another one.
+    fn lb(with_frontend: bool) -> Value {
+        let lb = lb_path();
+        let mut frontends = vec![json!({"name": "other", "properties": {}})];
+        let mut rules = vec![];
+        if with_frontend {
+            frontends
+                .push(json!({"name": FE, "properties": {"publicIPAddress": {"id": pip_path()}}}));
+            rules.push(json!({"name": rule(), "properties": {
+                "frontendIPConfiguration": {"id": format!("{lb}/frontendIPConfigurations/{FE}")},
+                "probe": {"id": format!("{lb}/probes/{}", rule())},
+            }}));
+        }
+        json!({
+            "name": "kubernetes", "etag": "W/\"lb-1\"", "location": "eastus",
+            "properties": {
+                "provisioningState": "Succeeded",
+                "frontendIPConfigurations": frontends,
+                "backendAddressPools": [{"name": "kubernetes", "properties": {"backendIPConfigurations": [{"id": "/x/node-1"}]}}],
+                "loadBalancingRules": rules,
+                "probes": if with_frontend { json!([{"name": rule()}]) } else { json!([]) },
+            }
+        })
+    }
+
+    fn pip(in_use: bool) -> Value {
+        json!({
+            "etag": "W/\"pip-1\"",
+            "tags": {"k8s-azure-service": "apps/web"},
+            "properties": {
+                "ipAddress": "20.0.0.1",
+                "ipConfiguration": if in_use { json!({"id": format!("{}/frontendIPConfigurations/{FE}", lb_path())}) } else { Value::Null },
+            }
+        })
+    }
+
+    /// Scripts the rule's health check as a long-running operation with this result.
+    fn health(mock: &MockArm, result: Value) {
+        let operation = format!("{}/operations/health-1", mock.url());
+        mock.on_with_headers(
+            Method::POST,
+            &format!("{}/loadBalancingRules/{}/health", lb_path(), rule()),
+            202,
+            &[("location", &operation), ("retry-after", "0")],
+            Value::Null,
+        )
+        .on(Method::GET, "/operations/health-1", 200, result);
+    }
+
+    async fn call(mock: &MockArm, action: &str) -> Value {
+        let req = serde_json::from_value(json!({
+            "action": action, "loadBalancerId": lb_path(), "frontendName": FE, "serviceName": "apps/web",
+        }))
+        .unwrap();
+        serde_json::to_value(handle(&mock.connector(), req).await.unwrap()).unwrap()
+    }
+
+    fn changes(mock: &MockArm) -> Vec<(Method, String)> {
+        mock.writes()
+            .into_iter()
+            .filter(|w| !w.path.ends_with("/health"))
+            .map(|w| (w.method, w.path))
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn plan_checks_backend_health_without_changes() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, &lb_path(), 200, lb(true)).on(
+            Method::GET,
+            &pip_path(),
+            200,
+            pip(true),
+        );
+        health(&mock, json!({"up": 0, "down": 2}));
+
+        let resp = call(&mock, "plan").await;
+
+        assert_eq!(resp["outcome"], "planned", "{resp}");
+        assert_eq!(resp["result"]["step"], "removeFrontend");
+        assert!(changes(&mock).is_empty());
+        assert!(
+            mock.requests()
+                .iter()
+                .any(|r| r.path.ends_with("/operations/health-1"))
+        );
+    }
+
+    #[tokio::test]
+    async fn removes_the_frontend_with_the_etag() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, &lb_path(), 200, lb(true))
+            .on(Method::GET, &pip_path(), 200, pip(true))
+            .on(Method::PUT, &lb_path(), 200, json!({}));
+        health(&mock, json!({"up": 0, "down": 2}));
+
+        let resp = call(&mock, "execute").await;
+
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(resp["result"]["remaining"], true);
+        let put = mock
+            .writes()
+            .into_iter()
+            .find(|w| w.method == Method::PUT)
+            .unwrap();
+        assert_eq!(put.if_match.as_deref(), Some("W/\"lb-1\""));
+        assert_eq!(
+            put.body["properties"]["frontendIPConfigurations"],
+            json!([{"name": "other", "properties": {}}])
+        );
+        assert_eq!(put.body["properties"]["loadBalancingRules"], json!([]));
+        assert_eq!(put.body["properties"]["probes"], json!([]));
+        assert_eq!(
+            put.body["properties"]["backendAddressPools"],
+            lb(true)["properties"]["backendAddressPools"]
+        );
+    }
+
+    #[tokio::test]
+    async fn refuses_healthy_or_unreported_backends() {
+        for result in [json!({"up": 1, "down": 1}), json!({"down": 2})] {
+            let mock = MockArm::start().await;
+            mock.on(Method::GET, &lb_path(), 200, lb(true)).on(
+                Method::GET,
+                &pip_path(),
+                200,
+                pip(true),
+            );
+            health(&mock, result.clone());
+
+            let resp = call(&mock, "execute").await;
+
+            assert_eq!(resp["outcome"], "refused", "{result}");
+            assert!(changes(&mock).is_empty(), "{result}");
+        }
+    }
+
+    #[tokio::test]
+    async fn deletes_the_public_ip_once_unused() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, &lb_path(), 200, lb(false))
+            .on(Method::GET, &pip_path(), 200, pip(false))
+            .on(Method::DELETE, &pip_path(), 202, Value::Null);
+
+        let resp = call(&mock, "execute").await;
+
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(resp["result"]["step"], "deletePublicIp");
+        let writes = mock.writes();
+        assert_eq!(writes.len(), 1);
+        assert_eq!(writes[0].method, Method::DELETE);
+        assert_eq!(writes[0].if_match.as_deref(), Some("W/\"pip-1\""));
+    }
+
+    #[tokio::test]
+    async fn waits_while_the_public_ip_is_in_use() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, &lb_path(), 200, lb(false)).on(
+            Method::GET,
+            &pip_path(),
+            200,
+            pip(true),
+        );
+
+        let resp = call(&mock, "execute").await;
+
+        assert_eq!(resp["outcome"], "refused");
+        assert!(mock.writes().is_empty());
     }
 }

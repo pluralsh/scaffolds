@@ -15,8 +15,7 @@ use std::collections::hash_map::RandomState;
 use std::hash::{BuildHasher, Hasher};
 use std::sync::Arc;
 
-use functions_azure::ManagedIdentityCredential;
-use functions_azure::arm::{self, Arm, Precondition, ResourceId};
+use functions_azure::arm::{self, Arm, Connector, Precondition, ResourceId};
 use functions_core::volume::now;
 use functions_core::{Action, Error, Guard, Request, Response};
 use serde::{Deserialize, Serialize};
@@ -199,11 +198,7 @@ struct Output {
     removed: usize,
 }
 
-async fn handle(
-    client: &reqwest::Client,
-    credential: &ManagedIdentityCredential,
-    req: Request<Params>,
-) -> Result<Response<Output>, Error> {
+async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<Output>, Error> {
     let params = req.params;
     let vm_id = ResourceId::parse(&params.vm_id, &[arm::VIRTUAL_MACHINE]).ok_or_else(|| {
         Error::invalid_request(format!(
@@ -222,7 +217,7 @@ async fn handle(
     // Out-of-range durations are refused by the duration guard; this only keeps them finite.
     let mut expires = now.saturating_add(params.duration_minutes.saturating_mul(60));
 
-    let arm = Arm::connect(client.clone(), credential).await?;
+    let arm = connector.connect().await?;
     let vm: Option<Vm> = arm.get(&vm_id.id(), VM_API_VERSION).await?;
     let (extensions, assignments): (Vec<Extension>, Vec<Assignment>) = match vm {
         Some(_) => (
@@ -354,20 +349,12 @@ async fn handle(
 }
 
 /// Removes the expired role assignments this function created in its resource groups.
-async fn expire(
-    client: &reqwest::Client,
-    credential: &ManagedIdentityCredential,
-) -> Result<(), Error> {
-    let scopes: Vec<String> = match std::env::var(SCOPES_VAR) {
-        Ok(v) => serde_json::from_str(&v)
-            .map_err(|err| Error::provider(format!("{SCOPES_VAR}: {err}")))?,
-        Err(_) => vec![],
-    };
-    let arm = Arm::connect(client.clone(), credential).await?;
+async fn expire(connector: &Connector, scopes: &[String]) -> Result<(), Error> {
+    let arm = connector.connect().await?;
     let now = now();
     // A failure in one scope or assignment must not keep the others from expiring.
     let mut failures = Vec::new();
-    for scope in &scopes {
+    for scope in scopes {
         let assignments = match assignments_at(&arm, scope).await {
             Ok(assignments) => assignments,
             Err(err) => {
@@ -517,21 +504,24 @@ fn new_guid() -> String {
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let client = functions_http::https_client().map_err(std::io::Error::other)?;
-    let credential: Arc<ManagedIdentityCredential> =
-        functions_azure::credential().map_err(std::io::Error::other)?;
-    let (timer_client, timer_credential) = (client.clone(), credential.clone());
+    let connector = Connector::from_env(client).map_err(std::io::Error::other)?;
+    let timer_connector = connector.clone();
+    let scopes: Arc<Vec<String>> = Arc::new(match std::env::var(SCOPES_VAR) {
+        Ok(v) => serde_json::from_str(&v)
+            .map_err(|err| std::io::Error::other(format!("{SCOPES_VAR}: {err}")))?,
+        Err(_) => vec![],
+    });
 
     functions_http::run_with_timer(
         move |req| {
-            let client = client.clone();
-            let credential = credential.clone();
-            async move { handle(&client, &credential, req).await }
+            let connector = connector.clone();
+            async move { handle(&connector, req).await }
         },
         EXPIRE_FUNCTION,
         move || {
-            let client = timer_client.clone();
-            let credential = timer_credential.clone();
-            async move { expire(&client, &credential).await }
+            let connector = timer_connector.clone();
+            let scopes = Arc::clone(&scopes);
+            async move { expire(&connector, &scopes).await }
         },
     )
     .await
@@ -701,5 +691,274 @@ mod tests {
         assert_eq!(max_duration(None), DEFAULT_MAX_DURATION_MINUTES);
         assert_eq!(max_duration(Some("30")), 30);
         assert_eq!(max_duration(Some("-1")), DEFAULT_MAX_DURATION_MINUTES);
+    }
+}
+
+#[cfg(test)]
+mod handler_tests {
+    use functions_azure::mock::{Method, MockArm};
+    use serde_json::Value;
+
+    use super::*;
+
+    const SUB: &str = "00000000-0000-0000-0000-000000000000";
+    const USER: &str = "11111111-1111-1111-1111-111111111111";
+    const OTHER: &str = "22222222-2222-2222-2222-222222222222";
+
+    fn rg(name: &str) -> String {
+        format!("/subscriptions/{SUB}/resourceGroups/{name}")
+    }
+
+    fn vm() -> String {
+        format!(
+            "{}/providers/Microsoft.Compute/virtualMachines/vm-1",
+            rg("rg")
+        )
+    }
+
+    fn assignments_path(scope: &str) -> String {
+        format!("{scope}/providers/Microsoft.Authorization/roleAssignments")
+    }
+
+    fn assignment(
+        name: &str,
+        scope: &str,
+        principal: &str,
+        role: &str,
+        description: Option<String>,
+    ) -> Value {
+        json!({
+            "id": format!("{}/{name}", assignments_path(scope)), "name": name,
+            "properties": {
+                "roleDefinitionId": format!("/subscriptions/{SUB}/providers/Microsoft.Authorization/roleDefinitions/{role}"),
+                "principalId": principal, "principalType": "User", "scope": scope,
+                "description": description,
+            }
+        })
+    }
+
+    /// A Linux VM with Entra ID login and these role assignments at or above it.
+    fn script_vm(mock: &MockArm, assignments: Vec<Value>, with_login: bool) {
+        let extensions = if with_login {
+            json!([{"properties": {"type": "AADSSHLoginForLinux", "provisioningState": "Succeeded"}}])
+        } else {
+            json!([])
+        };
+        mock.on(Method::GET, &vm(), 200, json!({"name": "vm-1", "properties": {"storageProfile": {"osDisk": {"osType": "Linux"}}}}))
+            .on(Method::GET, &format!("{}/extensions", vm()), 200, json!({"value": extensions}))
+            .on(Method::GET, &assignments_path(&vm()), 200, json!({"value": assignments}))
+            .on_any(Method::PUT, 201, json!({}));
+    }
+
+    async fn call(mock: &MockArm, input: Value) -> Value {
+        let req = serde_json::from_value(input).unwrap();
+        serde_json::to_value(handle(&mock.connector(), req).await.unwrap()).unwrap()
+    }
+
+    fn methods(mock: &MockArm) -> Vec<(Method, String)> {
+        mock.writes()
+            .into_iter()
+            .map(|w| (w.method, w.path.rsplit('/').next().unwrap().to_owned()))
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn plan_reads_only() {
+        let mock = MockArm::start().await;
+        script_vm(&mock, vec![], true);
+
+        let resp = call(
+            &mock,
+            json!({"action": "plan", "vmId": vm(), "principalId": USER}),
+        )
+        .await;
+
+        assert_eq!(resp["outcome"], "planned", "{resp}");
+        assert_eq!(
+            resp["result"]["command"],
+            format!("az ssh vm --ids {}", vm())
+        );
+        assert!(mock.writes().is_empty());
+    }
+
+    #[tokio::test]
+    async fn grants_the_login_role_and_removes_expired_access() {
+        let mock = MockArm::start().await;
+        let expired = assignment(
+            "old",
+            &vm(),
+            OTHER,
+            USER_LOGIN_ROLE,
+            Some(description(now() - 60)),
+        );
+        script_vm(&mock, vec![expired], true);
+        mock.on(
+            Method::DELETE,
+            &format!("{}/old", assignments_path(&vm())),
+            200,
+            json!({}),
+        );
+
+        let resp = call(&mock, json!({"action": "execute", "vmId": vm(), "principalId": USER, "role": "admin", "durationMinutes": 30})).await;
+
+        assert_eq!(resp["outcome"], "done", "{resp}");
+        assert_eq!(resp["result"]["removed"], 1);
+        let writes = mock.writes();
+        assert_eq!(writes[0].method, Method::DELETE);
+        let put = &writes[1];
+        assert_eq!(put.method, Method::PUT);
+        assert!(
+            put.path
+                .starts_with(&format!("{}/", assignments_path(&vm())))
+        );
+        assert!(arm::is_guid(put.path.rsplit('/').next().unwrap()));
+        let props = &put.body["properties"];
+        assert_eq!(
+            props["roleDefinitionId"],
+            format!(
+                "/subscriptions/{SUB}/providers/Microsoft.Authorization/roleDefinitions/{ADMIN_LOGIN_ROLE}"
+            )
+        );
+        assert_eq!(
+            (
+                props["principalId"].as_str(),
+                props["principalType"].as_str()
+            ),
+            (Some(USER), Some("User"))
+        );
+        let expires = Assignment {
+            properties: AssignmentProperties {
+                role_definition_id: ADMIN_LOGIN_ROLE.into(),
+                principal_type: Some("User".into()),
+                description: props["description"].as_str().map(str::to_owned),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+        .expires_at()
+        .unwrap();
+        assert!(
+            (expires - now() - 30 * 60).abs() <= 5,
+            "expires in 30 minutes"
+        );
+    }
+
+    #[tokio::test]
+    async fn granting_again_never_shortens_access() {
+        let mock = MockArm::start().await;
+        let later = now() + 200 * 60;
+        script_vm(
+            &mock,
+            vec![assignment(
+                "mine",
+                &vm(),
+                USER,
+                USER_LOGIN_ROLE,
+                Some(description(later)),
+            )],
+            true,
+        );
+
+        call(
+            &mock,
+            json!({"action": "execute", "vmId": vm(), "principalId": USER, "durationMinutes": 10}),
+        )
+        .await;
+
+        let writes = mock.writes();
+        assert_eq!(methods(&mock), [(Method::PUT, "mine".to_owned())]);
+        assert_eq!(
+            writes[0].body["properties"]["description"],
+            description(later)
+        );
+    }
+
+    #[tokio::test]
+    async fn revoke_removes_only_its_own_grants_and_reports_other_access() {
+        let mock = MockArm::start().await;
+        script_vm(
+            &mock,
+            vec![
+                assignment(
+                    "mine",
+                    &vm(),
+                    USER,
+                    USER_LOGIN_ROLE,
+                    Some(description(now() + 600)),
+                ),
+                assignment(
+                    "theirs",
+                    &vm(),
+                    OTHER,
+                    USER_LOGIN_ROLE,
+                    Some(description(now() + 600)),
+                ),
+                assignment(
+                    "permanent",
+                    &rg("rg"),
+                    USER,
+                    ADMIN_LOGIN_ROLE,
+                    Some("break-glass".into()),
+                ),
+            ],
+            true,
+        );
+        mock.on(
+            Method::DELETE,
+            &format!("{}/mine", assignments_path(&vm())),
+            200,
+            json!({}),
+        );
+
+        let resp = call(
+            &mock,
+            json!({"action": "execute", "vmId": vm(), "principalId": USER, "revoke": true}),
+        )
+        .await;
+
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(methods(&mock), [(Method::DELETE, "mine".to_owned())]);
+        assert_eq!(resp["result"]["otherAccess"], json!([rg("rg")]));
+    }
+
+    #[tokio::test]
+    async fn refuses_vms_without_entra_login() {
+        let mock = MockArm::start().await;
+        script_vm(&mock, vec![], false);
+
+        let resp = call(
+            &mock,
+            json!({"action": "execute", "vmId": vm(), "principalId": USER}),
+        )
+        .await;
+
+        assert_eq!(resp["outcome"], "refused");
+        assert!(mock.writes().is_empty());
+    }
+
+    #[tokio::test]
+    async fn sweep_continues_past_failing_scopes() {
+        let mock = MockArm::start().await;
+        let (broken, ok) = (rg("broken"), rg("ok"));
+        let vm_scope = format!("{ok}/providers/Microsoft.Compute/virtualMachines/vm-2");
+        mock.on(Method::GET, &assignments_path(&broken), 500, json!({"error": {"code": "InternalServerError", "message": "boom"}}))
+            .on(
+                Method::GET,
+                &assignments_path(&ok),
+                200,
+                json!({"value": [
+                    assignment("expired", &vm_scope, USER, USER_LOGIN_ROLE, Some(description(now() - 60))),
+                    assignment("active", &vm_scope, USER, USER_LOGIN_ROLE, Some(description(now() + 600))),
+                    assignment("manual", &vm_scope, OTHER, USER_LOGIN_ROLE, None),
+                    // Assigned at the resource group itself, not below it: left to whoever made it.
+                    assignment("at-group", &ok, USER, USER_LOGIN_ROLE, Some(description(now() - 60))),
+                ]}),
+            )
+            .on(Method::DELETE, &format!("{}/expired", assignments_path(&vm_scope)), 200, json!({}));
+
+        let err = expire(&mock.connector(), &[broken, ok]).await.unwrap_err();
+
+        assert!(err.to_string().contains("boom"), "{err}");
+        assert_eq!(methods(&mock), [(Method::DELETE, "expired".to_owned())]);
     }
 }

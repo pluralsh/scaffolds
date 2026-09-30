@@ -10,10 +10,8 @@
 //! step, execute is refused and a later execute deletes it.
 
 use std::collections::HashMap;
-use std::sync::Arc;
 
-use functions_azure::ManagedIdentityCredential;
-use functions_azure::arm::{self, Arm, Precondition, ResourceId};
+use functions_azure::arm::{self, Connector, Precondition, ResourceId};
 use functions_core::{Action, Error, Guard, Request, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -139,11 +137,7 @@ struct Output {
     deleted: bool,
 }
 
-async fn handle(
-    client: &reqwest::Client,
-    credential: &ManagedIdentityCredential,
-    req: Request<Params>,
-) -> Result<Response<Output>, Error> {
+async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<Output>, Error> {
     let id = ResourceId::parse(&req.params.vm_id, &[arm::VIRTUAL_MACHINE]).ok_or_else(|| {
         Error::invalid_request(format!(
             "vmId {:?} is not a virtual machine resource ID (/subscriptions/<id>/resourceGroups/<group>/providers/Microsoft.Compute/virtualMachines/<name>)",
@@ -152,7 +146,7 @@ async fn handle(
     })?;
     let path = id.id();
 
-    let arm = Arm::connect(client.clone(), credential).await?;
+    let arm = connector.connect().await?;
     let raw: Option<Value> = arm.get(&path, VM_API_VERSION).await?;
     let vm = raw.as_ref().map(parse_vm).transpose()?;
     let mut guards = evaluate(vm.as_ref());
@@ -349,13 +343,11 @@ fn last_segment(id: &str) -> &str {
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let client = functions_http::https_client().map_err(std::io::Error::other)?;
-    let credential: Arc<ManagedIdentityCredential> =
-        functions_azure::credential().map_err(std::io::Error::other)?;
+    let connector = Connector::from_env(client).map_err(std::io::Error::other)?;
 
     functions_http::run(move |req| {
-        let client = client.clone();
-        let credential = credential.clone();
-        async move { handle(&client, &credential, req).await }
+        let connector = connector.clone();
+        async move { handle(&connector, req).await }
     })
     .await
 }
@@ -465,5 +457,128 @@ mod tests {
         assert_eq!(s.os_disk.as_deref(), Some("vm-1-os"));
         assert_eq!(s.network_interfaces, ["vm-1-nic"]);
         assert_eq!(s.data_disks, ["vm-1-data"]);
+    }
+}
+
+#[cfg(test)]
+mod handler_tests {
+    use functions_azure::mock::{Method, MockArm};
+
+    use super::*;
+
+    const VM: &str = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/vm-1";
+
+    fn vm(state: &str, options_set: bool, etag: &str) -> Value {
+        let (os, nic, data) = if options_set {
+            ("Delete", "Delete", "Detach")
+        } else {
+            ("Detach", "Detach", "Delete")
+        };
+        json!({
+            "name": "vm-1", "etag": etag,
+            "properties": {
+                "provisioningState": state,
+                "storageProfile": {
+                    "osDisk": {"name": "os", "managedDisk": {"id": "/x/disks/os"}, "deleteOption": os},
+                    "dataDisks": [{"lun": 0, "name": "data", "managedDisk": {"id": "/x/disks/data"}, "deleteOption": data}]
+                },
+                "networkProfile": {"networkInterfaces": [{"id": "/x/networkInterfaces/nic", "properties": {"deleteOption": nic}}]}
+            }
+        })
+    }
+
+    async fn call(mock: &MockArm, action: &str) -> Value {
+        let req = serde_json::from_value(json!({"action": action, "vmId": VM})).unwrap();
+        serde_json::to_value(handle(&mock.connector(), req).await.unwrap()).unwrap()
+    }
+
+    #[tokio::test]
+    async fn plan_reads_only() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, VM, 200, vm("Succeeded", false, "1"));
+
+        let resp = call(&mock, "plan").await;
+
+        assert_eq!(resp["outcome"], "planned");
+        assert_eq!(resp["result"]["deleteOptionsSet"], false);
+        assert!(mock.writes().is_empty());
+    }
+
+    #[tokio::test]
+    async fn sets_delete_options_then_deletes_in_one_execute() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, VM, 200, vm("Succeeded", false, "1"))
+            .on(Method::PATCH, VM, 200, vm("Succeeded", true, "2"))
+            .on(Method::DELETE, VM, 202, Value::Null);
+
+        let resp = call(&mock, "execute").await;
+
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(resp["result"]["deleted"], true);
+        let writes = mock.writes();
+        assert_eq!(
+            writes.iter().map(|w| w.method.clone()).collect::<Vec<_>>(),
+            [Method::PATCH, Method::DELETE]
+        );
+        let patch = &writes[0];
+        assert_eq!(patch.if_match.as_deref(), Some("1"));
+        let storage = &patch.body["properties"]["storageProfile"];
+        assert_eq!(storage["osDisk"]["deleteOption"], "Delete");
+        assert_eq!(storage["dataDisks"][0]["deleteOption"], "Detach");
+        assert_eq!(
+            storage["dataDisks"][0]["managedDisk"]["id"],
+            "/x/disks/data"
+        );
+        assert_eq!(
+            patch.body["properties"]["networkProfile"]["networkInterfaces"][0]["properties"]["deleteOption"],
+            "Delete"
+        );
+        // The delete is conditional on the VM as the PATCH left it.
+        assert_eq!(writes[1].if_match.as_deref(), Some("2"));
+    }
+
+    #[tokio::test]
+    async fn waits_for_a_vm_still_updating() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, VM, 200, vm("Succeeded", false, "1"))
+            .on(Method::PATCH, VM, 200, vm("Updating", true, "2"));
+
+        let resp = call(&mock, "execute").await;
+
+        assert_eq!(resp["outcome"], "refused");
+        assert_eq!(resp["result"]["deleteOptionsSet"], true);
+        assert_eq!(resp["result"]["deleted"], false);
+        assert_eq!(mock.writes().len(), 1, "no delete while the VM updates");
+    }
+
+    #[tokio::test]
+    async fn deletes_directly_once_the_options_are_set() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, VM, 200, vm("Succeeded", true, "3"))
+            .on(Method::DELETE, VM, 202, Value::Null);
+
+        let resp = call(&mock, "execute").await;
+
+        assert_eq!(resp["outcome"], "done");
+        let writes = mock.writes();
+        assert_eq!(writes.len(), 1);
+        assert_eq!(
+            (writes[0].method.clone(), writes[0].if_match.as_deref()),
+            (Method::DELETE, Some("3"))
+        );
+    }
+
+    #[tokio::test]
+    async fn never_touches_scale_set_vms() {
+        let mock = MockArm::start().await;
+        let mut member = vm("Succeeded", false, "1");
+        member["properties"]["virtualMachineScaleSet"] =
+            json!({"id": "/x/virtualMachineScaleSets/aks-apps"});
+        mock.on(Method::GET, VM, 200, member);
+
+        let resp = call(&mock, "execute").await;
+
+        assert_eq!(resp["outcome"], "refused");
+        assert!(mock.writes().is_empty());
     }
 }

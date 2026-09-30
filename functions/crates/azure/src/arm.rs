@@ -1,6 +1,7 @@
 //! Minimal Azure Resource Manager client for the calls the functions make.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use azure_core::credentials::TokenCredential;
 use functions_core::Error;
@@ -276,6 +277,53 @@ impl Precondition<'_> {
     }
 }
 
+/// What a function needs to reach ARM: an HTTPS client, a credential and the endpoint.
+/// Created once per process; [`Connector::connect`] gets a fresh token per invocation.
+#[derive(Clone)]
+pub struct Connector {
+    client: reqwest::Client,
+    credential: Arc<dyn TokenCredential>,
+    endpoint: String,
+}
+
+impl Connector {
+    pub fn new(
+        client: reqwest::Client,
+        credential: Arc<dyn TokenCredential>,
+        endpoint: impl Into<String>,
+    ) -> Self {
+        Self {
+            client,
+            credential,
+            endpoint: endpoint.into(),
+        }
+    }
+
+    /// The function app's managed identity and the public ARM endpoint, or the one in
+    /// `AZURE_ARM_ENDPOINT`.
+    pub fn from_env(client: reqwest::Client) -> Result<Self, Error> {
+        let endpoint = std::env::var(ENDPOINT_VAR)
+            .ok()
+            .filter(|e| !e.is_empty())
+            .unwrap_or_else(|| ENDPOINT.to_owned());
+        Ok(Self::new(client, crate::credential()?, endpoint))
+    }
+
+    /// Connects to ARM with a token of the credential.
+    pub async fn connect(&self) -> Result<Arm, Error> {
+        let token = self
+            .credential
+            .get_token(&[ARM_SCOPE], None)
+            .await
+            .map_err(provider_error)?;
+        Ok(Arm {
+            client: self.client.clone(),
+            endpoint: self.endpoint.clone(),
+            token: token.token.secret().to_owned(),
+        })
+    }
+}
+
 pub struct Arm {
     client: reqwest::Client,
     endpoint: String,
@@ -283,26 +331,6 @@ pub struct Arm {
 }
 
 impl Arm {
-    /// Connects to ARM with a token of `credential`.
-    pub async fn connect(
-        client: reqwest::Client,
-        credential: &dyn TokenCredential,
-    ) -> Result<Self, Error> {
-        let token = credential
-            .get_token(&[ARM_SCOPE], None)
-            .await
-            .map_err(provider_error)?;
-        let endpoint = std::env::var(ENDPOINT_VAR)
-            .ok()
-            .filter(|e| !e.is_empty())
-            .unwrap_or_else(|| ENDPOINT.to_owned());
-        Ok(Self {
-            client,
-            endpoint,
-            token: token.token.secret().to_owned(),
-        })
-    }
-
     /// The resource at `path`, or `None` if it doesn't exist.
     pub async fn get<T: DeserializeOwned>(
         &self,

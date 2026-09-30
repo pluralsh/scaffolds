@@ -19,3 +19,8 @@ serde_json.workspace = true
 time.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tracing.workspace = true
+
+[dev-dependencies]
+functions-azure = { workspace = true, features = ["mock"] }
+time.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }

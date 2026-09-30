@@ -10,10 +10,8 @@
 //! rules and private endpoints aren't copied by Azure.
 
 use std::collections::HashMap;
-use std::sync::Arc;
 
-use functions_azure::ManagedIdentityCredential;
-use functions_azure::arm::{self, Arm, Kind, Precondition, ResourceId};
+use functions_azure::arm::{self, Connector, Kind, Precondition, ResourceId};
 use functions_core::volume::{now, parse_timestamp};
 use functions_core::{Action, Error, Guard, Request, Response};
 use serde::{Deserialize, Serialize};
@@ -120,11 +118,7 @@ enum Target {
     Other,
 }
 
-async fn handle(
-    client: &reqwest::Client,
-    credential: &ManagedIdentityCredential,
-    req: Request<Params>,
-) -> Result<Response<Output>, Error> {
+async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<Output>, Error> {
     let params = req.params;
     let source_id = ResourceId::parse(
         &params.server_id,
@@ -153,7 +147,7 @@ async fn handle(
     })?;
     let engine = engine(source_id.kind);
 
-    let arm = Arm::connect(client.clone(), credential).await?;
+    let arm = connector.connect().await?;
     let source: Option<Server> = arm.get(&source_id.id(), engine.api_version).await?;
     let target_server: Option<Server> = if target_id == source_id {
         None
@@ -337,13 +331,11 @@ fn summary(id: &ResourceId, server: &Server) -> ServerSummary {
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let client = functions_http::https_client().map_err(std::io::Error::other)?;
-    let credential: Arc<ManagedIdentityCredential> =
-        functions_azure::credential().map_err(std::io::Error::other)?;
+    let connector = Connector::from_env(client).map_err(std::io::Error::other)?;
 
     functions_http::run(move |req| {
-        let client = client.clone();
-        let credential = credential.clone();
-        async move { handle(&client, &credential, req).await }
+        let connector = connector.clone();
+        async move { handle(&connector, req).await }
     })
     .await
 }
@@ -518,5 +510,160 @@ mod tests {
             engine(arm::POSTGRES_FLEXIBLE_SERVER).point_property,
             "pointInTimeUTC"
         );
+    }
+}
+
+#[cfg(test)]
+mod handler_tests {
+    use functions_azure::mock::{Method, MockArm};
+
+    use super::*;
+
+    const RG: &str =
+        "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/db/providers";
+    const POINT: &str = "2021-01-01T00:00:00Z";
+
+    fn path(engine: &str, name: &str) -> String {
+        format!("{RG}/Microsoft.DBfor{engine}/flexibleServers/{name}")
+    }
+
+    fn server(state: &str, tags: Value) -> Value {
+        json!({
+            "name": "app", "location": "eastus", "tags": tags,
+            "properties": {
+                "state": state, "fullyQualifiedDomainName": "app.example",
+                "backup": {"earliestRestoreDate": "2020-01-01T00:00:00+00:00"},
+                "network": {"delegatedSubnetResourceId": "/x/subnets/db", "publicNetworkAccess": "Disabled"},
+            }
+        })
+    }
+
+    async fn call(mock: &MockArm, engine: &str, action: &str, point: &str) -> Value {
+        let req = serde_json::from_value(json!({
+            "action": action, "serverId": path(engine, "app"),
+            "targetServerName": "app-restored", "restorePointInTime": point,
+        }))
+        .unwrap();
+        serde_json::to_value(handle(&mock.connector(), req).await.unwrap()).unwrap()
+    }
+
+    #[tokio::test]
+    async fn plan_reads_only() {
+        let mock = MockArm::start().await;
+        mock.on(
+            Method::GET,
+            &path("PostgreSQL", "app"),
+            200,
+            server("Ready", json!({})),
+        );
+
+        let resp = call(&mock, "PostgreSQL", "plan", POINT).await;
+
+        assert_eq!(resp["outcome"], "planned", "{resp}");
+        assert_eq!(
+            resp["result"]["earliestRestorePoint"],
+            "2020-01-01T00:00:00+00:00"
+        );
+        assert!(mock.writes().is_empty());
+    }
+
+    #[tokio::test]
+    async fn execute_creates_the_new_server_only() {
+        for (engine, version, property) in [
+            ("PostgreSQL", POSTGRES_API_VERSION, "pointInTimeUTC"),
+            ("MySQL", MYSQL_API_VERSION, "restorePointInTime"),
+        ] {
+            let mock = MockArm::start().await;
+            mock.on(
+                Method::GET,
+                &path(engine, "app"),
+                200,
+                server("Ready", json!({})),
+            )
+            .on(Method::PUT, &path(engine, "app-restored"), 201, json!({}));
+
+            let resp = call(&mock, engine, "execute", POINT).await;
+
+            assert_eq!(resp["outcome"], "done", "{engine}: {resp}");
+            let writes = mock.writes();
+            assert_eq!(writes.len(), 1, "{engine}");
+            let put = &writes[0];
+            assert!(
+                put.path.ends_with("/flexibleServers/app-restored"),
+                "{engine}"
+            );
+            assert!(
+                put.query.contains(&format!("api-version={version}")),
+                "{engine}"
+            );
+            assert_eq!(put.if_none_match.as_deref(), Some("*"), "{engine}");
+            assert_eq!(put.body["properties"][property], POINT, "{engine}");
+            assert_eq!(put.body["properties"]["createMode"], "PointInTimeRestore");
+            assert_eq!(
+                put.body["properties"]["network"]["delegatedSubnetResourceId"],
+                "/x/subnets/db"
+            );
+            assert_eq!(put.body["tags"][SOURCE_TAG], "app");
+        }
+    }
+
+    #[tokio::test]
+    async fn reports_its_restore_without_submitting_again() {
+        let mock = MockArm::start().await;
+        mock.on(
+            Method::GET,
+            &path("PostgreSQL", "app"),
+            200,
+            server("Ready", json!({})),
+        )
+        .on(
+            Method::GET,
+            &path("PostgreSQL", "app-restored"),
+            200,
+            server("Provisioning", json!({SOURCE_TAG: "app", POINT_TAG: POINT})),
+        );
+
+        let resp = call(&mock, "PostgreSQL", "execute", POINT).await;
+
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(resp["result"]["submitted"], false);
+        assert_eq!(resp["result"]["target"]["state"], "Provisioning");
+        assert!(mock.writes().is_empty());
+    }
+
+    #[tokio::test]
+    async fn refuses_existing_servers_and_points_outside_the_window() {
+        let taken = MockArm::start().await;
+        taken
+            .on(
+                Method::GET,
+                &path("PostgreSQL", "app"),
+                200,
+                server("Ready", json!({})),
+            )
+            .on(
+                Method::GET,
+                &path("PostgreSQL", "app-restored"),
+                200,
+                server("Ready", json!({})),
+            );
+        assert_eq!(
+            call(&taken, "PostgreSQL", "execute", POINT).await["outcome"],
+            "refused"
+        );
+        assert!(taken.writes().is_empty());
+
+        let early = MockArm::start().await;
+        early.on(
+            Method::GET,
+            &path("PostgreSQL", "app"),
+            200,
+            server("Ready", json!({})),
+        );
+        assert_eq!(
+            call(&early, "PostgreSQL", "execute", "2019-01-01T00:00:00Z").await["outcome"],
+            "refused"
+        );
+        assert!(early.writes().is_empty());
     }
 }

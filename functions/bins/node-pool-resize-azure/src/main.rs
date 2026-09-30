@@ -5,10 +5,7 @@
 //! maximum instead. The new count is bounded by the pool mode (system pools keep at least one
 //! node) and by the installation's `MAX_NODE_COUNT`.
 
-use std::sync::Arc;
-
-use functions_azure::ManagedIdentityCredential;
-use functions_azure::arm::{self, Arm, Precondition, ResourceId};
+use functions_azure::arm::{self, Connector, Precondition, ResourceId};
 use functions_core::{Action, Error, Guard, Request, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -103,11 +100,7 @@ struct Output {
     submitted: bool,
 }
 
-async fn handle(
-    client: &reqwest::Client,
-    credential: &ManagedIdentityCredential,
-    req: Request<Params>,
-) -> Result<Response<Output>, Error> {
+async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<Output>, Error> {
     let params = req.params;
     let cluster = ResourceId::parse(&params.cluster_id, &[arm::MANAGED_CLUSTER]).ok_or_else(|| {
         Error::invalid_request(format!(
@@ -127,7 +120,7 @@ async fn handle(
         return Err(Error::invalid_request("count can't be negative"));
     }
 
-    let arm = Arm::connect(client.clone(), credential).await?;
+    let arm = connector.connect().await?;
     let raw: Option<Value> = arm.get(&path, AKS_API_VERSION).await?;
     let pool = raw
         .as_ref()
@@ -262,13 +255,11 @@ fn update_body(raw: &Value, count: i64) -> Value {
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let client = functions_http::https_client().map_err(std::io::Error::other)?;
-    let credential: Arc<ManagedIdentityCredential> =
-        functions_azure::credential().map_err(std::io::Error::other)?;
+    let connector = Connector::from_env(client).map_err(std::io::Error::other)?;
 
     functions_http::run(move |req| {
-        let client = client.clone();
-        let credential = credential.clone();
-        async move { handle(&client, &credential, req).await }
+        let connector = connector.clone();
+        async move { handle(&connector, req).await }
     })
     .await
 }
@@ -365,5 +356,124 @@ mod tests {
         assert_eq!(cap(Some("5000")), AKS_MAX_COUNT);
         assert_eq!(cap(Some("20")), 20);
         assert_eq!(cap(Some("")), AKS_MAX_COUNT);
+    }
+}
+
+#[cfg(test)]
+mod handler_tests {
+    use functions_azure::mock::{Method, MockArm};
+    use serde_json::json;
+
+    use super::*;
+
+    const POOL: &str = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.ContainerService/managedClusters/aks/agentPools/apps";
+
+    fn pool(count: i64, autoscaling: bool) -> Value {
+        json!({
+            "name": "apps",
+            "properties": {
+                "eTag": "e-1", "count": count, "mode": "User", "type": "VirtualMachineScaleSets",
+                "enableAutoScaling": autoscaling, "provisioningState": "Succeeded",
+                "powerState": {"code": "Running"}, "nodeImageVersion": "AKSUbuntu-2204",
+                "orchestratorVersion": "1.33"
+            }
+        })
+    }
+
+    async fn call(mock: &MockArm, action: &str, count: i64) -> Value {
+        let req = serde_json::from_value(json!({
+            "action": action,
+            "clusterId": POOL.split("/agentPools").next().unwrap(),
+            "nodePool": "apps",
+            "count": count,
+        }))
+        .unwrap();
+        serde_json::to_value(handle(&mock.connector(), req).await.unwrap()).unwrap()
+    }
+
+    #[tokio::test]
+    async fn plan_reads_only() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, POOL, 200, pool(3, false));
+
+        let resp = call(&mock, "plan", 5).await;
+
+        assert_eq!(resp["outcome"], "planned");
+        assert_eq!(
+            (resp["result"]["from"].clone(), resp["result"]["to"].clone()),
+            (json!(3), json!(5))
+        );
+        assert!(mock.writes().is_empty());
+    }
+
+    #[tokio::test]
+    async fn execute_puts_the_new_count_with_the_etag() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, POOL, 200, pool(3, false))
+            .on(Method::PUT, POOL, 200, json!({}));
+
+        let resp = call(&mock, "execute", 5).await;
+
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(resp["result"]["submitted"], true);
+        let writes = mock.writes();
+        assert_eq!(writes.len(), 1);
+        assert_eq!(writes[0].method, Method::PUT);
+        assert!(
+            writes[0]
+                .query
+                .contains(&format!("api-version={AKS_API_VERSION}"))
+        );
+        assert_eq!(writes[0].if_match.as_deref(), Some("e-1"));
+        assert_eq!(writes[0].body["properties"]["count"], 5);
+        assert_eq!(writes[0].body["properties"]["orchestratorVersion"], "1.33");
+        assert!(
+            writes[0].body["properties"]
+                .get("nodeImageVersion")
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn execute_changes_nothing_when_refused_or_unchanged() {
+        let autoscaled = MockArm::start().await;
+        autoscaled.on(Method::GET, POOL, 200, pool(3, true));
+        let resp = call(&autoscaled, "execute", 5).await;
+        assert_eq!(resp["outcome"], "refused");
+        assert!(autoscaled.writes().is_empty());
+
+        let unchanged = MockArm::start().await;
+        unchanged.on(Method::GET, POOL, 200, pool(3, false));
+        let resp = call(&unchanged, "execute", 3).await;
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(resp["result"]["submitted"], false);
+        assert!(unchanged.writes().is_empty());
+
+        let missing = MockArm::start().await;
+        let resp = call(&missing, "execute", 3).await;
+        assert_eq!(resp["outcome"], "refused");
+        assert!(missing.writes().is_empty());
+    }
+
+    #[tokio::test]
+    async fn reports_arm_errors() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, POOL, 200, pool(3, false)).on(
+            Method::PUT,
+            POOL,
+            412,
+            json!({"error": {"code": "PreconditionFailed", "message": "etag mismatch"}}),
+        );
+        let req = serde_json::from_value(json!({
+            "action": "execute", "clusterId": POOL.split("/agentPools").next().unwrap(),
+            "nodePool": "apps", "count": 5,
+        }))
+        .unwrap();
+
+        let err = handle(&mock.connector(), req).await.unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "cloud provider error: PreconditionFailed: etag mismatch"
+        );
     }
 }

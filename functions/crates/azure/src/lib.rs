@@ -1,6 +1,8 @@
 //! Azure helpers: managed identity credentials and a minimal Azure Resource Manager client.
 
 pub mod arm;
+#[cfg(feature = "mock")]
+pub mod mock;
 
 use std::sync::Arc;
 

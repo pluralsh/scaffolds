@@ -48,3 +48,8 @@ Completion can be confirmed with a read-only cloud query.
 cargo test
 cargo clippy --all-targets -- -D warnings
 ```
+
+Azure handlers are tested against an in-process ARM mock (`functions_azure::mock`, behind
+the `mock` feature, which only the bins' dev-dependencies enable): tests script responses by
+method and path and assert on the requests the handler sent, including their bodies and
+`If-Match`/`If-None-Match` headers.
