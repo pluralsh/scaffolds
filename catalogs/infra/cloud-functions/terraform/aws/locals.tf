@@ -15,17 +15,6 @@ locals {
   # on top of writing its own logs. `destructive` functions change or delete resources and are
   # only registered as workbench tools when register_destructive_tools is set.
   catalog = {
-    echo = {
-      binary      = "echo-aws"
-      description = "Echoes its input together with the IAM identity the function runs as. Changes nothing; used to verify the deployment."
-      memory      = 128
-      timeout     = 10
-      destructive = false
-      environment = {}
-      # sts:GetCallerIdentity needs no permissions.
-      statements = []
-      schema     = jsonencode(jsondecode(file("${path.module}/schemas/echo.json")))
-    }
     volume-delete = {
       binary      = "volume-delete-aws"
       description = "Deletes an unattached EBS volume that Kubernetes created for a PersistentVolume. Before calling it, confirm in the cluster that the PersistentVolume no longer exists and pass its name as pvName. Use action plan first; execute takes a snapshot and keeps the volume, and a later execute deletes it once the snapshot has completed."

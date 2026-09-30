@@ -19,12 +19,10 @@ functions-http = { path = "crates/http" }
 
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-ec2 = "1"
-aws-sdk-sts = "1"
 aws-smithy-types = "1"
 axum = "0.8"
 azure_core = "1"
 azure_identity = "1"
-base64 = "0.22"
 lambda_runtime = "1"
 reqwest = { version = "0.13", default-features = false }
 serde = { version = "1", features = ["derive"] }

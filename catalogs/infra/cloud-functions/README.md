@@ -31,13 +31,13 @@ Lambda, Azure and the GCP bucket, so the functions don't depend on the release a
 
 | Function | Clouds | Changes resources | Description |
 |---|---|---|---|
-| `echo` | AWS, Azure, GCP | No | Echoes its input and the identity the function runs as. Verifies the setup. |
 | `volume-delete` | AWS, Azure, GCP | Yes | Deletes an orphaned volume (EBS volume, managed disk, zonal persistent disk) that Kubernetes created for a PersistentVolumeClaim, after snapshotting it. |
 
-Only `echo` is deployed by default. Add functions to the stack's `functions` variable, e.g.
-`functions: ["echo", "volume-delete"]`. Functions that change resources are not registered as
-workbench tools unless `register_destructive_tools` is set, which should wait until workbench
-tools can require human approval.
+All functions are deployed by default; the stack's `functions` variable selects a subset.
+Functions that change resources are not registered as workbench tools, and can't be invoked by
+the cloud connection, unless `register_destructive_tools` is set, which should wait until
+workbench tools can require human approval. On Azure, volume-delete needs the resource group
+it may act on (`volumeDeleteScope` when installing, `volume_delete_scopes` in terraform).
 
 ### volume-delete
 

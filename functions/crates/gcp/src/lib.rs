@@ -1,35 +1,14 @@
-//! Google Cloud helpers: the identity functions run as and their access token, read from
-//! the metadata server, and a minimal Compute Engine client.
+//! Google Cloud helpers: the project and access token of the running service, read from the
+//! metadata server, and a minimal Compute Engine client.
 
 pub mod compute;
 
 use functions_core::Error;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 /// Metadata server host. `GCE_METADATA_HOST` overrides it, as in the Google client libraries.
 const METADATA_HOST_VAR: &str = "GCE_METADATA_HOST";
 const METADATA_HOST: &str = "metadata.google.internal";
-
-/// Identity a Cloud Run service runs as.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Identity {
-    pub service_account: String,
-    pub project_id: String,
-}
-
-/// Resolves the service account and project of the running service.
-///
-/// The metadata server needs no IAM permissions, so this also verifies the service
-/// identity setup without granting any.
-pub async fn caller_identity(client: &reqwest::Client) -> Result<Identity, Error> {
-    let base = default_metadata_base();
-
-    Ok(Identity {
-        service_account: metadata(client, &base, "instance/service-accounts/default/email").await?,
-        project_id: metadata(client, &base, "project/project-id").await?,
-    })
-}
 
 /// Project the running service belongs to.
 pub async fn project_id(client: &reqwest::Client) -> Result<String, Error> {

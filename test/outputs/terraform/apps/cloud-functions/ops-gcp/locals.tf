@@ -11,17 +11,6 @@ locals {
   # `destructive` functions change or delete resources and are only registered as workbench
   # tools when register_destructive_tools is set.
   catalog = {
-    echo = {
-      binary      = "echo-gcp"
-      description = "Echoes its input together with the service account the function runs as. Changes nothing; used to verify the deployment."
-      memory      = "512Mi"
-      timeout     = "10s"
-      destructive = false
-      environment = {}
-      # The metadata server needs no permissions.
-      permissions = []
-      schema      = jsonencode(jsondecode(file("${path.module}/schemas/echo.json")))
-    }
     volume-delete = {
       binary      = "volume-delete-gcp"
       description = "Deletes an unattached zonal persistent disk that Kubernetes created for a PersistentVolume. Before calling it, confirm in the cluster that the PersistentVolume no longer exists and pass its name as pvName. Use action plan first; execute takes a snapshot and keeps the disk, and a later execute deletes it once the snapshot has completed."

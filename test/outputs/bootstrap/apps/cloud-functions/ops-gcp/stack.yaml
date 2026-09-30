@@ -24,6 +24,7 @@ spec:
     
     invoker_service_account: "plural-workbench@my-project.iam.gserviceaccount.com"
     
+    
   # The init container downloads the release's function packages for this cloud (zips for AWS
   # and Azure, tarballs for GCP), verified against SHA256SUMS, into /artifacts/<version> before
   # terraform runs. With raw, the operator ignores the other jobSpec fields, so on Azure the

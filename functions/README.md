@@ -9,7 +9,7 @@ cloud's FaaS and invokable as Plural workbench tools.
 ```
 crates/core    cloud-agnostic request/response envelope, guards and errors
 crates/aws     AWS Lambda runtime glue and SDK helpers
-bins/<name>    one binary per operation and cloud, e.g. echo-aws
+bins/<name>    one binary per operation and cloud, e.g. volume-delete-aws
 ```
 
 ## Invocation contract

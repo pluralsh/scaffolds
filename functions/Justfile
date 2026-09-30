@@ -1,7 +1,7 @@
 dist := "dist"
 musl_target := "x86_64-unknown-linux-musl"
 
-# Functions are grouped by cloud through their bin name suffix, e.g. echo-aws, echo-azure.
+# Functions are grouped by cloud through their bin name suffix, e.g. volume-delete-aws.
 aws_bins := `ls bins | grep -- '-aws$' | tr '\n' ' '`
 azure_bins := `ls bins | grep -- '-azure$' | tr '\n' ' '`
 gcp_bins := `ls bins | grep -- '-gcp$' | tr '\n' ' '`

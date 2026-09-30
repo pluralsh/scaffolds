@@ -33,15 +33,16 @@ spec:
   message: |
     Set up cloud functions {{ context.name }} ({{ context.cloud }}, {{ context.region }})
 
-    Will deploy the operational cloud functions from release {{ context.version }} and
-    register them as workbench tools.
+    Will deploy the operational cloud functions from release {{ context.version }}. Functions
+    that change resources are only registered as workbench tools once enabled.
 
     Plural Service: mgmt/apps
   confirmation:
     text: |
       The functions are invoked by workbenches through a cloud connection, which needs
-      permission to invoke them. Workbench tools are registered without approval for now,
-      so only functions that change nothing are available.
+      permission to invoke them. Functions that change resources are deployed but not
+      registered as workbench tools, and can't be invoked, until workbench tools can require
+      human approval.
     checklist:
       - label: "I will grant the cloud connection the invoke permission from the stack outputs (AWS: attach invoke_policy_arn to its IAM principal; Azure: assign invoke_role_definition_id to its service principal on the resource group; GCP: set the invoker service account or grant it roles/run.invoker)."
       - label: "The cloud connection is in the same AWS region, or Azure subscription, as the functions."
@@ -66,12 +67,22 @@ spec:
       documentation: ID of the Plural cloud connection workbenches use to invoke the functions.
     - name: invokerServiceAccount
       type: STRING
-      documentation: Email of the cloud connection service account. When set, it is granted roles/run.invoker on every function.
+      documentation: Email of the cloud connection service account. When set, it is granted roles/run.invoker on the functions registered as workbench tools.
       optional: true
       condition:
         field: cloud
         operation: EQ
         value: 'gcp'
+    - name: volumeDeleteScope
+      type: STRING
+      documentation: Resource group ID volume-delete may snapshot and delete disks in, usually the AKS node resource group (/subscriptions/<id>/resourceGroups/MC_...). Required on Azure.
+      optional: true
+      condition:
+        field: cloud
+        operation: EQ
+        value: 'azure'
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
     - name: version
       type: STRING
       documentation: Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds).

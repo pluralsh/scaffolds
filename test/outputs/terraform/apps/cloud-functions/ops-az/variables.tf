@@ -27,7 +27,7 @@ variable "resource_group_name" {
 variable "functions" {
   type        = list(string)
   description = "Functions to deploy, by key of local.catalog."
-  default     = ["echo"]
+  default     = ["volume-delete"]
 
   validation {
     condition     = length(var.functions) > 0

@@ -12,17 +12,6 @@ locals {
   # them on. `destructive` functions change or delete resources and are only registered as
   # workbench tools when register_destructive_tools is set.
   catalog = {
-    echo = {
-      binary      = "echo-azure"
-      function    = "echo"
-      description = "Echoes its input together with the managed identity the function runs as. Changes nothing; used to verify the deployment."
-      destructive = false
-      environment = {}
-      # Getting an ARM token needs no role assignments.
-      actions = []
-      scopes  = []
-      schema  = jsonencode(jsondecode(file("${path.module}/schemas/echo.json")))
-    }
     volume-delete = {
       binary      = "volume-delete-azure"
       function    = "volume-delete"

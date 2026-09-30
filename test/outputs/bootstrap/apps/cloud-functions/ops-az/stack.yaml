@@ -22,6 +22,9 @@ spec:
     cloud_connection_id: "00000000-0000-0000-0000-000000000000"
     artifact_version: "v0.1.0-spike.1"
     
+    
+    volume_delete_scopes: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
+    
   # The init container downloads the release's function packages for this cloud (zips for AWS
   # and Azure, tarballs for GCP), verified against SHA256SUMS, into /artifacts/<version> before
   # terraform runs. With raw, the operator ignores the other jobSpec fields, so on Azure the
