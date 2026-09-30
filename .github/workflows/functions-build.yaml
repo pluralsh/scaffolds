@@ -8,38 +8,47 @@ jobs:
   build:
     name: check and package
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     defaults:
       run:
         working-directory: functions
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         name: checkout repo
+        with:
+          persist-credentials: false
 
       # Installs the toolchain, components and targets pinned in functions/rust-toolchain.toml
       # and caches the builds.
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
           rust-src-dir: functions
           cache-workspaces: functions
-          # Its default, -D warnings, fails the release builds on linker warnings; clippy in
+          # Only main saves the cache: tag builds can restore main's cache but not a PR's, and
+          # PR caches would evict it.
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Its default, deny, fails the release builds on linker warnings; clippy in
           # `just check` denies warnings already.
-          rustflags: ""
+          build-warnings: warn
 
-      - uses: extractions/setup-just@v2
+      - uses: extractions/setup-just@v4
+        with:
+          just-version: 1.58.0
 
       # The PyPI package is the documented CI install and pulls in Zig for cross-compilation.
-      - uses: actions/setup-python@v5
+      # Zig is pinned too, as cargo-lambda only sets a lower bound on it.
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: install cargo-lambda
-        run: pip install cargo-lambda==1.9.2
+        run: pip install cargo-lambda==1.9.2 ziglang==0.16.0
 
       - run: just check
       - run: just package
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: functions-dist
           path: functions/dist/
