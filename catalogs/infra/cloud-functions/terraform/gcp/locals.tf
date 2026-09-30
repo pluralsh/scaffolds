@@ -1,15 +1,43 @@
 locals {
+  # Without allow_skip_snapshot, the `snapshot` input is removed from the tool schema and the
+  # function rejects `snapshot: false` as well.
+  volume_delete_schema = jsondecode(file("${path.module}/schemas/volume-delete.json"))
+  volume_delete_properties = {
+    for key, prop in local.volume_delete_schema.properties : key => prop if key != "snapshot" || var.allow_skip_snapshot
+  }
+
   # Every function that can be deployed. `permissions` is the minimal set of IAM permissions
   # the function needs, granted to its service account through a project custom role.
+  # `destructive` functions change or delete resources and are only registered as workbench
+  # tools when register_destructive_tools is set.
   catalog = {
     echo = {
       binary      = "echo-gcp"
       description = "Echoes its input together with the service account the function runs as. Changes nothing; used to verify the deployment."
       memory      = "512Mi"
       timeout     = "10s"
+      destructive = false
+      environment = {}
       # The metadata server needs no permissions.
       permissions = []
       schema      = jsonencode(jsondecode(file("${path.module}/schemas/echo.json")))
+    }
+    volume-delete = {
+      binary      = "volume-delete-gcp"
+      description = "Deletes an unattached zonal persistent disk that Kubernetes created for a PersistentVolume. Before calling it, confirm in the cluster that the PersistentVolume no longer exists and pass its name as pvName. Use action plan first; execute takes a snapshot and keeps the disk, and a later execute deletes it once the snapshot has completed."
+      memory      = "512Mi"
+      timeout     = "30s"
+      destructive = true
+      environment = { ALLOW_SKIP_SNAPSHOT = tostring(var.allow_skip_snapshot) }
+      permissions = [
+        "compute.disks.get",
+        "compute.disks.delete",
+        "compute.disks.createSnapshot",
+        "compute.snapshots.create",
+        "compute.snapshots.list",
+        "compute.snapshots.setLabels",
+      ]
+      schema = jsonencode(merge(local.volume_delete_schema, { properties = local.volume_delete_properties }))
     }
   }
 
@@ -19,7 +47,9 @@ locals {
   functions     = { for key, fn in local.catalog : key => fn if contains(var.functions, key) }
   unknown       = setsubtract(var.functions, keys(local.catalog))
   service_names = { for key, _ in local.functions : key => "${var.name}-${key}" }
-  artifacts     = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.tar.gz" }
+  # Functions registered as workbench tools, and the only ones the cloud connection may invoke.
+  tools     = { for key, fn in local.functions : key => fn if !fn.destructive || var.register_destructive_tools }
+  artifacts = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.tar.gz" }
 
   # Service account IDs are limited to 30 characters and custom role IDs to letters, digits,
   # underscores and dots, so both get a suffix derived from the installation name.

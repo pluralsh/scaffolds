@@ -32,13 +32,53 @@ Lambda, Azure and the GCP bucket, so the functions don't depend on the release a
 | Function | Clouds | Changes resources | Description |
 |---|---|---|---|
 | `echo` | AWS, Azure, GCP | No | Echoes its input and the identity the function runs as. Verifies the setup. |
+| `volume-delete` | AWS, Azure, GCP | Yes | Deletes an orphaned volume (EBS volume, managed disk, zonal persistent disk) that Kubernetes created for a PersistentVolumeClaim, after snapshotting it. |
+
+Only `echo` is deployed by default. Add functions to the stack's `functions` variable, e.g.
+`functions: ["echo", "volume-delete"]`. Functions that change resources are not registered as
+workbench tools unless `register_destructive_tools` is set, which should wait until workbench
+tools can require human approval.
+
+### volume-delete
+
+The caller names the volume and the PersistentVolume it was created for (`pvName`). The
+function can't see the cluster, so the caller has to confirm that the PersistentVolume no
+longer exists first: an unattached volume can still belong to a live PersistentVolume, e.g.
+of a StatefulSet scaled to zero. The volume is only deleted when it exists, is not attached,
+is in a deletable state and was created by Kubernetes for that PersistentVolume (the
+`kubernetes.io/created-for/*` metadata the CSI drivers set). `plan` never changes anything.
+
+A snapshot is always taken first: `execute` starts the snapshot and keeps the volume, and a
+later `execute` deletes the volume once the snapshot has completed. A snapshot only counts if
+the cloud records it as taken of this volume (not just tagged for it), it is less than 24
+hours old and, on GCP and Azure, it was taken after the volume was last detached. AWS doesn't
+report detach times, so there only the 24 hours limit it: data written to a volume that is
+attached, written and detached again within 24 hours of the snapshot is not in it.
+`allow_skip_snapshot` lets callers pass `snapshot: false`; without it the tool has no such
+input and the function rejects it.
+
+The function's own permissions are limited as well:
+
+- AWS: deleting and snapshotting are only allowed on volumes carrying the
+  `kubernetes.io/created-for/pvc/name` tag, in the function's region. Snapshots of volumes
+  encrypted with a customer managed key may also need KMS permissions.
+- Azure: the role is only assigned on the resource groups in `volume_delete_scopes`, which
+  is required, e.g. the AKS node resource group. It covers every disk there; the Kubernetes
+  checks are only done by the function.
+- GCP: a project custom role with only the disk and snapshot permissions it needs, for every
+  disk in the project; GCP IAM can't restrict it to Kubernetes disks, so those checks are only
+  done by the function. Regional disks are not supported.
+
+Only registered functions can be invoked by the cloud connection (the AWS invoke policy, the
+GCP `roles/run.invoker` grants and the Azure `invoke_scopes`). The pre-deletion snapshots are
+kept; delete them once they are no longer needed.
 
 ## After the stack is applied
 
 1. Grant the cloud connection permission to invoke the functions:
    - AWS: attach the `invoke_policy_arn` output to the IAM principal of the cloud connection.
    - Azure: assign the `invoke_role_definition_id` output to the service principal of the
-     cloud connection on the resource group.
+     cloud connection on each of the `invoke_scopes` (the function apps of registered tools).
    - GCP: set the invoker service account when installing, or grant the cloud connection
      service account `roles/run.invoker` on the services.
 2. Add the tools from the `workbench_tool_ids` output to a workbench.

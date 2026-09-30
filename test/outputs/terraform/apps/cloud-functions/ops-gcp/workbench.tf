@@ -1,5 +1,5 @@
 resource "google_cloud_run_v2_service_iam_member" "invoker" {
-  for_each = { for key, svc in google_cloud_run_v2_service.function : key => svc if var.invoker_service_account != null }
+  for_each = { for key, _ in local.tools : key => google_cloud_run_v2_service.function[key] if var.invoker_service_account != null }
 
   name     = each.value.name
   location = each.value.location
@@ -15,7 +15,7 @@ resource "google_cloud_run_v2_service_iam_member" "invoker" {
 # configuration are required, so it cannot look connections up by name) and accept a
 # connection name instead of cloud_connection_id.
 resource "plural_workbench_tool" "function" {
-  for_each = local.functions
+  for_each = local.tools
 
   name                = replace(local.service_names[each.key], "-", "_")
   tool                = "CLOUD_RUN"

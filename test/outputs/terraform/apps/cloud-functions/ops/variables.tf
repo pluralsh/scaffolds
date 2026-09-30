@@ -29,6 +29,18 @@ variable "functions" {
   }
 }
 
+variable "register_destructive_tools" {
+  type        = bool
+  description = "Register functions that change or delete resources as workbench tools. Keep false until workbench tools can require approval (see workbench.tf)."
+  default     = false
+}
+
+variable "allow_skip_snapshot" {
+  type        = bool
+  description = "Let callers skip the snapshot taken before a volume is deleted. When false, volume-delete always snapshots first and its tool schema has no snapshot input."
+  default     = false
+}
+
 variable "artifact_version" {
   type        = string
   description = "Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds)."

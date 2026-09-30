@@ -54,6 +54,23 @@ where
     axum::serve(listener, app).await
 }
 
+/// HTTPS client for cloud APIs, trusting the built-in Mozilla root certificates only.
+///
+/// The roots are compiled in, so TLS doesn't depend on the CA certificates of the host
+/// image, which can be minimal (e.g. Cloud Run's OS-only base image).
+pub fn https_client() -> Result<reqwest::Client, Error> {
+    let roots = webpki_root_certs::TLS_SERVER_ROOT_CERTS
+        .iter()
+        .map(|der| reqwest::Certificate::from_der(der))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|err| Error::provider(format!("loading root certificates: {err}")))?;
+    reqwest::Client::builder()
+        .tls_certs_only(roots)
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+        .map_err(|err| Error::provider(format!("building HTTPS client: {err}")))
+}
+
 fn port() -> u16 {
     PORT_VARS
         .iter()
@@ -162,5 +179,14 @@ mod tests {
         let (status, _) = call(Method::GET, "").await;
 
         assert_eq!(status, StatusCode::METHOD_NOT_ALLOWED);
+    }
+}
+
+#[cfg(test)]
+mod client_tests {
+    #[test]
+    fn builds_https_client_with_builtin_roots() {
+        assert!(super::https_client().is_ok());
+        assert!(webpki_root_certs::TLS_SERVER_ROOT_CERTS.len() > 100);
     }
 }

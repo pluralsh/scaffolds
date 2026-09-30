@@ -1,4 +1,7 @@
-//! Azure helpers: managed identity credentials and the identity functions run as.
+//! Azure helpers: managed identity credentials, the identity functions run as, and a
+//! minimal Azure Resource Manager client.
+
+pub mod arm;
 
 use std::sync::Arc;
 

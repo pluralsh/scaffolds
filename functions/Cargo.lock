@@ -175,6 +175,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "aws-sdk-ec2"
+version = "1.145.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be6af909df41f8a7cdf2a226f61c860f72151e8c20a888153be73ee54b6813f6"
+dependencies = [
+ "aws-credential-types",
+ "aws-runtime",
+ "aws-smithy-async",
+ "aws-smithy-http",
+ "aws-smithy-json",
+ "aws-smithy-query",
+ "aws-smithy-runtime",
+ "aws-smithy-runtime-api",
+ "aws-smithy-types",
+ "aws-smithy-xml",
+ "aws-types",
+ "fastrand",
+ "http 0.2.12",
+ "regex-lite",
+ "tracing",
+]
+
+[[package]]
 name = "aws-sdk-sso"
 version = "1.90.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -931,6 +954,7 @@ dependencies = [
  "azure_identity",
  "base64 0.22.1",
  "functions-core",
+ "reqwest",
  "serde",
  "serde_json",
 ]
@@ -942,6 +966,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "time",
 ]
 
 [[package]]
@@ -951,6 +976,7 @@ dependencies = [
  "functions-core",
  "reqwest",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -959,11 +985,13 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "functions-core",
+ "reqwest",
  "serde",
  "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "webpki-root-certs",
 ]
 
 [[package]]
@@ -1921,6 +1949,9 @@ dependencies = [
  "rustls 0.23.45",
  "rustls-pki-types",
  "rustls-platform-verifier",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
  "sync_wrapper",
  "tokio",
  "tokio-rustls 0.26.6",
@@ -2768,6 +2799,48 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "volume-delete-aws"
+version = "0.1.0"
+dependencies = [
+ "aws-sdk-ec2",
+ "aws-smithy-types",
+ "functions-aws",
+ "functions-core",
+ "lambda_runtime",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "volume-delete-azure"
+version = "0.1.0"
+dependencies = [
+ "functions-azure",
+ "functions-core",
+ "functions-http",
+ "reqwest",
+ "serde",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "volume-delete-gcp"
+version = "0.1.0"
+dependencies = [
+ "functions-core",
+ "functions-gcp",
+ "functions-http",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
 
 [[package]]
 name = "vsimd"

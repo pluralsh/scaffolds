@@ -1,17 +1,21 @@
-# Grants invoking the deployed functions, and nothing else. Attach it to the IAM principal
-# of the workbench cloud connection.
+# Grants invoking the functions registered as workbench tools, and nothing else. Attach it to
+# the IAM principal of the workbench cloud connection.
 data "aws_iam_policy_document" "invoke" {
+  count = length(local.tools) > 0 ? 1 : 0
+
   statement {
     sid       = "InvokeFunctions"
     actions   = ["lambda:InvokeFunction"]
-    resources = [for fn in aws_lambda_function.function : fn.arn]
+    resources = [for key, _ in local.tools : aws_lambda_function.function[key].arn]
   }
 }
 
 resource "aws_iam_policy" "invoke" {
+  count = length(local.tools) > 0 ? 1 : 0
+
   name        = "${var.name}-invoke"
   description = "Invoke the ${var.name} operational functions from Plural workbenches."
-  policy      = data.aws_iam_policy_document.invoke.json
+  policy      = data.aws_iam_policy_document.invoke[0].json
   tags        = var.tags
 }
 
@@ -23,7 +27,7 @@ resource "aws_iam_policy" "invoke" {
 # configuration are required, so it cannot look connections up by name) and accept a
 # connection name instead of cloud_connection_id.
 resource "plural_workbench_tool" "function" {
-  for_each = local.functions
+  for_each = local.tools
 
   name                = replace(local.function_names[each.key], "-", "_")
   tool                = "LAMBDA"

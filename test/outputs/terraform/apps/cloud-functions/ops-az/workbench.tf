@@ -24,7 +24,7 @@ resource "azurerm_role_definition" "invoke" {
 # configuration are required, so it cannot look connections up by name) and accept a
 # connection name instead of cloud_connection_id.
 resource "plural_workbench_tool" "function" {
-  for_each = local.functions
+  for_each = local.tools
 
   name                = replace("${var.name}-${each.key}", "-", "_")
   tool                = "AZURE_FUNCTION"

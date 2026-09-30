@@ -35,6 +35,29 @@ variable "functions" {
   }
 }
 
+variable "register_destructive_tools" {
+  type        = bool
+  description = "Register functions that change or delete resources as workbench tools. Keep false until workbench tools can require approval (see workbench.tf)."
+  default     = false
+}
+
+variable "allow_skip_snapshot" {
+  type        = bool
+  description = "Let callers skip the snapshot taken before a disk is deleted. When false, volume-delete always snapshots first and its tool schema has no snapshot input."
+  default     = false
+}
+
+variable "volume_delete_scopes" {
+  type        = list(string)
+  description = "Resource groups volume-delete may snapshot and delete disks in, as resource group IDs, e.g. the AKS node resource group (MC_...). Required to deploy volume-delete."
+  default     = []
+
+  validation {
+    condition     = alltrue([for s in var.volume_delete_scopes : can(regex("^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$", s))])
+    error_message = "volume_delete_scopes must be resource group IDs (/subscriptions/<id>/resourceGroups/<name>), not subscriptions or other resources."
+  }
+}
+
 variable "artifact_version" {
   type        = string
   description = "Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds)."

@@ -90,6 +90,15 @@ resource "google_cloud_run_v2_service" "function" {
       base_image_uri = "${var.region}-docker.pkg.dev/serverless-runtimes/google-24/runtimes/osonly24"
       command        = ["./function"]
 
+      dynamic "env" {
+        for_each = each.value.environment
+
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+
       source_code {
         cloud_storage_source {
           bucket     = google_storage_bucket.functions.name

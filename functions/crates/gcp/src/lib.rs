@@ -1,7 +1,10 @@
-//! Google Cloud helpers: the identity functions run as, read from the metadata server.
+//! Google Cloud helpers: the identity functions run as and their access token, read from
+//! the metadata server, and a minimal Compute Engine client.
+
+pub mod compute;
 
 use functions_core::Error;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /// Metadata server host. `GCE_METADATA_HOST` overrides it, as in the Google client libraries.
 const METADATA_HOST_VAR: &str = "GCE_METADATA_HOST";
@@ -20,12 +23,39 @@ pub struct Identity {
 /// The metadata server needs no IAM permissions, so this also verifies the service
 /// identity setup without granting any.
 pub async fn caller_identity(client: &reqwest::Client) -> Result<Identity, Error> {
-    let base = metadata_base(std::env::var(METADATA_HOST_VAR).ok());
+    let base = default_metadata_base();
 
     Ok(Identity {
         service_account: metadata(client, &base, "instance/service-accounts/default/email").await?,
         project_id: metadata(client, &base, "project/project-id").await?,
     })
+}
+
+/// Project the running service belongs to.
+pub async fn project_id(client: &reqwest::Client) -> Result<String, Error> {
+    metadata(client, &default_metadata_base(), "project/project-id").await
+}
+
+/// OAuth access token of the service's own service account.
+pub async fn access_token(client: &reqwest::Client) -> Result<String, Error> {
+    #[derive(Deserialize)]
+    struct Token {
+        access_token: String,
+    }
+
+    let body = metadata(
+        client,
+        &default_metadata_base(),
+        "instance/service-accounts/default/token",
+    )
+    .await?;
+    serde_json::from_str::<Token>(&body)
+        .map(|t| t.access_token)
+        .map_err(|err| Error::provider(format!("metadata server token: {err}")))
+}
+
+fn default_metadata_base() -> String {
+    metadata_base(std::env::var(METADATA_HOST_VAR).ok())
 }
 
 fn metadata_base(host: Option<String>) -> String {

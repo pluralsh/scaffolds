@@ -7,6 +7,7 @@
 mod envelope;
 mod error;
 mod guard;
+pub mod volume;
 
 pub use envelope::{Action, Outcome, Request, Response};
 pub use error::Error;

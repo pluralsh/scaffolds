@@ -59,6 +59,8 @@ resource "azurerm_function_app_flex_consumption" "function" {
 
   site_config {}
 
+  app_settings = each.value.environment
+
   tags = var.tags
 
   lifecycle {
@@ -73,19 +75,31 @@ resource "azurerm_role_definition" "function" {
   for_each = { for key, fn in local.functions : key => fn if length(fn.actions) > 0 }
 
   name              = local.app_names[each.key]
-  scope             = data.azurerm_resource_group.functions.id
+  scope             = "/subscriptions/${local.identity_context["subscription_id"]}"
   description       = "Permissions of the ${local.app_names[each.key]} operational function."
-  assignable_scopes = [data.azurerm_resource_group.functions.id]
+  assignable_scopes = each.value.scopes
 
   permissions {
     actions = each.value.actions
   }
+
+  lifecycle {
+    precondition {
+      condition     = length(each.value.scopes) > 0
+      error_message = "${each.key} needs the resource groups it may act on, e.g. volume_delete_scopes with the AKS node resource group."
+    }
+  }
 }
 
+# The function's managed identity gets its role on each of its scopes only.
 resource "azurerm_role_assignment" "function" {
-  for_each = azurerm_role_definition.function
+  for_each = merge([
+    for key, role in azurerm_role_definition.function : {
+      for scope in local.functions[key].scopes : "${key}|${scope}" => { key = key, scope = scope, role = role.role_definition_resource_id }
+    }
+  ]...)
 
-  scope              = data.azurerm_resource_group.functions.id
-  role_definition_id = each.value.role_definition_resource_id
-  principal_id       = azurerm_function_app_flex_consumption.function[each.key].identity[0].principal_id
+  scope              = each.value.scope
+  role_definition_id = each.value.role
+  principal_id       = azurerm_function_app_flex_consumption.function[each.value.key].identity[0].principal_id
 }

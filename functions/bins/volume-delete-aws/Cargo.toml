@@ -1,0 +1,23 @@
+[package]
+name = "volume-delete-aws"
+description = "Deletes an orphaned EBS volume created by Kubernetes, after snapshotting it."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+functions-aws.workspace = true
+functions-core.workspace = true
+
+aws-sdk-ec2.workspace = true
+lambda_runtime.workspace = true
+serde.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+aws-smithy-types.workspace = true
+serde_json.workspace = true

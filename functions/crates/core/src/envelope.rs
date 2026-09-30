@@ -30,7 +30,8 @@ pub struct Request<P> {
 pub enum Outcome {
     /// Plan finished and every guard passed.
     Planned,
-    /// At least one guard failed, nothing was changed.
+    /// At least one guard failed and the operation was not performed. A function may still
+    /// have started a preparatory step, such as a snapshot, which it then reports in the result.
     Refused,
     /// The change was submitted. Functions return without waiting for it to complete and
     /// report the resource state they observed instead.
@@ -80,6 +81,12 @@ impl<R> Response<R> {
             guards,
             result: Some(result),
         }
+    }
+
+    /// Attaches a result, e.g. to explain a refused execute.
+    pub fn with_result(mut self, result: R) -> Self {
+        self.result = Some(result);
+        self
     }
 }
 

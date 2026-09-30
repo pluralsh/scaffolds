@@ -1,3 +1,7 @@
+data "aws_partition" "current" {}
+
+data "aws_caller_identity" "current" {}
+
 data "aws_iam_policy_document" "assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -24,6 +28,16 @@ data "aws_iam_policy_document" "function" {
     content {
       actions   = statement.value.actions
       resources = statement.value.resources
+
+      dynamic "condition" {
+        for_each = statement.value.conditions
+
+        content {
+          test     = condition.value.test
+          variable = condition.value.variable
+          values   = condition.value.values
+        }
+      }
     }
   }
 }
@@ -70,6 +84,14 @@ resource "aws_lambda_function" "function" {
   # Guarded so that a missing package fails with the precondition below instead of a
   # function error.
   source_code_hash = fileexists(local.artifacts[each.key]) ? filebase64sha256(local.artifacts[each.key]) : null
+
+  dynamic "environment" {
+    for_each = length(each.value.environment) > 0 ? [each.value.environment] : []
+
+    content {
+      variables = environment.value
+    }
+  }
 
   logging_config {
     log_format = "JSON"

@@ -14,8 +14,13 @@ output "functions" {
 }
 
 output "invoke_role_definition_id" {
-  description = "Role to assign to the cloud connection service principal on the resource group so workbenches can invoke the functions."
+  description = "Role to assign to the cloud connection service principal on each of invoke_scopes so workbenches can invoke the functions."
   value       = azurerm_role_definition.invoke.role_definition_resource_id
+}
+
+output "invoke_scopes" {
+  description = "Function apps of the functions registered as workbench tools. Assign invoke_role_definition_id on these, not on the resource group, so unregistered functions stay uninvokable."
+  value       = [for key, _ in local.tools : azurerm_function_app_flex_consumption.function[key].id]
 }
 
 output "workbench_tool_ids" {
