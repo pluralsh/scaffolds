@@ -25,3 +25,6 @@ axum = { workspace = true, optional = true }
 
 [features]
 mock = ["dep:async-trait", "dep:axum", "tokio/net", "tokio/rt"]
+# Authenticate as the Azure CLI's account instead of the managed identity, to run functions
+# locally (functions/e2e/azure/run.sh). Never enabled for release packages.
+az-cli = []

@@ -1,7 +1,7 @@
 //! Tests the real managed identity credential against a local App Service identity endpoint,
 //! as Azure Functions provides it.
 
-#![cfg(feature = "mock")]
+#![cfg(all(feature = "mock", not(feature = "az-cli")))]
 
 use std::sync::{Arc, Mutex};
 

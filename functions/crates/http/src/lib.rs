@@ -4,8 +4,13 @@
 //! path, is an invocation. The body is the workbench tool input and the response body is the
 //! [`Response`]. Errors use the `errorType`/`errorMessage` shape of Lambda function errors,
 //! with a 4xx/5xx status that callers report as a failure.
+//!
+//! Started with an argument, the binary instead runs once, for local runs: the argument is the
+//! input JSON (`-` reads it from stdin), or the name of the app's timer function to run that.
+//! The answer goes to stdout, logs to stderr. The Functions host starts it without arguments.
 
 use std::future::Future;
+use std::io::Read;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 
@@ -38,7 +43,14 @@ where
     F: Fn(Request<P>) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = Result<Response<R>, Error>> + Send + 'static,
 {
-    serve(router(handler)).await
+    match Once::from_args(None)? {
+        Some(Once::Invoke(body)) => {
+            init_logging(true);
+            exit_with(invoke(&handler, &body).await)
+        }
+        Some(Once::Timer) => unreachable!("no timer function"),
+        None => serve(router(handler)).await,
+    }
 }
 
 /// Serves `handler` like [`run`], and runs `timer` whenever the Azure Functions host invokes
@@ -60,6 +72,18 @@ where
     T: Fn() -> TFut + Send + Sync + 'static,
     TFut: Future<Output = Result<(), Error>> + Send + 'static,
 {
+    match Once::from_args(Some(timer_function))? {
+        Some(Once::Invoke(body)) => {
+            init_logging(true);
+            exit_with(invoke(&handler, &body).await)
+        }
+        Some(Once::Timer) => {
+            init_logging(true);
+            exit_with(timer().await.map(|()| serde_json::Value::Null))
+        }
+        None => {}
+    }
+
     let timer = Arc::new(timer);
     let app = router(handler).route(
         &format!("/{timer_function}"),
@@ -86,15 +110,82 @@ where
 }
 
 async fn serve(app: Router) -> std::io::Result<()> {
-    tracing_subscriber::fmt()
-        .json()
-        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
-        .init();
-
+    init_logging(false);
     let addr = SocketAddr::from((Ipv4Addr::UNSPECIFIED, port()));
     let listener = tokio::net::TcpListener::bind(addr).await?;
     tracing::info!(%addr, "listening");
     axum::serve(listener, app).await
+}
+
+/// JSON logs on stdout for the Functions host, or readable ones on stderr for a single run.
+fn init_logging(once: bool) {
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into());
+    if once {
+        tracing_subscriber::fmt()
+            .with_env_filter(filter)
+            .with_writer(std::io::stderr)
+            .init();
+    } else {
+        tracing_subscriber::fmt()
+            .json()
+            .with_env_filter(filter)
+            .init();
+    }
+}
+
+/// A single run requested on the command line.
+#[derive(Debug, PartialEq)]
+enum Once {
+    /// Invoke the handler with this input.
+    Invoke(Vec<u8>),
+    /// Run the timer function.
+    Timer,
+}
+
+impl Once {
+    fn from_args(timer_function: Option<&str>) -> std::io::Result<Option<Self>> {
+        Self::parse(std::env::args().nth(1), timer_function, std::io::stdin())
+    }
+
+    fn parse(
+        arg: Option<String>,
+        timer_function: Option<&str>,
+        mut stdin: impl Read,
+    ) -> std::io::Result<Option<Self>> {
+        Ok(match arg {
+            None => None,
+            Some(arg) if Some(arg.as_str()) == timer_function => Some(Self::Timer),
+            Some(arg) if arg == "-" => {
+                let mut body = Vec::new();
+                stdin.read_to_end(&mut body)?;
+                Some(Self::Invoke(body))
+            }
+            Some(arg) => Some(Self::Invoke(arg.into_bytes())),
+        })
+    }
+}
+
+/// Prints the answer of a single run and exits: 0 when it succeeded, 2 for an invalid request,
+/// 1 for any other error.
+fn exit_with(result: Result<serde_json::Value, Error>) -> ! {
+    let (code, body) = match result {
+        Ok(body) => (0, body),
+        Err(err) => {
+            let code = match err {
+                Error::InvalidRequest(_) => 2,
+                Error::Provider(_) => 1,
+            };
+            let body = serde_json::to_value(error_body(&err)).unwrap_or_default();
+            (code, body)
+        }
+    };
+    if !body.is_null() {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&body).unwrap_or_default()
+        );
+    }
+    std::process::exit(code)
 }
 
 /// Custom handler invocation response: the host fails the invocation on a non-2xx status.
@@ -146,18 +237,29 @@ where
         return StatusCode::METHOD_NOT_ALLOWED.into_response();
     }
 
+    match invoke(handler, body).await {
+        Ok(body) => (StatusCode::OK, axum::Json(body)).into_response(),
+        Err(err) => error_response(err),
+    }
+}
+
+/// Parses `body`, runs `handler` on it and serializes its response.
+async fn invoke<P, R, F, Fut>(handler: &F, body: &[u8]) -> Result<serde_json::Value, Error>
+where
+    P: DeserializeOwned,
+    R: Serialize,
+    F: Fn(Request<P>) -> Fut,
+    Fut: Future<Output = Result<Response<R>, Error>>,
+{
     let result = match serde_json::from_slice::<Request<P>>(body) {
         Ok(req) => handler(req).await,
         Err(err) => Err(Error::invalid_request(err)),
     };
-
-    match result.and_then(|resp| serde_json::to_value(resp).map_err(Error::provider)) {
-        Ok(body) => (StatusCode::OK, axum::Json(body)).into_response(),
-        Err(err) => {
-            tracing::error!(error_type = err.kind(), error = %err, "invocation failed");
-            error_response(err)
-        }
+    let result = result.and_then(|resp| serde_json::to_value(resp).map_err(Error::provider));
+    if let Err(err) = &result {
+        tracing::error!(error_type = err.kind(), error = %err, "invocation failed");
     }
+    result
 }
 
 fn error_response(err: Error) -> HttpResponse {
@@ -165,11 +267,14 @@ fn error_response(err: Error) -> HttpResponse {
         Error::InvalidRequest(_) => StatusCode::BAD_REQUEST,
         Error::Provider(_) => StatusCode::BAD_GATEWAY,
     };
-    let body = ErrorBody {
+    (status, axum::Json(error_body(&err))).into_response()
+}
+
+fn error_body(err: &Error) -> ErrorBody {
+    ErrorBody {
         error_type: err.kind(),
         error_message: err.to_string(),
-    };
-    (status, axum::Json(body)).into_response()
+    }
 }
 
 #[cfg(test)]
@@ -243,6 +348,29 @@ mod tests {
         );
         assert_eq!(failed, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(err["Logs"], json!(["cloud provider error: nope"]));
+    }
+
+    #[test]
+    fn parses_single_run_arguments() {
+        let parse = |arg: Option<&str>, stdin: &str| {
+            Once::parse(arg.map(str::to_owned), Some("sweep"), stdin.as_bytes()).unwrap()
+        };
+
+        assert_eq!(parse(None, ""), None);
+        assert_eq!(parse(Some("sweep"), ""), Some(Once::Timer));
+        assert_eq!(
+            parse(Some(r#"{"a":1}"#), ""),
+            Some(Once::Invoke(br#"{"a":1}"#.to_vec()))
+        );
+        assert_eq!(
+            parse(Some("-"), r#"{"b":2}"#),
+            Some(Once::Invoke(br#"{"b":2}"#.to_vec()))
+        );
+        // Without a timer function, its name is just an (invalid) input.
+        assert_eq!(
+            Once::parse(Some("sweep".into()), None, std::io::empty()).unwrap(),
+            Some(Once::Invoke(b"sweep".to_vec()))
+        );
     }
 
     #[tokio::test]

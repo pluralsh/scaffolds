@@ -4,7 +4,8 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 4.30"
+      # 4.58 accepts maximum_instance_count below 40 on Flex Consumption apps.
+      version = ">= 4.58"
     }
     plural = {
       source  = "pluralsh/plural"

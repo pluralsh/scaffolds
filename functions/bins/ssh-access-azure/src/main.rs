@@ -246,18 +246,39 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
         .map(|a| a.properties.scope.clone())
         .collect();
 
+    // ARM allows one assignment per scope, principal and role, so a grant can't be added next
+    // to the user's own assignment of the role on the VM.
+    let permanent = assignments.iter().any(|a| {
+        a.expires_at().is_none()
+            && Role::of(&a.properties.role_definition_id) == Some(params.role)
+            && a.properties.principal_id.eq_ignore_ascii_case(&principal)
+            && a.properties.scope.eq_ignore_ascii_case(&vm_id.id())
+    });
+
     let guards = if params.revoke {
         vec![match vm {
             Some(_) => Guard::pass("exists", format!("VM {}", vm_id.name)),
             None => Guard::fail("exists", "VM not found"),
         }]
     } else {
-        evaluate(
+        let mut guards = evaluate(
             vm.as_ref(),
             &extensions,
             params.duration_minutes,
             max_duration(std::env::var(MAX_DURATION_VAR).ok().as_deref()),
-        )
+        );
+        if vm.is_some() {
+            guards.push(Guard::check(
+                "not-assigned",
+                !permanent,
+                if permanent {
+                    "the user already has this role on the VM from an assignment this function doesn't manage"
+                } else {
+                    "no assignment of this role to the user on the VM outside this function"
+                },
+            ));
+        }
+        guards
     };
     let mut output = Output {
         vm: vm_id.id(),
@@ -1015,6 +1036,41 @@ mod handler_tests {
             writes[1].body["properties"]["description"],
             description(theirs)
         );
+    }
+
+    #[tokio::test]
+    async fn refuses_when_the_user_already_has_the_role_on_the_vm() {
+        let mock = MockArm::start().await;
+        script_vm(
+            &mock,
+            vec![assignment("manual", &vm(), USER, USER_LOGIN_ROLE, None)],
+            true,
+        );
+
+        let resp = call(
+            &mock,
+            json!({"action": "execute", "vmId": vm(), "principalId": USER}),
+        )
+        .await;
+
+        assert_eq!(resp["outcome"], "refused", "{resp}");
+        let failed: Vec<&Value> = resp["guards"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|g| g["passed"] == false)
+            .map(|g| &g["name"])
+            .collect();
+        assert_eq!(failed, [&json!("not-assigned")]);
+        assert!(mock.writes().is_empty());
+
+        // The admin role is a separate assignment, so it can still be granted.
+        let resp = call(
+            &mock,
+            json!({"action": "execute", "vmId": vm(), "principalId": USER, "role": "admin"}),
+        )
+        .await;
+        assert_eq!(resp["outcome"], "done", "{resp}");
     }
 
     #[tokio::test]

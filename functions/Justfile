@@ -12,6 +12,7 @@ check: check-rust check-go
 check-rust:
     cargo fmt --check
     cargo clippy --all-targets -- -D warnings
+    cargo clippy -p functions-azure --features az-cli -- -D warnings
     cargo test
 
 check-go:
@@ -86,3 +87,45 @@ package: build
                 zf.writestr(info, f.read())
     PY
     cd {{dist}} && shasum -a 256 *.zip > SHA256SUMS
+
+# The Azure functions can also run locally against real Azure: e2e/azure/README.md has the
+# fixtures they are checked against and the checklist.
+
+# Create (up), show (status) or delete (down) the Azure test fixtures in their own resource groups.
+fixtures-azure action="status":
+    e2e/azure/fixtures.sh {{ action }}
+
+# The input can be - for stdin, and `just run-azure ssh-access-expire` runs ssh-access's expiry
+# sweep. The function gets the settings terraform gives it for the fixtures, unless they are set
+# already. It prints the answer, then its logs and duration; the exit code is 2 for an invalid
+# input, 1 for other errors.
+#
+# Run an Azure function once against real Azure as the az CLI's account, e.g. run-azure vm-delete '{"vmId":"…"}'.
+[positional-arguments]
+run-azure function input="":
+    #!/usr/bin/env bash
+    source e2e/azure/lib.sh
+    fn="$1"
+    input="$2"
+    bin="$fn-azure"
+    case "$fn" in
+      volume-delete) export ALLOW_SKIP_SNAPSHOT="${ALLOW_SKIP_SNAPSHOT:-false}" ;;
+      node-pool-resize) export MAX_NODE_COUNT="${MAX_NODE_COUNT:-3}" ;;
+      ssh-access | ssh-access-expire)
+        export MAX_DURATION_MINUTES="${MAX_DURATION_MINUTES:-60}"
+        export SCOPES="${SCOPES:-[\"$(rg_id "$RG_VMS")\"]}"
+        if [[ -n "${E2E_BASTION_ID:-}" ]]; then export BASTION_ID="$E2E_BASTION_ID"; fi
+        if [[ "$fn" == ssh-access-expire ]]; then bin=ssh-access-azure input="$fn"; fi
+        ;;
+      lb-frontend-delete | vm-delete | db-restore) ;;
+      *) die "unknown function $fn; one of: $(ls bins | grep -- '-azure$' | sed 's/-azure$//' | tr '\n' ' ')ssh-access-expire" ;;
+    esac
+    [[ -n "$input" ]] || die "the input JSON is missing"
+    export RUST_LOG="${RUST_LOG:-info}"
+    # Built first, so the duration is the function's own.
+    cargo build -q -p "$bin" --features functions-azure/az-cli
+    start="$(python3 -c 'import time; print(time.time())')"
+    status=0
+    "target/debug/$bin" "$input" || status=$?
+    python3 -c 'import sys, time; print(f"took {time.time() - float(sys.argv[1]):.1f}s (workbenches wait 30s)", file=sys.stderr)' "$start"
+    exit "$status"
