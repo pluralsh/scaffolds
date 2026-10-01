@@ -63,6 +63,10 @@ spec:
       {% if context.sshResourceGroup %}
       ssh-access: ["{{ context.sshResourceGroup }}"]
       {% endif %}
+    {% if context.clusterNetworkResourceGroup %}
+    network_scopes:
+      node-pool-resize: ["{{ context.clusterNetworkResourceGroup }}"]
+    {% endif %}
     {% if context.sshBastionId %}
     ssh_bastion_id: "{{ context.sshBastionId }}"
     {% endif %}

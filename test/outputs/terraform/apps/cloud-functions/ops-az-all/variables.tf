@@ -35,12 +35,6 @@ variable "functions" {
   }
 }
 
-variable "register_destructive_tools" {
-  type        = bool
-  description = "Register functions that change or delete resources as workbench tools. Every call of those tools then requires human approval."
-  default     = false
-}
-
 variable "allow_skip_snapshot" {
   type        = bool
   description = "Let callers skip the snapshot taken before a disk is deleted. When false, volume-delete always snapshots first and its tool schema has no snapshot input."
@@ -55,6 +49,17 @@ variable "scopes" {
   validation {
     condition     = alltrue([for s in flatten(values(var.scopes)) : can(regex("^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$", s))])
     error_message = "scopes must be resource group IDs (/subscriptions/<id>/resourceGroups/<name>), not subscriptions or other resources."
+  }
+}
+
+variable "network_scopes" {
+  type        = map(list(string))
+  description = "Resource groups of networks each function's resources reference outside its scopes, by function key, as resource group IDs. The function only gets the join actions there, e.g. the resource group of a BYO VNet for node-pool-resize."
+  default     = {}
+
+  validation {
+    condition     = alltrue([for s in flatten(values(var.network_scopes)) : can(regex("^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$", s))])
+    error_message = "network_scopes must be resource group IDs (/subscriptions/<id>/resourceGroups/<name>), not subscriptions or other resources."
   }
 }
 

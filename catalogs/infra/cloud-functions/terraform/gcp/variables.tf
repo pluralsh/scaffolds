@@ -35,12 +35,6 @@ variable "functions" {
   }
 }
 
-variable "register_destructive_tools" {
-  type        = bool
-  description = "Register functions that change or delete resources as workbench tools. Every call of those tools then requires human approval."
-  default     = false
-}
-
 variable "allow_skip_snapshot" {
   type        = bool
   description = "Let callers skip the snapshot taken before a disk is deleted. When false, volume-delete always snapshots first and its tool schema has no snapshot input."
