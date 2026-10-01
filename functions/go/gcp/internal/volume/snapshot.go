@@ -15,8 +15,8 @@ const (
 	// ClockSkewSecs is the tolerated clock difference between the function and the cloud API.
 	ClockSkewSecs int64 = 5 * 60
 
-	// AllowSkipSnapshotVar when set to "true", lets callers skip the snapshot with
-	// `snapshot: false`.
+	// AllowSkipSnapshotVar lets callers skip the snapshot with `snapshot: false` when set to
+	// "true".
 	AllowSkipSnapshotVar = "ALLOW_SKIP_SNAPSHOT"
 )
 
