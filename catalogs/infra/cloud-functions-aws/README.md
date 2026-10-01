@@ -59,30 +59,54 @@ The pre-deletion snapshots are kept; delete them once they are no longer needed.
 
 ### node-pool-resize
 
-Sets the node count of a manually scaled node pool / node group. Autoscaler-owned groups are
-refused. `node_pool_max_count` (default 100) caps the count.
+Sets the desired size of a manually scaled EKS managed node group or Auto Scaling group.
+`node_pool_max_count` (default 100) caps the count.
 
 Takes either `clusterName` + `nodegroupName` (EKS managed node group) or
-`autoScalingGroupName` (ASG directly), plus `count`. Groups tagged
-`k8s.io/cluster-autoscaler/enabled=true` are refused. EKS node groups must be `ACTIVE`.
-`execute` submits the new desired size (raising `max` when needed) and returns without waiting
-for instances. Permissions: describe and update EKS node groups and Auto Scaling groups in the
-region.
+`autoScalingGroupName` (an Auto Scaling group directly), plus `count`. It refuses:
+
+- groups scaled by the cluster autoscaler: groups tagged `k8s.io/cluster-autoscaler/enabled=true`,
+  which for a node group are the Auto Scaling groups behind it. Change the autoscaler's
+  minimum and maximum instead;
+- Auto Scaling groups that belong to an EKS managed node group (`eks:nodegroup-name` tag): EKS
+  owns their size, so resize the node group instead;
+- node groups that are not `ACTIVE`, because another update is still running.
+
+EKS and Auto Scaling reject a desired size outside the group's own minimum and maximum, so
+`execute` lowers the minimum or raises the maximum when the new size needs it (EKS needs a
+maximum of at least 1). `plan` reports the limits it would set as `newMin` and `newMax`.
+`execute` returns without waiting for the instances to start or stop.
+
+Permissions: updating is limited to the node groups and Auto Scaling groups of the function's
+region and account; describing Auto Scaling groups can't be limited to resources.
 
 ### vm-delete
 
-Deletes a standalone VM/instance together with its OS disk/volume and network interfaces;
-data disks/volumes are kept (delete them with `volume-delete` if needed).
+Deletes a standalone EC2 instance together with its root volume and network interfaces. Data
+volumes are kept (delete them with `volume-delete` if needed).
 
-Takes `instanceId`. Instances in an Auto Scaling group, EKS worker nodes
-(`eks:nodegroup-name` or `kubernetes.io/cluster/*` tags) and instances with an instance-store
-root volume are refused. `execute` first sets delete-on-termination on the root volume and
-network interfaces (and clears it on data volumes), then terminates the instance; if the
-instance is still updating, a later `execute` terminates it. Once the result reports
-`deleteOnTerminationSet`, terminating the instance also deletes its root volume and network
-interfaces. Permissions: describe instances and network interfaces in the region, and modify
-or terminate those resources. EKS and Auto Scaling membership are only enforced by the
-function.
+Takes `instanceId`. It refuses instances that:
+
+- are in an Auto Scaling group, or are EKS worker nodes (`eks:nodegroup-name` or
+  `kubernetes.io/cluster/*` tags): resize their node group with `node-pool-resize` instead, so
+  it doesn't replace them;
+- have termination protection (`DisableApiTermination`), which the function never turns off;
+- have an instance-store root volume;
+- are not `running` or `stopped`, for example while starting or stopping.
+
+`execute` first sets delete-on-termination on the root volume and network interfaces and clears
+it on the data volumes, then terminates the instance. EC2 applies the change at once, so this
+is usually one `execute`; if a read afterwards doesn't show it yet, `execute` is refused and a
+later one terminates the instance. Once the result reports `deleteOnTerminationSet`,
+terminating the instance in any way also deletes its root volume and network interfaces.
+
+Not covered by the instance's own settings: instance-store volumes are lost with the instance
+(`plan` can't list them, since EC2 doesn't report them for an instance), and Elastic IPs stay
+allocated and keep being billed, so release them separately.
+
+Permissions: describing instances, their attributes and network interfaces; modifying and
+terminating instances, and modifying network interfaces, in the function's region and account.
+IAM can't express the Auto Scaling and EKS refusals, so only the function enforces them.
 
 ## After the stack is applied
 

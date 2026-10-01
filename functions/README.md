@@ -73,3 +73,8 @@ Azure handlers are tested against an in-process ARM mock (`functions_azure::mock
 the `mock` feature, which only the bins' dev-dependencies enable): tests script responses by
 method and path and assert on the requests the handler sent, including their bodies and
 `If-Match`/`If-None-Match` headers.
+
+AWS handlers are tested against scripted SDK responses (`aws-smithy-mocks`, with the SDK
+crate's `test-util` feature in the bins' dev-dependencies): tests describe the calls the
+handler may make, with matchers on the contents of the changes it sends, and assert how often
+each change was made, so a request that differs from the expected one fails the test.
