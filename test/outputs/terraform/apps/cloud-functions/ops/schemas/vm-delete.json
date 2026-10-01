@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan evaluates the safety checks and lists what is deleted and kept without changing anything. execute terminates the instance with its root volume and network interfaces and keeps its data volumes."
+    },
+    "instanceId": {
+      "type": "string",
+      "pattern": "^i-[0-9a-f]{8,17}$",
+      "description": "ID of the EC2 instance to delete, in the region of the function."
+    }
+  },
+  "required": [
+    "action",
+    "instanceId"
+  ],
+  "additionalProperties": false
+}

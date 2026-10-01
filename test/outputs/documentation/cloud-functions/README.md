@@ -37,7 +37,7 @@ enables.
 |---|---|---|
 | `volume-delete` | AWS, Azure, GCP | Deletes an orphaned volume (EBS volume, managed disk, zonal persistent disk) that Kubernetes created for a PersistentVolumeClaim, after snapshotting it. |
 | `node-pool-resize` | Azure | Sets the node count of a manually scaled AKS node pool. |
-| `vm-delete` | Azure | Deletes a standalone VM with its OS disk and network interfaces, keeping its data disks. |
+| `vm-delete` | AWS, Azure | Deletes a standalone VM/instance with its OS disk/volume and network interfaces, keeping its data disks/volumes. |
 | `lb-frontend-delete` | Azure | Removes what a deleted Kubernetes `LoadBalancer` Service left on an AKS load balancer. |
 | `db-restore` | Azure | Restores a PostgreSQL or MySQL flexible server to a point in time, as a new server. |
 | `ssh-access` | Azure | Grants an Entra ID user short-lived SSH login to a Linux VM. |
@@ -46,9 +46,10 @@ Every function changes resources, so none is registered as a workbench tool, or 
 invoked by the cloud connection, unless `register_destructive_tools` is set. Every call of
 their tools then requires human approval in the workbench.
 
-On AWS and GCP, the installation deploys `volume-delete`. On Azure, every function gets its
-permissions only on the resource groups it may act on (`scopes` in terraform, by function
-key), and the installation deploys a function for each resource group it is given:
+On AWS, the installation deploys `volume-delete` and `vm-delete`. On GCP, it deploys
+`volume-delete`. On Azure, every function gets its permissions only on the resource groups it
+may act on (`scopes` in terraform, by function key), and the installation deploys a function
+for each resource group it is given:
 
 | Installation field | Functions |
 |---|---|
@@ -108,18 +109,33 @@ isn't overwritten. Only scale set pools are supported, not `VirtualMachines` poo
 Permissions: read and write agent pools in `scopes["node-pool-resize"]`, the resource groups
 of the clusters.
 
-### vm-delete (Azure)
+### vm-delete
 
-Deletes a standalone VM (`vmId`) together with its OS disk and network interfaces; data disks
-are detached and kept (delete them with `volume-delete` if needed), and public IPs follow the
-delete option of their network interface. VMs of scale sets, AKS nodes (`aks-managed-*` tags)
-and VMs with unmanaged OS disks are refused. `execute` first sets the delete options on the
-VM and then deletes it; if the VM is still updating, a later `execute` deletes it. Both are
-sent with the VM's ETag, so a VM changed in the meantime is left alone. Once the result
-reports `deleteOptionsSet`, deleting the VM in any way also deletes its OS disk and network
-interfaces. Permissions
-in `scopes["vm-delete"]`: read, update and delete VMs, and read, update and delete disks and
+Deletes a standalone VM/instance together with its OS disk/volume and network interfaces;
+data disks/volumes are kept (delete them with `volume-delete` if needed).
+
+#### Azure
+
+Takes `vmId`. Public IPs follow the delete option of their network interface. VMs of scale
+sets, AKS nodes (`aks-managed-*` tags) and VMs with unmanaged OS disks are refused.
+`execute` first sets the delete options on the VM and then deletes it; if the VM is still
+updating, a later `execute` deletes it. Both are sent with the VM's ETag, so a VM changed in
+the meantime is left alone. Once the result reports `deleteOptionsSet`, deleting the VM in
+any way also deletes its OS disk and network interfaces. Permissions in
+`scopes["vm-delete"]`: read, update and delete VMs, and read, update and delete disks and
 network interfaces. They cover every VM there, so scope it to the resource groups of such VMs.
+
+#### AWS
+
+Takes `instanceId`. Instances in an Auto Scaling group, EKS worker nodes
+(`eks:nodegroup-name` or `kubernetes.io/cluster/*` tags) and instances with an instance-store
+root volume are refused. `execute` first sets delete-on-termination on the root volume and
+network interfaces (and clears it on data volumes), then terminates the instance; if the
+instance is still updating, a later `execute` terminates it. Once the result reports
+`deleteOnTerminationSet`, terminating the instance also deletes its root volume and network
+interfaces. Permissions: describe instances and network interfaces in the region, and modify
+or terminate those resources. EKS and Auto Scaling membership are only enforced by the
+function.
 
 ### lb-frontend-delete (Azure)
 

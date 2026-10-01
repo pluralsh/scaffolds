@@ -26,6 +26,11 @@ spec:
     {% if context.invokerServiceAccount %}
     invoker_service_account: "{{ context.invokerServiceAccount }}"
     {% endif %}
+    {% if context.cloud == 'aws' %}
+    functions:
+      - volume-delete
+      - vm-delete
+    {% endif %}
     {% if context.cloud == 'azure' %}
     # Functions are deployed for the resource groups they may act on.
     functions:

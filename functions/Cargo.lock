@@ -2884,6 +2884,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
+name = "vm-delete-aws"
+version = "0.1.0"
+dependencies = [
+ "aws-sdk-ec2",
+ "functions-aws",
+ "functions-core",
+ "lambda_runtime",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "vm-delete-azure"
 version = "0.1.0"
 dependencies = [

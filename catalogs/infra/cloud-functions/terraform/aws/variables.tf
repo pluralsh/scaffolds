@@ -21,7 +21,7 @@ variable "cloud_connection" {
 variable "functions" {
   type        = list(string)
   description = "Functions to deploy, by key of local.catalog."
-  default     = ["volume-delete"]
+  default     = ["volume-delete", "vm-delete"]
 
   validation {
     condition     = length(var.functions) > 0

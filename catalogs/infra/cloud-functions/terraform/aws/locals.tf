@@ -1,6 +1,8 @@
 locals {
   volume_arn   = "arn:${data.aws_partition.current.partition}:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:volume/*"
   snapshot_arn = "arn:${data.aws_partition.current.partition}:ec2:${var.region}::snapshot/*"
+  instance_arn = "arn:${data.aws_partition.current.partition}:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:instance/*"
+  eni_arn      = "arn:${data.aws_partition.current.partition}:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:network-interface/*"
   # Tag the EBS CSI driver sets on volumes it creates for a PersistentVolumeClaim.
   pvc_tag_condition = { test = "Null", variable = "aws:ResourceTag/kubernetes.io/created-for/pvc/name", values = ["false"] }
 
@@ -35,6 +37,30 @@ locals {
         },
       ]
       schema = jsonencode(merge(local.volume_delete_schema, { properties = local.volume_delete_properties }))
+    }
+    vm-delete = {
+      binary      = "vm-delete-aws"
+      description = "Deletes a standalone EC2 instance with its root volume and network interfaces; data volumes are kept. Instances in an Auto Scaling group and EKS worker nodes are refused. Use action plan first to see what is deleted and kept, then execute; execute again if it reports that the instance is still updating."
+      memory      = 128
+      timeout     = 30
+      destructive = true
+      environment = {}
+      # EKS and Auto Scaling membership are checked by the function; IAM cannot express those
+      # refusals as tightly as the Azure resource-group scopes.
+      statements = [
+        { actions = ["ec2:DescribeInstances", "ec2:DescribeNetworkInterfaces"], resources = ["*"], conditions = [] },
+        {
+          actions    = ["ec2:TerminateInstances", "ec2:ModifyInstanceAttribute"]
+          resources  = [local.instance_arn]
+          conditions = []
+        },
+        {
+          actions    = ["ec2:ModifyNetworkInterfaceAttribute"]
+          resources  = [local.eni_arn]
+          conditions = []
+        },
+      ]
+      schema = jsonencode(jsondecode(file("${path.module}/schemas/vm-delete.json")))
     }
   }
 
