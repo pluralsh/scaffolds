@@ -89,8 +89,8 @@ the cloud records it as taken of this volume (not just tagged for it), it is les
 hours old and, on GCP and Azure, it was taken after the volume was last detached. AWS doesn't
 report detach times, so there only the 24 hours limit it: data written to a volume that is
 attached, written and detached again within 24 hours of the snapshot is not in it.
-`allow_skip_snapshot` lets callers pass `snapshot: false`; without it the tool has no such
-input and the function rejects it.
+`allow_skip_snapshot` (the `allowSkipSnapshot` installation field) lets callers pass
+`snapshot: false`; without it the tool has no such input and the function rejects it.
 
 The function's own permissions are limited as well:
 
@@ -277,9 +277,12 @@ submit the change and report the resource state without waiting for it to comple
 
 ## Customizations
 
+The installation can also set the functions' limits: `allowSkipSnapshot`
+(`allow_skip_snapshot`, off by default), `nodePoolMaxCount` (`node_pool_max_count`, AWS and
+Azure, default 100) and `sshAccessMaxMinutes` (`ssh_access_max_minutes`, Azure, default 240).
+
 Terraform variables not set by the stack, such as `functions`, `log_retention_days` (AWS),
-`node_pool_max_count` (AWS, Azure), `scopes`, `network_scopes`, `ssh_access_max_minutes`,
-`ssh_bastion_id`, `resource_group_name`, `instance_memory_in_mb` and `log_retention_days`
+`scopes`, `network_scopes`, `ssh_bastion_id`, `resource_group_name`, `instance_memory_in_mb` and `log_retention_days`
 (Azure), `max_instance_count` and `release_retention_days` (GCP, how long the source and
 images of earlier releases are kept) or
 `tags`, can be added to `variables` in the stack.

@@ -26,11 +26,17 @@ spec:
     {% if context.invokerServiceAccount %}
     invoker_service_account: "{{ context.invokerServiceAccount }}"
     {% endif %}
+    {% if context.allowSkipSnapshot == true or context.allowSkipSnapshot == "true" %}
+    allow_skip_snapshot: true
+    {% endif %}
     {% if context.cloud == 'aws' %}
     functions:
       - volume-delete
       - vm-delete
       - node-pool-resize
+    {% if context.nodePoolMaxCount %}
+    node_pool_max_count: {{ context.nodePoolMaxCount }}
+    {% endif %}
     {% endif %}
     {% if context.cloud == 'gcp' %}
     functions:
@@ -74,6 +80,12 @@ spec:
     {% endif %}
     {% if context.sshBastionId %}
     ssh_bastion_id: "{{ context.sshBastionId }}"
+    {% endif %}
+    {% if context.clusterResourceGroup and context.nodePoolMaxCount %}
+    node_pool_max_count: {{ context.nodePoolMaxCount }}
+    {% endif %}
+    {% if context.sshResourceGroup and context.sshAccessMaxMinutes %}
+    ssh_access_max_minutes: {{ context.sshAccessMaxMinutes }}
     {% endif %}
     {% endif %}
   # Before terraform runs, the init container downloads this cloud's release packages into

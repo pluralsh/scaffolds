@@ -10,3 +10,6 @@ vmResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGro
 databaseResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/databases
 sshResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms
 sshBastionId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/hub/providers/Microsoft.Network/bastionHosts/hub-bastion
+allowSkipSnapshot: true
+nodePoolMaxCount: 20
+sshAccessMaxMinutes: 120

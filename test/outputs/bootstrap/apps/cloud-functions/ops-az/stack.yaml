@@ -25,6 +25,7 @@ spec:
     
     
     
+    
     # Functions are deployed for the resource groups they may act on.
     functions:
       - volume-delete
@@ -40,6 +41,8 @@ spec:
       
       
       
+    
+    
     
     
     

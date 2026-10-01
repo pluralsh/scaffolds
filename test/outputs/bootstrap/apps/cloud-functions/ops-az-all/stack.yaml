@@ -23,6 +23,9 @@ spec:
     artifact_version: "v0.1.0-spike.1"
     
     
+    allow_skip_snapshot: true
+    
+    
     
     
     # Functions are deployed for the resource groups they may act on.
@@ -61,6 +64,12 @@ spec:
     
     
     ssh_bastion_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/hub/providers/Microsoft.Network/bastionHosts/hub-bastion"
+    
+    
+    node_pool_max_count: 20
+    
+    
+    ssh_access_max_minutes: 120
     
     
   # Before terraform runs, the init container downloads this cloud's release packages into
