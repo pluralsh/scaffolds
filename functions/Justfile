@@ -122,6 +122,10 @@ run-azure function input="":
     esac
     [[ -n "$input" ]] || die "the input JSON is missing"
     export RUST_LOG="${RUST_LOG:-info}"
+    # Homebrew's rustup doesn't put cargo on the PATH. Don't let it install missing toolchains.
+    if ! command -v cargo >/dev/null && [[ -d /opt/homebrew/opt/rustup/bin ]]; then
+      export PATH="/opt/homebrew/opt/rustup/bin:$PATH" RUSTUP_AUTO_INSTALL=0
+    fi
     # Built first, so the duration is the function's own.
     cargo build -q -p "$bin" --features functions-azure/az-cli
     start="$(python3 -c 'import time; print(time.time())')"
