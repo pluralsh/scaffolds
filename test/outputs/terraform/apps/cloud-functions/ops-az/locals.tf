@@ -54,7 +54,7 @@ locals {
     vm-delete = {
       binary      = "vm-delete-azure"
       function    = "vm-delete"
-      description = "Deletes a standalone VM with its OS disk and network interfaces; data disks are detached and kept. VMs of scale sets and AKS nodes are refused. Use action plan first to see what is deleted and kept, then execute; execute again if it reports that the VM is still updating."
+      description = "Deletes a standalone VM with its OS disk and network interfaces; data disks are detached and kept. VMs of scale sets and AKS nodes are refused. Use action plan first to see what is deleted and kept, then execute. The first execute usually only sets the delete options and is refused while the VM updates; execute again until it reports deleted: true."
       destructive = true
       environment = {}
       actions = [
@@ -193,9 +193,10 @@ locals {
   artifacts = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }
 
   # Function app and storage account names are globally unique, so they get a suffix derived
-  # from the subscription, resource group and installation name. App names are limited to 32
-  # characters and storage account names to 24 lowercase letters and digits.
-  hash                 = sha1("${local.identity_context["subscription_id"]}/${local.resource_group_name}/${var.name}")
-  app_names            = { for key, _ in local.functions : key => "${trim(substr("${var.name}-${key}", 0, 25), "-")}-${substr(local.hash, 0, 6)}" }
-  storage_account_name = "plrlfn${substr(local.hash, 0, 18)}"
+  # from the subscription, resource group and installation name (and the function, for storage
+  # accounts). App names are limited to 32 characters and storage account names to 24
+  # lowercase letters and digits.
+  hash                  = sha1("${local.identity_context["subscription_id"]}/${local.resource_group_name}/${var.name}")
+  app_names             = { for key, _ in local.functions : key => "${trim(substr("${var.name}-${key}", 0, 25), "-")}-${substr(local.hash, 0, 6)}" }
+  storage_account_names = { for key, _ in local.functions : key => "plrlfn${substr(sha1("${local.hash}/${key}"), 0, 18)}" }
 }
