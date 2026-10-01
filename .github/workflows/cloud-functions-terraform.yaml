@@ -1,7 +1,7 @@
 name: Cloud Functions Terraform
 
-# Every PR runs the workflow, so its `cloud functions terraform` result can be a required
-# check; the validation only runs when the terraform or the functions it deploys changed.
+# Runs on every PR so `cloud functions terraform` can be a required check. Validation only runs
+# when the terraform or the functions it deploys changed.
 on:
   pull_request:
     branches:
@@ -56,7 +56,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # The minimum required_version of the modules, so features newer than it are caught too.
+      # The modules' minimum required_version, so use of newer features is caught.
       - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.5.7
@@ -66,8 +66,8 @@ jobs:
       - run: terraform init -backend=false -input=false
       - run: terraform validate
 
-      # AWS and Azure deploy the release packages named after their Rust binaries, whose package
-      # format follows the bin's cloud suffix. A typo or rename would only fail at deploy time.
+      # AWS and Azure deploy release packages named after their Rust binaries. A typo or rename
+      # would only fail at deploy time.
       - name: check function binaries
         if: matrix.cloud != 'gcp'
         env:
@@ -85,8 +85,8 @@ jobs:
           done
           exit $status
 
-      # GCP functions are entry points of the shared Go source package instead, registered with
-      # functions.HTTP in functions/go/gcp/functions.go.
+      # GCP functions are Go entry points instead, registered with functions.HTTP in
+      # functions/go/gcp/functions.go.
       - name: check function entry points
         if: matrix.cloud == 'gcp'
         run: |

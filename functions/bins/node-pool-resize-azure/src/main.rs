@@ -1,20 +1,19 @@
 //! Sets the node count of a manually scaled AKS node pool.
 //!
 //! AKS cordons and drains the nodes it removes when scaling down. Pools scaled by the cluster
-//! autoscaler are refused, since the autoscaler owns their count; change its minimum and
-//! maximum instead. The new count is bounded by the pool mode (system pools keep at least one
-//! node) and by the installation's `MAX_NODE_COUNT`.
+//! autoscaler are refused; change their minimum and maximum instead. System pools keep at least
+//! one node, and the new count is capped by the installation's `MAX_NODE_COUNT`.
 
 use functions_azure::arm::{self, Connector, Precondition, ResourceId};
 use functions_core::{Action, Error, Guard, Request, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-/// A GA version that has had months to roll out to every region; the function only uses
-/// long-standing agent pool properties.
+/// A GA version old enough to be in every region. Only long-standing agent pool properties are
+/// used.
 const AKS_API_VERSION: &str = "2026-04-01";
 
-/// Nodes AKS allows in a single node pool.
+/// Largest node count AKS allows in a node pool.
 const AKS_MAX_COUNT: i64 = 1000;
 
 /// Environment variable with the largest count callers may set, at most [`AKS_MAX_COUNT`].

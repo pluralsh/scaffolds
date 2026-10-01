@@ -21,14 +21,13 @@ type Step int
 const (
 	// StepNothing changes nothing: a plan, or a guard failed.
 	StepNothing Step = iota
-	// StepCreateSnapshot starts a snapshot and refuses; the volume is deleted by a later
-	// execute.
+	// StepCreateSnapshot starts a snapshot and refuses. A later execute deletes the volume.
 	StepCreateSnapshot
 	// StepDelete deletes the volume.
 	StepDelete
 )
 
-// Deletion is a request to delete a volume, together with what the cloud reports about it.
+// Deletion is a request to delete a volume, with what the cloud reports about it.
 type Deletion struct {
 	Action core.Action
 	// Volume is nil when the volume doesn't exist.
@@ -58,7 +57,7 @@ func (d Deletion) Evaluate() (core.Guards, Step) {
 	return guards, step
 }
 
-// snapshotGuard checks the pre-deletion snapshot and decides the step to take if every
+// snapshotGuard checks the pre-deletion snapshot. The step it returns applies only if every
 // other guard passed.
 func (d Deletion) snapshotGuard() (core.Guard, Step) {
 	snapshot := d.Snapshot

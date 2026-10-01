@@ -1,5 +1,5 @@
 locals {
-  # Cloud Functions builds the source with Cloud Build into an image in Artifact Registry and
+  # Cloud Functions builds the source with Cloud Build into an Artifact Registry image and
   # runs it on Cloud Run, so all four APIs are needed.
   apis = toset([
     "cloudfunctions.googleapis.com",
@@ -39,12 +39,11 @@ resource "google_project_iam_member" "function" {
   member  = "serviceAccount:${google_service_account.function[each.key].email}"
 }
 
-# Cloud Build builds the functions as this service account instead of the Compute Engine
-# default service account, which is broadly privileged (it is often granted Editor). It gets
-# the roles Google documents for a custom Cloud Functions build service account
-# (https://cloud.google.com/functions/docs/building): logging.logWriter for the build logs,
-# the only one granted on the project, artifactregistry.writer for the built images on the
-# functions' own repository, and storage.objectViewer on the source bucket.
+# Cloud Build runs as this service account instead of the Compute Engine default one, which is
+# broadly privileged (often granted Editor). It gets the roles Google documents for a custom
+# build service account (https://cloud.google.com/functions/docs/building): logging.logWriter
+# for build logs (the only project-level grant), artifactregistry.writer on the functions' own
+# repository, and storage.objectViewer on the source bucket.
 resource "google_service_account" "build" {
   account_id   = local.build_service_account
   display_name = "${var.name} operational functions build"
@@ -61,10 +60,10 @@ moved {
   to   = google_project_iam_member.build_logs
 }
 
-# Repository for the images Cloud Build builds from the source, used instead of the
-# gcf-artifacts repository Cloud Functions would create, so the build service account can only
-# write here. Images are deleted once they are release_retention_days old, except for the 5
-# most recent versions of every function, so the deployed image is always kept.
+# Holds the images Cloud Build builds. Used instead of the gcf-artifacts repository Cloud
+# Functions would create, so the build service account can write only here. Images older than
+# release_retention_days are deleted, except the 5 most recent versions of each function, so
+# the deployed image is always kept.
 resource "google_artifact_registry_repository" "functions" {
   repository_id = local.repository_id
   location      = var.region
@@ -99,10 +98,10 @@ resource "google_artifact_registry_repository_iam_member" "build" {
   member     = "serviceAccount:${google_service_account.build.email}"
 }
 
-# Private bucket holding the function source that Cloud Build reads. Every release overwrites
-# the same object, so with versioning the source of earlier releases becomes noncurrent and is
-# deleted after release_retention_days; the current source is never deleted. Soft delete is off,
-# since the source can always be downloaded from the release again.
+# Private bucket for the function source Cloud Build reads. Each release overwrites the same
+# object; with versioning, earlier sources become noncurrent and are deleted after
+# release_retention_days. The current source is never deleted. Soft delete is off, since the
+# source can always be downloaded from the release again.
 resource "google_storage_bucket" "functions" {
   name                        = local.bucket_name
   location                    = var.region
@@ -139,10 +138,9 @@ resource "google_storage_bucket_iam_member" "build" {
 data "google_project" "current" {
 }
 
-# The source is read from the directory the stack's init container downloads the release to.
-# It holds the Go module of every GCP function. A release with different source replaces the
-# object, which gives it a new generation, and the functions pin the generation, so they are
-# rebuilt from exactly that upload.
+# The source comes from the release the stack's init container downloads, and holds the Go
+# module of every GCP function. New source gives the object a new generation. The functions
+# pin the generation, so they are rebuilt from exactly that upload.
 resource "google_storage_bucket_object" "source" {
   name   = "functions-gcp.zip"
   bucket = google_storage_bucket.functions.name
@@ -161,8 +159,8 @@ resource "google_storage_bucket_object" "source" {
 }
 
 # One Cloud Run function (2nd gen) per function, so each runs as its own service account with
-# only the permissions it needs. Ingress is public but no allUsers invoker binding exists, so
-# only identities granted roles/run.invoker (see workbench.tf) can call it.
+# only the permissions it needs. Ingress is public, but there is no allUsers invoker binding,
+# so only identities with roles/run.invoker (see workbench.tf) can call it.
 resource "google_cloudfunctions2_function" "function" {
   for_each = local.functions
 

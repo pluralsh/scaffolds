@@ -1,15 +1,15 @@
 //! Grants an Entra ID user short-lived SSH login to an Azure VM.
 //!
-//! Access uses Microsoft Entra ID login for Linux VMs: no keys are pushed to the VM and no
-//! port is opened. Execute assigns the user the Virtual Machine User Login (or Administrator
-//! Login) role on the VM and returns the command to connect, through Azure Bastion when the
-//! installation configures one. Azure role assignments don't expire, so the expiry is kept in
-//! the assignment's description: every execute on the VM and a timer every few minutes
-//! remove the expired assignments this function created, and nothing else. `revoke` removes
-//! the user's access right away.
+//! Access uses Microsoft Entra ID login for Linux VMs: no keys are pushed and no port is
+//! opened. Execute gives the user the Virtual Machine User Login (or Administrator Login) role
+//! on the VM and returns the command to connect, through Azure Bastion if one is configured.
 //!
-//! The function's own permission to manage role assignments is limited by a role assignment
-//! condition to these two roles and to users, so it can't grant anything else.
+//! Azure role assignments don't expire, so the expiry is stored in the assignment's
+//! description. Every execute on the VM, and a timer every few minutes, removes expired
+//! assignments this function created, and nothing else. `revoke` removes the user's access
+//! right away.
+//!
+//! A role assignment condition limits the function to granting these two roles to users.
 
 use std::collections::hash_map::RandomState;
 use std::hash::{BuildHasher, Hasher};
@@ -28,7 +28,7 @@ const AUTHORIZATION_API_VERSION: &str = "2022-04-01";
 const USER_LOGIN_ROLE: &str = "fb879df8-f326-4884-b1cf-06f3ad86be52";
 const ADMIN_LOGIN_ROLE: &str = "1c0163c0-47e6-4577-8991-ea5c82e286e4";
 
-/// Start of the description of the role assignments this function creates, followed by
+/// Description prefix of the role assignments this function creates, followed by
 /// `expires=<unix seconds>`. Only assignments with it are ever removed.
 const MARKER: &str = "plural.sh ssh-access";
 
@@ -43,7 +43,7 @@ const MAX_DURATION_VAR: &str = "MAX_DURATION_MINUTES";
 const DEFAULT_MAX_DURATION_MINUTES: i64 = 240;
 /// Resource ID of the Bastion host users connect through, if the installation has one.
 const BASTION_VAR: &str = "BASTION_ID";
-/// JSON list of the resource groups the function may grant access in, swept by the timer.
+/// JSON list of the resource groups the function may grant access in; the timer sweeps them.
 const SCOPES_VAR: &str = "SCOPES";
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, Serialize)]
@@ -159,7 +159,7 @@ struct AssignmentProperties {
 }
 
 impl Assignment {
-    /// Expiry (Unix seconds) of an assignment this function created, `None` for any other.
+    /// Expiry (Unix seconds) of an assignment this function created; `None` for any other.
     fn expires_at(&self) -> Option<i64> {
         let props = &self.properties;
         Role::of(&props.role_definition_id)?;
@@ -189,8 +189,7 @@ struct Output {
     /// How to connect once access is granted.
     #[serde(skip_serializing_if = "Option::is_none")]
     command: Option<String>,
-    /// Scopes of the user's other VM login role assignments, which this function neither
-    /// grants nor revokes.
+    /// Scopes of the user's other VM login assignments, which this function doesn't manage.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     other_access: Vec<String>,
     granted: bool,
@@ -214,7 +213,7 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
     }
     let principal = params.principal_id.to_lowercase();
     let now = now();
-    // Out-of-range durations are refused by the duration guard; this only keeps them finite.
+    // The duration guard refuses out-of-range values; this only avoids overflow.
     let mut expires = now.saturating_add(params.duration_minutes.saturating_mul(60));
 
     let arm = connector.connect().await?;
@@ -233,7 +232,7 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
             a.expires_at().is_some() && a.properties.scope.eq_ignore_ascii_case(&vm_id.id())
         })
         .collect();
-    // Login access of the user that this function didn't grant, which revoke doesn't remove.
+    // The user's login access not granted by this function; revoke leaves it alone.
     let vm_path = vm_id.id().to_lowercase();
     let other_access: Vec<String> = assignments
         .iter()
@@ -285,8 +284,8 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
         Action::Execute => {}
     }
 
-    // The user's assignments when revoking, which must all go, and expired ones of anyone,
-    // which the timer would remove anyway.
+    // Remove anyone's expired assignments (the timer would anyway), and on revoke all of the
+    // user's.
     for assignment in &ours {
         let own = assignment
             .properties
@@ -318,7 +317,7 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
         return Ok(Response::done(guards, output));
     }
 
-    // A grant for the same user and role updates the existing assignment, and never shortens it.
+    // Re-granting the same user and role updates the existing assignment, never shortens it.
     let existing = ours
         .iter()
         .copied()
@@ -327,7 +326,7 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
     expires = expires.max(existing.and_then(Assignment::expires_at).unwrap_or(0));
     let granted = put_grant(&arm, &vm_id, &name, &principal, params.role, expires).await;
     match granted {
-        // A concurrent grant created the user's assignment first: extend that one instead.
+        // A concurrent grant created the assignment first: extend that one instead.
         Err(Error::Provider(msg))
             if existing.is_none() && msg.starts_with("RoleAssignmentExists:") =>
         {
@@ -517,9 +516,8 @@ fn format_time(unix: i64) -> String {
         .unwrap_or_else(|| unix.to_string())
 }
 
-/// The Bastion host users connect through, from `BASTION_ID`. A value that isn't a Bastion
-/// host ID is an error rather than no Bastion host, so a typo doesn't hand out a direct
-/// connection command.
+/// The Bastion host from `BASTION_ID`. An invalid value is an error, not "no Bastion", so a
+/// typo doesn't hand out a direct connection command.
 fn bastion(value: Option<&str>) -> Result<Option<ResourceId>, String> {
     match value.map(str::trim).filter(|v| !v.is_empty()) {
         None => Ok(None),
@@ -529,8 +527,8 @@ fn bastion(value: Option<&str>) -> Result<Option<ResourceId>, String> {
     }
 }
 
-/// Resource groups the timer removes expired access in, from `SCOPES`. A trailing slash is
-/// dropped so that assignments below the scope still match it.
+/// Resource groups the timer sweeps, from `SCOPES`. Trailing slashes are dropped so
+/// assignments below a scope still match it.
 fn scopes(value: Option<&str>) -> Result<Vec<String>, String> {
     let Some(value) = value else {
         return Ok(vec![]);

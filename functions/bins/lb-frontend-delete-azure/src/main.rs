@@ -1,20 +1,21 @@
 //! Removes what a deleted Kubernetes `LoadBalancer` Service left on an AKS load balancer.
 //!
-//! AKS puts every such Service on a shared load balancer (`kubernetes` or
-//! `kubernetes-internal`) as a frontend IP configuration named after the Service UID (`a` and
-//! the first 31 hex digits of the UID), with load balancing rules and health probes named
-//! after the frontend and, for public Services, a public IP tagged with the Service. The
-//! caller confirms that no Service with that UID exists anymore, and the frontend's rules must
-//! have no healthy backends; the function then removes, one execute at a time:
+//! AKS adds each such Service to a shared load balancer (`kubernetes` or `kubernetes-internal`)
+//! as a frontend named `a` plus the first 31 hex digits of the Service UID. Its rules and
+//! probes are named after the frontend. Public Services also get a public IP tagged with the
+//! Service.
 //!
-//! 1. the frontend, its rules and the probes only those rules used, with the load balancer's
-//!    ETag so a concurrent update by the cloud provider is never overwritten; the whole load
-//!    balancer is deleted instead when this was its last frontend and it has no backends,
-//! 2. the Service's public IP, once the load balancer no longer uses it, if AKS created it
-//!    for that Service and no other.
+//! The caller confirms no Service with that UID exists, and the frontend's rules must have no
+//! healthy backends. Each execute then does one step:
 //!
-//! The last frontend of a load balancer that still has backends is refused: AKS deletes such
-//! a load balancer itself once it has taken the nodes out of its backend pools.
+//! 1. Remove the frontend, its rules and the probes only those rules use. The update carries
+//!    the load balancer's ETag, so a concurrent cloud provider update is never overwritten. If
+//!    this is the last frontend and there are no backends, delete the whole load balancer.
+//! 2. Delete the Service's public IP once the load balancer no longer uses it, but only if AKS
+//!    created it for this Service alone.
+//!
+//! Removing the last frontend of a load balancer that still has backends is refused: AKS
+//! deletes that load balancer itself once it takes the nodes out of its backend pools.
 
 use std::collections::{HashMap, HashSet};
 
@@ -31,12 +32,11 @@ const SERVICE_TAG: &str = "k8s-azure-service";
 /// Prefix of the public IPs the cloud provider creates, followed by the frontend name.
 const PUBLIC_IP_PREFIX: &str = "kubernetes-";
 
-/// Hex digits of the Service UID in a frontend name, which the cloud provider cuts at 32 characters.
+/// Service UID hex digits in a frontend name; the cloud provider cuts names at 32 characters.
 const UID_DIGITS: usize = 31;
 
-/// How long to wait for the backend health of the frontend's rules, within an invocation.
-/// With the reads before it and the update after it, a call fits in the 30 seconds callers
-/// wait.
+/// How long to wait for the backend health of the frontend's rules. Together with the other
+/// calls, this keeps an invocation within the 30 seconds callers wait.
 const HEALTH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(8);
 
 #[derive(Debug, Deserialize)]
@@ -303,8 +303,7 @@ fn is_service_frontend(name: &str) -> bool {
                     .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))))
 }
 
-/// Healthy backends per rule of the frontend, `None` for a rule whose health wasn't reported
-/// in time.
+/// Healthy backends per rule of the frontend; `None` if a rule's health wasn't reported in time.
 async fn rule_health(
     arm: &Arm,
     lb: &LoadBalancer,
@@ -312,7 +311,7 @@ async fn rule_health(
     frontend: &str,
 ) -> Result<HashMap<String, Option<i64>>, Error> {
     #[derive(Deserialize)]
-    // A result without `up` counts as unknown, which refuses, rather than as no healthy backends.
+    // A result without `up` counts as unknown (and refuses), not as zero healthy backends.
     struct Health {
         #[serde(default)]
         up: Option<i64>,
@@ -427,8 +426,8 @@ fn evaluate(
                 "the frontend must not be used by outbound or NAT rules",
             ));
             guards.push(health_guard(health));
-            // Services sharing an IP share its frontend, which is named after the first of
-            // them; their rules are named after each Service.
+            // Services sharing an IP share one frontend, named after the first of them. Each
+            // Service's rules are named after that Service.
             let prefix = frontend_name.to_lowercase();
             let mut foreign: Vec<String> = owned_by_frontend(lb, lb_id, frontend_name)
                 .0
@@ -615,7 +614,7 @@ fn owned_by_frontend(
     (rules, probes)
 }
 
-/// The load balancer as read, without the frontend, its rules and the probes only they used.
+/// The load balancer as read, minus the frontend, its rules and the probes only they use.
 fn without_frontend(raw: &Value, lb: &LoadBalancer, lb_id: &ResourceId, frontend: &str) -> Value {
     let (rules, probes) = owned_by_frontend(lb, lb_id, frontend);
     let mut body = raw.clone();

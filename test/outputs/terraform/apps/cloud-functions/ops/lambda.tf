@@ -66,8 +66,8 @@ resource "aws_cloudwatch_log_group" "function" {
   tags              = var.tags
 }
 
-# The package is read from the directory the stack's init container downloads the release
-# to. Lambda copies it on deploy, so nothing depends on the release afterwards.
+# The package comes from the release the stack's init container downloads. Lambda copies it
+# on deploy, so nothing depends on the release afterwards.
 resource "aws_lambda_function" "function" {
   for_each = local.functions
 
@@ -81,8 +81,7 @@ resource "aws_lambda_function" "function" {
   timeout       = each.value.timeout
 
   filename = local.artifacts[each.key]
-  # Guarded so that a missing package fails with the precondition below instead of a
-  # function error.
+  # Guarded so a missing package fails the precondition below, not filebase64sha256.
   source_code_hash = fileexists(local.artifacts[each.key]) ? filebase64sha256(local.artifacts[each.key]) : null
 
   dynamic "environment" {

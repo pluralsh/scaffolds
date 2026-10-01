@@ -19,18 +19,18 @@ const ENDPOINT: &str = "https://management.azure.com";
 /// Wait between two polls of a long-running operation when ARM doesn't say how long to wait.
 const POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
 
-/// Attempts of a request ARM throttled or failed to serve.
+/// Maximum attempts for a request that ARM throttles or fails to serve.
 const ATTEMPTS: u32 = 3;
 /// Wait before the first retry when ARM doesn't say how long to wait; it doubles every retry.
 const RETRY_BACKOFF: std::time::Duration = std::time::Duration::from_secs(1);
-/// Longest wait before a retry, whatever ARM's Retry-After says, so that retries fit in the
-/// time a caller waits for the function.
+/// Longest wait before a retry, even if ARM's Retry-After asks for more, so retries fit in
+/// the time a caller waits.
 const MAX_RETRY_WAIT: std::time::Duration = std::time::Duration::from_secs(4);
 
 /// API version of Microsoft.Compute disks and snapshots.
 pub const COMPUTE_API_VERSION: &str = "2024-03-02";
 
-/// A resource type the functions accept IDs of, with its canonical spelling.
+/// A resource type the functions accept IDs for, in its canonical spelling.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Kind {
     pub namespace: &'static str,
@@ -82,8 +82,8 @@ pub struct ResourceId {
 
 impl ResourceId {
     /// Parses a resource ID of one of `kinds`. Only this exact shape is accepted, so the ID
-    /// can't point the client at a different resource or API: the ID is rebuilt from the
-    /// parsed parts, and names can't contain `/`, `?`, `#`, `%` or be `.` or `..`.
+    /// can't point the client at another resource or API. The ID is rebuilt from the parsed
+    /// parts, and names can't contain `/`, `?`, `#`, `%` or be `.` or `..`.
     pub fn parse(id: &str, kinds: &[Kind]) -> Option<Self> {
         let parts: Vec<&str> = id.strip_prefix('/')?.split('/').collect();
         let [
@@ -171,9 +171,8 @@ fn is_resource_group(s: &str) -> bool {
             .all(|c| c.is_alphanumeric() || matches!(c, '-' | '_' | '.' | '(' | ')'))
 }
 
-/// 1-80 of ASCII letters, digits, `-`, `_`, `.`, starting with a letter or digit. This is
-/// the intersection of the naming rules of the resource types above, and keeps names safe to
-/// put into a URL path.
+/// 1-80 of ASCII letters, digits, `-`, `_`, `.`, starting with a letter or digit. This fits
+/// the naming rules of every resource type above and keeps names safe in a URL path.
 fn is_name(s: &str) -> bool {
     s.len() <= 80
         && s.chars().next().is_some_and(|c| c.is_ascii_alphanumeric())
@@ -285,8 +284,8 @@ impl Precondition<'_> {
     }
 }
 
-/// What a function needs to reach ARM: an HTTPS client, a credential and the endpoint.
-/// Created once per process; [`Connector::connect`] gets a fresh token per invocation.
+/// The HTTPS client, credential and endpoint for reaching ARM. Create it once per process;
+/// [`Connector::connect`] gets a fresh token per invocation.
 #[derive(Clone)]
 pub struct Connector {
     client: reqwest::Client,
@@ -524,8 +523,8 @@ impl Arm {
             .query(&[("api-version", api_version)])
     }
 
-    /// Sends the request, retrying it if ARM throttled it or failed to serve it. Requests that
-    /// time out aren't retried, so retries only add their waits to the time a call takes.
+    /// Sends the request, retrying if ARM throttled it or failed to serve it. Timed-out
+    /// requests aren't retried, so retries only add their waits to a call's duration.
     async fn send(&self, req: reqwest::RequestBuilder) -> Result<reqwest::Response, Error> {
         let mut req = req
             .bearer_auth(&self.token)
@@ -573,8 +572,9 @@ fn poll_wait(headers: &reqwest::header::HeaderMap) -> std::time::Duration {
 }
 
 /// Whether a request that got `status` can be sent again. Throttled and unavailable requests
-/// weren't processed, so any of them can. Other server errors may have been processed, so
-/// only reads are retried; a write is left to the caller, who plans again first.
+/// weren't processed, so any method can be retried. Other server errors may have been
+/// processed, so only reads are retried. A failed write is left to the caller, who plans
+/// again first.
 fn retryable(method: &Method, status: reqwest::StatusCode) -> bool {
     use reqwest::StatusCode;
     match status {

@@ -26,10 +26,9 @@ spec:
     
     
     
-  # The init container downloads the release's function packages for this cloud (function zips
-  # for AWS and Azure, the source zip of all functions for GCP), verified against SHA256SUMS,
-  # into /artifacts/<version> before terraform runs. With raw, the operator ignores the other
-  # jobSpec fields, so on Azure the workload identity is set in raw as well.
+  # Before terraform runs, the init container downloads this cloud's release packages into
+  # /artifacts/<version> and verifies them against SHA256SUMS. With raw, the operator ignores the
+  # other jobSpec fields, so on Azure the workload identity is also set in raw.
   jobSpec:
     namespace: plrl-deploy-operator
     raw:

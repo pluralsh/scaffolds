@@ -1,8 +1,8 @@
 //! Deletes an orphaned managed disk that Kubernetes created for a PersistentVolumeClaim.
 //!
-//! The guards and snapshot handling are shared with the other clouds, see
-//! [`functions_core::volume`]. The pre-deletion snapshot is an incremental snapshot in the
-//! disk's resource group, tagged with the disk's resource ID so a later execute finds it.
+//! Guards and snapshot handling are shared with the other clouds in [`functions_core::volume`].
+//! The pre-deletion snapshot is an incremental snapshot in the disk's resource group, tagged
+//! with the disk's resource ID so a later execute finds it.
 
 use std::collections::HashMap;
 
@@ -178,8 +178,8 @@ fn snapshot_status(
     }
 }
 
-/// Whether Azure recorded `snapshot` as taken of `disk`. The disk's `uniqueId` changes when a
-/// disk is re-created under the same name, so it is preferred over the resource ID.
+/// Whether Azure recorded `snapshot` as taken of `disk`. Prefers `uniqueId` over the resource
+/// ID, since it changes when a disk is re-created under the same name.
 fn taken_of(snapshot: &Snapshot, disk: &Disk) -> bool {
     let Some(source) = &snapshot.properties.creation_data else {
         return false;

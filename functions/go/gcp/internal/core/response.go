@@ -6,12 +6,12 @@ type Outcome string
 const (
 	// OutcomePlanned means the plan finished and every guard passed.
 	OutcomePlanned Outcome = "planned"
-	// OutcomeRefused means at least one guard failed and the operation was not performed. A
-	// function may still have started a preparatory step, such as a snapshot, which it then
-	// reports in the result.
+	// OutcomeRefused means a guard failed and the operation was not performed. The function
+	// may still have started a preparatory step, such as a snapshot, and reports it in the
+	// result.
 	OutcomeRefused Outcome = "refused"
-	// OutcomeDone means the change was submitted. Functions return without waiting for it to
-	// complete and report the resource state they observed instead.
+	// OutcomeDone means the change was submitted. Functions don't wait for it to complete;
+	// they report the resource state they saw.
 	OutcomeDone Outcome = "done"
 )
 
@@ -33,7 +33,7 @@ func Planned[R any](guards Guards, result R) Response[R] {
 	return Response[R]{Action: ActionPlan, Outcome: outcome, Guards: guards, Result: &result}
 }
 
-// Refused is the response to an execute that was refused because at least one guard failed.
+// Refused is the response to an execute refused because a guard failed.
 func Refused[R any](guards Guards) Response[R] {
 	return Response[R]{Action: ActionExecute, Outcome: OutcomeRefused, Guards: guards}
 }

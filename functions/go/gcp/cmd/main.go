@@ -1,8 +1,8 @@
-// Command main serves the functions locally with the Functions Framework, e.g.
+// Command main runs the functions locally with the Functions Framework:
 //
 //	FUNCTION_TARGET=VolumeDelete GOOGLE_CLOUD_PROJECT=my-project go run ./cmd
 //
-// Cloud Run builds the functions from the module root instead and never runs this command.
+// Cloud Run builds the functions from the module root and doesn't use this command.
 package main
 
 import (

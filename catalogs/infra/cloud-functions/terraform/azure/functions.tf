@@ -1,7 +1,7 @@
-# Each app gets a storage account of its own for its package and the Functions host's state,
-# including its keys. The app reaches it with the account key, so a shared account would let
-# any app read or replace the others' packages and keys. Identity-based access isn't used, as
-# the azurerm provider doesn't configure it correctly for Flex Consumption apps yet.
+# Each app gets its own storage account for its package and the Functions host's state,
+# including its keys. The app uses the account key, so a shared account would let any app read
+# or replace the others' packages and keys. Identity-based access isn't used: the azurerm
+# provider doesn't configure it correctly for Flex Consumption apps yet.
 resource "azurerm_storage_account" "function" {
   for_each = local.functions
 
@@ -15,8 +15,8 @@ resource "azurerm_storage_account" "function" {
   tags                            = var.tags
 }
 
-# The Functions host sends the handlers' logs and the invocations to Application Insights,
-# which keeps them in the workspace.
+# The Functions host sends handler logs and invocations to Application Insights, which stores
+# them in this workspace.
 resource "azurerm_log_analytics_workspace" "functions" {
   name                = "${var.name}-functions-${substr(local.hash, 0, 6)}"
   resource_group_name = data.azurerm_resource_group.functions.name
@@ -55,9 +55,8 @@ resource "azurerm_service_plan" "function" {
   tags                = var.tags
 }
 
-# One app per function, so each function runs as its own managed identity with only the
-# actions it needs. Code updates are driven by artifact_version, which is part of the
-# deployed package path.
+# One app per function, so each runs as its own managed identity with only the actions it
+# needs. artifact_version is part of the package path, so changing it redeploys the code.
 resource "azurerm_function_app_flex_consumption" "function" {
   for_each = local.functions
 
@@ -134,8 +133,8 @@ resource "azurerm_role_assignment" "function" {
   condition_version  = local.functions[each.value.key].condition == null ? null : "2.0"
 }
 
-# The join actions of the functions that reference networks, on the network resource groups,
-# without their other actions there.
+# Join actions of functions that reference networks, granted on the network resource groups
+# without the functions' other actions.
 resource "azurerm_role_definition" "network" {
   for_each = { for key, fn in local.functions : key => fn if length(fn.network_scopes) > 0 }
 
@@ -162,7 +161,7 @@ resource "azurerm_role_assignment" "network" {
   principal_type     = "ServicePrincipal"
 }
 
-# Reads ARM only serves at subscription scope, such as the results of long-running actions.
+# Reads ARM only serves at subscription scope, such as results of long-running actions.
 resource "azurerm_role_definition" "subscription" {
   for_each = { for key, fn in local.functions : key => fn if length(fn.subscription_actions) > 0 }
 

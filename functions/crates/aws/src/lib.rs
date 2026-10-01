@@ -18,9 +18,9 @@ pub async fn sdk_config() -> SdkConfig {
 
 /// Converts an AWS SDK error into [`Error::Provider`].
 ///
-/// Service errors are reduced to `<code>: <message>` (e.g. `AccessDenied: ...`) so the caller
-/// is not flooded with raw HTTP responses. Errors without a code, such as connection
-/// failures, keep their full cause chain.
+/// Service errors are reduced to `<code>: <message>` (e.g. `AccessDenied: ...`) instead of the
+/// raw HTTP response. Errors without a code, such as connection failures, keep their full
+/// cause chain.
 pub fn provider_error<E: StdError + ProvideErrorMetadata>(err: E) -> Error {
     match (err.code(), err.message()) {
         (Some(code), Some(message)) => Error::provider(format!("{code}: {message}")),
@@ -31,8 +31,8 @@ pub fn provider_error<E: StdError + ProvideErrorMetadata>(err: E) -> Error {
 
 /// Starts the Lambda runtime loop with `handler`.
 ///
-/// Guard refusals are regular responses. Only an [`Error`] is surfaced as a Lambda
-/// function error, typed with [`Error::kind`], which the workbench shows as a failed tool call.
+/// Guard refusals are normal responses. Only an [`Error`] becomes a Lambda function error,
+/// typed with [`Error::kind`]. The workbench shows it as a failed tool call.
 pub async fn run<P, R, F, Fut>(handler: F) -> Result<(), lambda_runtime::Error>
 where
     P: DeserializeOwned + Send + 'static,

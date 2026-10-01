@@ -1,8 +1,8 @@
 name: Functions CI
 
-# Pushes to main also build, so the Rust cache that PRs and releases restore is kept warm.
-# Every PR runs the workflow, so its `functions ci` result can be a required check; the build
-# only runs when the functions changed.
+# Pushes to main also build, to keep the Rust cache that PRs and releases restore warm.
+# Runs on every PR so `functions ci` can be a required check. The build only runs when the
+# functions changed.
 on:
   pull_request:
     branches:

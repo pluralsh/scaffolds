@@ -6,17 +6,16 @@ locals {
   # Tag the EBS CSI driver sets on volumes it creates for a PersistentVolumeClaim.
   pvc_tag_condition = { test = "Null", variable = "aws:ResourceTag/kubernetes.io/created-for/pvc/name", values = ["false"] }
 
-  # Without allow_skip_snapshot, the `snapshot` input is removed from the tool schema and the
-  # function rejects `snapshot: false` as well.
+  # Without allow_skip_snapshot, the `snapshot` input is dropped from the tool schema and the
+  # function also rejects `snapshot: false`.
   volume_delete_schema = jsondecode(file("${path.module}/schemas/volume-delete.json"))
   volume_delete_properties = {
     for key, prop in local.volume_delete_schema.properties : key => prop if key != "snapshot" || var.allow_skip_snapshot
   }
 
-  # Every function that can be deployed. `statements` is the minimal IAM the function needs
-  # on top of writing its own logs. Every function is registered as a workbench tool, and every
-  # call of the tools of `destructive` functions, which change or delete resources, requires
-  # human approval.
+  # Deployable functions. `statements` is the minimal IAM each needs besides writing its logs.
+  # All are registered as workbench tools; calls to `destructive` ones (which change or delete
+  # resources) need human approval.
   catalog = {
     volume-delete = {
       binary      = "volume-delete-aws"
@@ -45,8 +44,8 @@ locals {
       timeout     = 30
       destructive = true
       environment = {}
-      # EKS and Auto Scaling membership are checked by the function; IAM cannot express those
-      # refusals as tightly as the Azure resource-group scopes.
+      # The function checks EKS and Auto Scaling membership itself; IAM can't express those
+      # refusals as tightly as Azure's resource-group scopes.
       statements = [
         { actions = ["ec2:DescribeInstances", "ec2:DescribeNetworkInterfaces"], resources = ["*"], conditions = [] },
         {

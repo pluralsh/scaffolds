@@ -24,7 +24,7 @@ const ASG_TAG: &str = "aws:autoscaling:groupName";
 /// Tag EKS sets on managed node group instances.
 const EKS_NODEGROUP_TAG: &str = "eks:nodegroup-name";
 
-/// Prefix of the tags the in-tree / cloud provider sets on cluster nodes.
+/// Prefix of the tags Kubernetes cloud providers set on cluster nodes.
 const K8S_CLUSTER_TAG_PREFIX: &str = "kubernetes.io/cluster/";
 
 #[derive(Debug, Deserialize)]
@@ -44,7 +44,7 @@ struct InstanceView {
     root_volume_id: Option<String>,
     /// Non-root EBS volume IDs.
     data_volumes: Vec<String>,
-    /// Device name and desired delete-on-termination for every EBS mapping.
+    /// Every EBS mapping with its current delete-on-termination.
     block_devices: Vec<BlockDeviceView>,
     network_interfaces: Vec<NetworkInterfaceView>,
     /// Whether terminating the instance deletes the root volume and NICs and keeps data volumes.

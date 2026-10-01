@@ -5,8 +5,8 @@ import (
 	"log/slog"
 )
 
-// NewLogger returns a logger writing JSON that Cloud Logging understands: the level becomes
-// the entry severity and the message its text.
+// NewLogger returns a JSON logger for Cloud Logging. It writes the level as `severity` and
+// the message as `message`.
 func NewLogger(w io.Writer) *slog.Logger {
 	return slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {

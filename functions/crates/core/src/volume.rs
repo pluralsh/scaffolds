@@ -1,21 +1,23 @@
 //! Cloud-agnostic decision logic for deleting an orphaned volume.
 //!
-//! Each cloud describes the volume and its pre-deletion snapshot with [`Volume`] and
-//! [`SnapshotStatus`], and [`evaluate`] decides the guards and the single [`Step`] to take.
-//! Keeping the rules here makes them identical on every cloud.
+//! Each cloud reports the volume as a [`Volume`] and its pre-deletion snapshot as a
+//! [`SnapshotStatus`]. [`evaluate`] then returns the guards and the next [`Step`]. Keeping the
+//! rules here makes them the same on every cloud.
 //!
 //! A volume is only deleted when it exists, isn't attached, is in a state that allows
 //! deletion and was created by Kubernetes for the PersistentVolume the caller names. The
 //! function can't see the cluster, so the caller has to confirm the PersistentVolume is gone
 //! before asking to delete its volume.
 //!
-//! With `snapshot` (the default), a completed snapshot of the volume is required first:
-//! snapshots can take longer than a single invocation, so the first execute starts one and is
-//! refused, and a later execute deletes the volume once the snapshot has completed. A snapshot
-//! only counts if the cloud records it as taken of this volume, it was started within
-//! [`SNAPSHOT_MAX_AGE_SECS`] and, where the cloud reports it, after the volume was last
-//! detached, so an older snapshot can't stand in for data written to the volume since.
-//! Skipping the snapshot has to be allowed by the installation, see [`snapshot_required`].
+//! With `snapshot` (the default), the volume needs a completed snapshot first. Snapshots can
+//! outlast one invocation, so the first execute starts one and is refused. A later execute
+//! deletes the volume once the snapshot has completed.
+//!
+//! A snapshot only counts if the cloud records it as taken of this volume and it was started
+//! within [`SNAPSHOT_MAX_AGE_SECS`]. Where the cloud reports when the volume was last
+//! detached, the snapshot must also be newer than that, so it can't miss data written since.
+//!
+//! Skipping the snapshot must be allowed by the installation, see [`snapshot_required`].
 
 use serde::Serialize;
 
@@ -30,9 +32,8 @@ pub const CLOCK_SKEW_SECS: i64 = 5 * 60;
 /// Environment variable that allows callers to skip the snapshot with `snapshot: false`.
 pub const ALLOW_SKIP_SNAPSHOT_VAR: &str = "ALLOW_SKIP_SNAPSHOT";
 
-/// Whether a snapshot started at `started_at` counts at `now`, for a volume last detached at
-/// `detached_at` (all Unix seconds): it must be recent, not in the future and, when the
-/// detach time is known, taken after it.
+/// Whether a snapshot started at `started_at` still counts at `now` (all Unix seconds). It
+/// must be recent, not in the future and, if `detached_at` is known, taken after it.
 pub fn snapshot_counts(started_at: i64, now: i64, detached_at: Option<i64>) -> bool {
     let age = now - started_at;
     (-CLOCK_SKEW_SECS..=SNAPSHOT_MAX_AGE_SECS).contains(&age)
@@ -46,8 +47,7 @@ pub fn snapshot_required(requested: bool) -> Result<bool, Error> {
     check_snapshot_policy(requested, allowed)
 }
 
-/// Validates the PersistentVolume name the caller expects the volume to belong to: a
-/// Kubernetes object name (DNS-1123 subdomain).
+/// Checks that `pv` is a valid PersistentVolume name (a DNS-1123 subdomain).
 pub fn validate_pv_name(pv: &str) -> Result<(), Error> {
     let bytes = pv.as_bytes();
     let alnum = |b: &u8| b.is_ascii_lowercase() || b.is_ascii_digit();
@@ -169,11 +169,10 @@ pub enum Step {
     Delete,
 }
 
-/// Evaluates the guards for deleting `volume`, created for the PersistentVolume `pv`, and
-/// decides the next step.
+/// Evaluates the guards for deleting `volume` and decides the next step.
 ///
-/// `volume` is `None` when the volume doesn't exist. `snapshot` is ignored unless
-/// `snapshot_required` is set.
+/// `pv` is the PersistentVolume the volume must have been created for. `volume` is `None`
+/// when the volume doesn't exist. `snapshot` is ignored unless `snapshot_required` is set.
 pub fn evaluate(
     action: Action,
     volume: Option<&Volume>,
@@ -285,7 +284,7 @@ fn kubernetes_guard(volume: &Volume, pv: &str) -> Guard {
     }
 }
 
-/// `true`, for `#[serde(default = "...")]` on the `snapshot` parameter.
+/// Default for the `snapshot` parameter, for `#[serde(default = "...")]`.
 pub fn default_snapshot() -> bool {
     true
 }

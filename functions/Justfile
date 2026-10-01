@@ -1,8 +1,8 @@
 dist := "dist"
 musl_target := "x86_64-unknown-linux-musl"
 
-# Rust functions are grouped by cloud through their bin name suffix, e.g. volume-delete-aws.
-# GCP functions are Go, in go/gcp: Google builds them from source, so there is nothing to build here.
+# Rust functions are grouped by cloud by their bin name suffix, e.g. volume-delete-aws.
+# GCP functions are Go, in go/gcp. Google builds them from source, so there is nothing to build here.
 aws_bins := `ls bins | grep -- '-aws$' | tr '\n' ' '`
 azure_bins := `ls bins | grep -- '-azure$' | tr '\n' ' '`
 
@@ -38,8 +38,8 @@ build-aws:
 build-azure:
     cargo lambda build --release --target {{musl_target}} $(printf -- '--bin %s ' {{azure_bins}})
 
-# This is the layout published on releases. AWS zips hold the bootstrap binary; Azure zips hold
-# host.json, the bin's azure/<function>/function.json folders and the handler binary; the GCP
+# This is the layout published on releases. AWS zips hold the bootstrap binary. Azure zips hold
+# host.json, the bin's azure/<function>/function.json folders and the handler binary. The GCP
 # zip holds the Go source of every function, which Cloud Functions builds.
 #
 # Package functions into dist/<bin>.zip (AWS, Azure) and dist/functions-gcp.zip (GCP) with a SHA256SUMS file.
@@ -57,13 +57,13 @@ package: build
       # One folder with a function.json per function of the app, e.g. an HTTP and a timer function.
       cp -R "bins/$bin/azure/." "$stage/"
       cp "target/lambda/$bin/bootstrap" "$stage/handler"
-      # Fixed timestamps keep the zip, and so its checksum, reproducible.
+      # Fixed timestamps keep the zip checksum reproducible.
       find "$stage" -exec touch -t 202001010000 {} +
       (cd "$stage" && zip -qrX "$OLDPWD/{{dist}}/$bin.zip" .)
     done
-    # The go module without its tests. Python's zipfile, with sorted entries, fixed timestamps
-    # and permissions, and no compression (deflate output can differ between zlib versions),
-    # gives the same archive on every OS. Files that go:embed reads are not included.
+    # The Go module without its tests. Files read by go:embed are not included. Python's zipfile
+    # gives the same archive on every OS: sorted entries, fixed timestamps and permissions, and no
+    # compression (deflate output can differ between zlib versions).
     python3 - go/gcp "{{dist}}/functions-gcp.zip" <<'PY'
     import os, sys, zipfile
     src, dst = sys.argv[1:]

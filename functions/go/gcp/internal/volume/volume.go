@@ -24,8 +24,7 @@ type Volume struct {
 	DetachedAt *int64 `json:"detachedAt,omitempty"`
 }
 
-// guards are the checks on the volume itself, for a volume expected to belong to the
-// PersistentVolume pv.
+// guards checks the volume itself, which should belong to the PersistentVolume pv.
 func (v *Volume) guards(pv PVName) core.Guards {
 	return core.Guards{
 		core.Pass(guardExists, "found "+v.ID),
@@ -69,8 +68,8 @@ type KubernetesClaim struct {
 }
 
 // ClaimFromMetadata builds the claim from the standard `kubernetes.io/created-for/*`
-// metadata the CSI drivers attach to volumes, where empty means absent. It returns nil
-// without a PVC name.
+// metadata that CSI drivers put on volumes. Empty values mean absent. It returns nil if there
+// is no PVC name.
 func ClaimFromMetadata(pvc, namespace, pv string) *KubernetesClaim {
 	pvc = strings.TrimSpace(pvc)
 	if pvc == "" {

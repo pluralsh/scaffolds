@@ -1,14 +1,14 @@
 //! Deletes a standalone Azure VM together with its OS disk and network interfaces.
 //!
 //! Data disks are detached and kept; delete them with volume-delete once they are no longer
-//! needed. VMs of scale sets, which includes AKS nodes, are refused: scale their node pool
-//! with node-pool-resize instead, so the scale set doesn't replace them.
+//! needed. Scale set VMs, including AKS nodes, are refused: scale the node pool with
+//! node-pool-resize instead so the scale set doesn't replace them.
 //!
-//! Azure deletes a VM's disks and network interfaces with it according to their
-//! `deleteOption`, so execute first sets the OS disk and network interfaces to `Delete` and the
-//! data disks to `Detach`, and then deletes the VM. Azure usually reports the VM as updating for
-//! a while after the first step; execute is then refused, and a later execute, once the VM has
-//! finished updating, deletes it. Deleting a VM therefore usually takes two executes.
+//! Azure deletes a VM's disks and network interfaces with it based on their `deleteOption`.
+//! `execute` first sets the OS disk and network interfaces to `Delete` and the data disks to
+//! `Detach`, then deletes the VM. Azure usually reports the VM as updating after the first step,
+//! so execute is refused and a later execute deletes it. Deleting a VM usually takes two
+//! executes.
 
 use std::collections::HashMap;
 
@@ -132,8 +132,8 @@ struct VmSummary {
 struct Output {
     #[serde(skip_serializing_if = "Option::is_none")]
     vm: Option<VmSummary>,
-    /// Whether deleting the VM, by this function or anyone else, now also deletes its OS disk
-    /// and network interfaces.
+    /// Whether deleting the VM now also deletes its OS disk and network interfaces and keeps its
+    /// data disks.
     delete_options_set: bool,
     deleted: bool,
 }
@@ -168,7 +168,7 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
 
     let mut etag = vm.etag.clone();
     if !delete_options_set(&vm) {
-        // The lists in the body replace the VM's, so a VM changed since it was read is left alone.
+        // The body's lists replace the VM's, so the PATCH applies only if the VM is unchanged.
         let updated = arm
             .patch(
                 &path,
@@ -276,9 +276,9 @@ fn delete_options_set(vm: &Vm) -> bool {
             })
 }
 
-/// PATCH body setting the OS disk and network interfaces to be deleted with the VM and the
-/// data disks to be detached. Lists replace the VM's lists, so they are sent as read, with
-/// only `deleteOption` changed.
+/// PATCH body that sets the OS disk and network interfaces to `Delete` and the data disks to
+/// `Detach`. The lists replace the VM's, so they are sent as read with only `deleteOption`
+/// changed.
 fn delete_options_body(raw: &Value) -> Value {
     let list = |pointer: &str| {
         raw.pointer(pointer)

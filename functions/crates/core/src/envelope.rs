@@ -30,11 +30,11 @@ pub struct Request<P> {
 pub enum Outcome {
     /// Plan finished and every guard passed.
     Planned,
-    /// At least one guard failed and the operation was not performed. A function may still
-    /// have started a preparatory step, such as a snapshot, which it then reports in the result.
+    /// At least one guard failed, so the operation was not performed. A function may still
+    /// have started a preparatory step, such as a snapshot, and reports it in the result.
     Refused,
-    /// The change was submitted. Functions return without waiting for it to complete and
-    /// report the resource state they observed instead.
+    /// The change was submitted. Functions don't wait for it to complete; they report the
+    /// resource state they saw.
     Done,
 }
 

@@ -1,17 +1,16 @@
 locals {
-  # Without allow_skip_snapshot, the `snapshot` input is removed from the tool schema and the
-  # function rejects `snapshot: false` as well.
+  # Without allow_skip_snapshot, the `snapshot` input is dropped from the tool schema and the
+  # function also rejects `snapshot: false`.
   volume_delete_schema = jsondecode(file("${path.module}/schemas/volume-delete.json"))
   volume_delete_properties = {
     for key, prop in local.volume_delete_schema.properties : key => prop if key != "snapshot" || var.allow_skip_snapshot
   }
 
-  # Every function that can be deployed. `entry_point` is the function registered with the
-  # Functions Framework in the shared Go source package, and `permissions` is the minimal set
-  # of IAM permissions the function needs, granted to its service account through a project
-  # custom role.
-  # Every function is registered as a workbench tool, and every call of the tools of
-  # `destructive` functions, which change or delete resources, requires human approval.
+  # Deployable functions. `entry_point` is the function registered with the Functions
+  # Framework in the shared Go source package. `permissions` is the minimal IAM each needs,
+  # granted to its service account through a project custom role. All are registered as
+  # workbench tools; calls to `destructive` ones (which change or delete resources) need human
+  # approval.
   catalog = {
     volume-delete = {
       entry_point = "VolumeDelete"
@@ -45,14 +44,14 @@ locals {
   artifact = "${var.artifact_dir}/${var.artifact_version}/functions-gcp.zip"
 
   # Service account IDs are limited to 30 characters and custom role IDs to letters, digits,
-  # underscores and dots, so both get a suffix derived from the installation name.
+  # underscores and dots, so both get a suffix hashed from the project and installation name.
   hash             = substr(sha1("${local.project_id}/${var.name}"), 0, 6)
   service_accounts = { for key, _ in local.functions : key => "${trim(substr("${var.name}-${key}", 0, 23), "-")}-${local.hash}" }
-  # The build service account is shared by every function. The name is capped at 17
-  # characters so that, with "-build-" and the hash, the ID stays within 30.
+  # The build service account is shared by all functions. The name is capped at 17 characters
+  # so the ID, with "-build-" and the hash, stays within 30.
   build_service_account = "${trim(substr(var.name, 0, 17), "-")}-build-${local.hash}"
   role_ids              = { for key, _ in local.functions : key => replace("${var.name}_${key}_${local.hash}", "-", "_") }
-  # The name of the Cloud Run service behind each function, the last segment of
+  # Name of the Cloud Run service behind each function: the last segment of
   # projects/<project>/locations/<region>/services/<name>.
   run_services = {
     for key, fn in google_cloudfunctions2_function.function : key => element(split("/", fn.service_config[0].service), length(split("/", fn.service_config[0].service)) - 1)

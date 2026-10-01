@@ -5,8 +5,7 @@ import (
 	"net/http"
 )
 
-// ErrorKind is the stable, machine-readable error category reported to the caller as the
-// error type.
+// ErrorKind is a stable error category, reported to the caller as errorType.
 type ErrorKind string
 
 const (
@@ -18,8 +17,8 @@ const (
 
 // Error is a failure that prevents a function from producing a [Response].
 //
-// Guard failures are not errors: they are reported as [OutcomeRefused] so the caller can see
-// why an action was not taken.
+// Guard failures are not errors. They are reported as [OutcomeRefused], so the caller sees
+// why nothing was done.
 type Error struct {
 	Kind    ErrorKind
 	Message string

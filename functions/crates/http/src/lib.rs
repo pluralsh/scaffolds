@@ -1,9 +1,9 @@
 //! HTTP runtime: serves a handler that speaks the [`functions_core`] envelope.
 //!
-//! Used behind Azure Functions custom handlers (request forwarding). Every
-//! `POST`, whatever the path, is an invocation: the body is the workbench tool input and
-//! the response body is the [`Response`]. Errors use the same `errorType`/`errorMessage`
-//! shape as Lambda function errors, with a 4xx/5xx status that callers report as failures.
+//! Used behind Azure Functions custom handlers (request forwarding). Every `POST`, on any
+//! path, is an invocation. The body is the workbench tool input and the response body is the
+//! [`Response`]. Errors use the `errorType`/`errorMessage` shape of Lambda function errors,
+//! with a 4xx/5xx status that callers report as a failure.
 
 use std::future::Future;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -42,11 +42,11 @@ where
 }
 
 /// Serves `handler` like [`run`], and runs `timer` whenever the Azure Functions host invokes
-/// the timer-triggered function `timer_function` of the same app.
+/// the app's timer-triggered function `timer_function`.
 ///
-/// The host sends non-HTTP triggers to `/<function name>` in its invocation format, which
-/// only reaches the handler from the host itself: HTTP requests are forwarded to the paths of
-/// the HTTP triggers (`/api/...`).
+/// The host sends non-HTTP triggers to `/<function name>` in its invocation format. Only the
+/// host can call that path, since outside HTTP requests are forwarded to the HTTP trigger
+/// paths (`/api/...`).
 pub async fn run_with_timer<P, R, F, Fut, T, TFut>(
     handler: F,
     timer_function: &str,
@@ -112,8 +112,7 @@ fn timer_response(result: Result<(), Error>) -> HttpResponse {
 
 /// HTTPS client for cloud APIs, trusting the built-in Mozilla root certificates only.
 ///
-/// The roots are compiled in, so TLS doesn't depend on the CA certificates of the host
-/// image, which can be minimal.
+/// The roots are compiled in, so TLS works on minimal host images without CA certificates.
 pub fn https_client() -> Result<reqwest::Client, Error> {
     let roots = webpki_root_certs::TLS_SERVER_ROOT_CERTS
         .iter()
@@ -122,8 +121,8 @@ pub fn https_client() -> Result<reqwest::Client, Error> {
         .map_err(|err| Error::provider(format!("loading root certificates: {err}")))?;
     reqwest::Client::builder()
         .tls_certs_only(roots)
-        // Cloud API calls answer within seconds; long operations run asynchronously. A call
-        // makes a few requests and has to fit in the 30 seconds callers wait.
+        // Cloud APIs answer within seconds and run long operations asynchronously. An
+        // invocation makes a few requests and must fit in the 30 seconds callers wait.
         .timeout(std::time::Duration::from_secs(8))
         .build()
         .map_err(|err| Error::provider(format!("building HTTPS client: {err}")))

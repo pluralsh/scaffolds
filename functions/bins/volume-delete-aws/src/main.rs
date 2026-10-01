@@ -1,8 +1,7 @@
 //! Deletes an orphaned EBS volume that Kubernetes created for a PersistentVolumeClaim.
 //!
-//! The guards and snapshot handling are shared with the other clouds, see
-//! [`functions_core::volume`]. The pre-deletion snapshot is tagged with the volume ID so a
-//! later execute finds it again.
+//! Guards and snapshot handling are shared with the other clouds in [`functions_core::volume`].
+//! The pre-deletion snapshot is tagged with the volume ID so a later execute finds it.
 
 use aws_sdk_ec2::Client;
 use aws_sdk_ec2::error::ProvideErrorMetadata;
@@ -183,9 +182,9 @@ fn volume_from(v: &aws_sdk_ec2::types::Volume) -> Volume {
     }
 }
 
-/// Status of the most recently started snapshot, ignoring snapshots that aren't recent.
+/// Status of the most recent snapshot of the volume, ignoring stale ones.
 fn snapshot_status(snapshots: &[Snapshot], volume_id: &str, now: i64) -> SnapshotStatus {
-    // EC2 doesn't report when a volume was detached, so only the age limits a snapshot.
+    // EC2 doesn't report when a volume was detached, so only the snapshot's age is checked.
     let Some(latest) = snapshots
         .iter()
         .filter(|s| s.volume_id() == Some(volume_id))

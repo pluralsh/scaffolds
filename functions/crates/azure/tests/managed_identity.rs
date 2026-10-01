@@ -1,5 +1,5 @@
-//! The real managed identity credential against a local App Service identity endpoint, the
-//! way Azure Functions provides it.
+//! Tests the real managed identity credential against a local App Service identity endpoint,
+//! as Azure Functions provides it.
 
 #![cfg(feature = "mock")]
 

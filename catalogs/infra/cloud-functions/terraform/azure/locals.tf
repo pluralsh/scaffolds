@@ -1,19 +1,18 @@
 locals {
-  # Without allow_skip_snapshot, the `snapshot` input is removed from the tool schema and the
-  # function rejects `snapshot: false` as well.
+  # Without allow_skip_snapshot, the `snapshot` input is dropped from the tool schema and the
+  # function also rejects `snapshot: false`.
   volume_delete_schema = jsondecode(file("${path.module}/schemas/volume-delete.json"))
   volume_delete_properties = {
     for key, prop in local.volume_delete_schema.properties : key => prop if key != "snapshot" || var.allow_skip_snapshot
   }
 
-  # Every function that can be deployed. `function` is the HTTP function inside the app (the
-  # folder holding its function.json in the package), `actions` is the minimal set of ARM
-  # actions the function needs, which its managed identity gets on the resource groups in
-  # var.scopes, and `condition` an optional condition on those role assignments.
-  # `network_actions` are the join actions it also gets on the network resource groups in
-  # var.network_scopes, and `subscription_actions` the reads it gets on the subscription.
-  # Every function is registered as a workbench tool, and every call of the tools of
-  # `destructive` functions, which change or delete resources, requires human approval.
+  # Deployable functions. `function` is the HTTP function inside the app (the folder with its
+  # function.json in the package). `actions` is the minimal set of ARM actions each needs,
+  # granted to its managed identity on the resource groups in var.scopes; `condition` is an
+  # optional condition on those role assignments. `network_actions` are join actions also
+  # granted on var.network_scopes, and `subscription_actions` are reads granted on the
+  # subscription. All are registered as workbench tools; calls to `destructive` ones (which
+  # change or delete resources) need human approval.
   catalog = {
     volume-delete = {
       binary      = "volume-delete-azure"
@@ -103,8 +102,7 @@ locals {
         "Microsoft.Network/virtualNetworks/subnets/join/action",
         "Microsoft.Network/virtualNetworks/joinLoadBalancer/action",
       ]
-      # The backend health action is long-running, and ARM serves its result at subscription
-      # scope.
+      # The backend health action is long-running; ARM serves its result at subscription scope.
       subscription_actions = [
         "Microsoft.Network/locations/operationResults/read",
         "Microsoft.Network/locations/operations/read",
@@ -164,8 +162,8 @@ locals {
     }
   }
 
-  # Limits the role assignments ssh-access may create and delete to the VM login roles and to
-  # users, so it can't grant anything else.
+  # Limits the role assignments ssh-access may create and delete to VM login roles for users,
+  # so it can't grant anything else.
   vm_login_roles = "fb879df8-f326-4884-b1cf-06f3ad86be52, 1c0163c0-47e6-4577-8991-ea5c82e286e4"
   ssh_access_condition = join(" AND ", [
     for action, source in { write = "Request", delete = "Resource" } :
@@ -192,10 +190,10 @@ locals {
   # The version is part of the path, so a new release changes zip_deploy_file and redeploys.
   artifacts = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }
 
-  # Function app and storage account names are globally unique, so they get a suffix derived
-  # from the subscription, resource group and installation name (and the function, for storage
-  # accounts). App names are limited to 32 characters and storage account names to 24
-  # lowercase letters and digits.
+  # Function app and storage account names are globally unique, so they get a suffix hashed
+  # from the subscription, resource group and installation name (plus the function, for storage
+  # accounts). App names are limited to 32 characters; storage account names to 24 lowercase
+  # letters and digits.
   hash                  = sha1("${local.identity_context["subscription_id"]}/${local.resource_group_name}/${var.name}")
   app_names             = { for key, _ in local.functions : key => "${trim(substr("${var.name}-${key}", 0, 25), "-")}-${substr(local.hash, 0, 6)}" }
   storage_account_names = { for key, _ in local.functions : key => "plrlfn${substr(sha1("${local.hash}/${key}"), 0, 18)}" }

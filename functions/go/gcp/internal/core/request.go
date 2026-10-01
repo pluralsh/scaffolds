@@ -6,9 +6,8 @@ import (
 	"strings"
 )
 
-// Request is the tool input sent by the workbench. Operation-specific fields sit next to the
-// envelope fields, e.g. {"action": "execute", "volumeId": "vol-123"}, and are decoded into
-// Params.
+// Request is the tool input sent by the workbench. Operation-specific fields sit next to
+// "action", e.g. {"action": "execute", "volumeId": "vol-123"}, and are decoded into Params.
 type Request[P any] struct {
 	Action Action
 	Params P
@@ -39,7 +38,7 @@ func ParseRequest[P any](body []byte) (Request[P], error) {
 	return req, nil
 }
 
-// toolInput is the tool input as sent, before its fields are interpreted.
+// toolInput is the tool input with its fields not yet decoded.
 type toolInput map[string]json.RawMessage
 
 const (
@@ -47,7 +46,7 @@ const (
 	jsonNull    = "null"
 )
 
-// action is the requested action, [ActionPlan] when there is none.
+// action returns the requested action, or [ActionPlan] if there is none.
 func (in toolInput) action() (Action, error) {
 	raw, ok := in[actionField]
 	if !ok {
@@ -82,8 +81,8 @@ func (in toolInput) params(into any) error {
 			own[name] = raw
 		}
 	}
-	// Re-encoding only the fields of the struct keeps encoding/json from matching other
-	// spellings of their names, which it does case-insensitively.
+	// encoding/json matches names case-insensitively. Re-encoding only the exact names
+	// makes the match exact.
 	filtered, err := json.Marshal(own)
 	if err != nil {
 		return InvalidRequestf("%v", err)

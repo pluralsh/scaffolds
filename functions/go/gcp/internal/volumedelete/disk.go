@@ -10,7 +10,7 @@ import (
 	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/volume"
 )
 
-// The keys of the JSON object the CSI driver writes to the description of the disks it
+// Keys of the JSON object the CSI driver writes into the description of each disk it
 // creates.
 const (
 	pvcNameKey      = "kubernetes.io/created-for/pvc/name"

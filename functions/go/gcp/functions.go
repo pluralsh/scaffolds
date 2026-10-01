@@ -1,9 +1,8 @@
 // Package functions holds the operational functions deployed to Cloud Run (Cloud Functions
-// 2nd gen), each registered under its own entry point.
+// 2nd gen). Each has its own entry point and its own package under internal.
 //
-// A function receives the tool input sent by a Plural workbench as the body of a POST and
-// answers with the envelope of [core.Response], see [core.Server]. Each function lives in its
-// own package under internal.
+// A function receives the tool input from a Plural workbench as a POST body and answers with
+// a [core.Response], see [core.Server].
 package functions
 
 import (

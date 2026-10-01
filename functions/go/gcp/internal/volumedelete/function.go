@@ -2,8 +2,8 @@
 // Kubernetes created for a PersistentVolumeClaim.
 //
 // The guards and snapshot handling are shared with the other clouds, see [volume]. The
-// pre-deletion snapshot is labelled with the disk's numeric ID, so it is only ever matched to
-// that disk, not to a later disk with the same name.
+// pre-deletion snapshot is labelled with the disk's numeric ID, so it can't match a later
+// disk with the same name.
 package volumedelete
 
 import (

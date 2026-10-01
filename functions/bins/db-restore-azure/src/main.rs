@@ -1,14 +1,13 @@
 //! Restores an Azure Database for PostgreSQL or MySQL flexible server to a point in time.
 //!
-//! The restore always creates a new server next to the source, which is never changed, so
-//! applications only move to the restored data once they are pointed at the new server. A
-//! restore takes longer than an invocation: execute submits it, and calling the function
-//! again with the same parameters reports the new server's state and hostname. The new server
-//! is tagged with its source and restore point, so a server that happens to have the target
-//! name is never mistaken for the restore. The restored server gets the source's network
-//! settings (the same delegated subnet and private DNS zone, or public access), availability
-//! zone, and user-assigned identities and customer managed key, if the source is encrypted
-//! with one; firewall rules and private endpoints aren't copied by Azure.
+//! Restores always create a new server next to the source; the source is never changed. A
+//! restore outlasts one invocation: execute submits it, and calling again with the same
+//! parameters reports the new server's state and hostname.
+//!
+//! The new server is tagged with its source and restore point, so an unrelated server with the
+//! target name is never mistaken for the restore. It copies the source's network settings,
+//! availability zone, and customer managed key with its user-assigned identities. Azure doesn't
+//! copy firewall rules or private endpoints.
 
 use std::collections::HashMap;
 
@@ -21,8 +20,7 @@ use serde_json::{Value, json};
 const POSTGRES_API_VERSION: &str = "2025-08-01";
 const MYSQL_API_VERSION: &str = "2024-12-30";
 
-/// Tags on the restored server: the name of its source, which is in the same resource group,
-/// and the restore point.
+/// Tags on the restored server: its source's name (same resource group) and the restore point.
 const SOURCE_TAG: &str = "plural.sh-db-restore-source";
 const POINT_TAG: &str = "plural.sh-db-restore-point";
 
@@ -45,7 +43,7 @@ struct Server {
     tags: HashMap<String, String>,
     #[serde(default)]
     properties: ServerProperties,
-    /// Managed identities, which the restored server needs to read a customer managed key.
+    /// Needed by the restored server to read a customer managed key.
     #[serde(default)]
     identity: Option<Value>,
 }
@@ -59,17 +57,17 @@ struct ServerProperties {
     fully_qualified_domain_name: Option<String>,
     #[serde(default)]
     backup: Option<Backup>,
-    /// Network settings, which the restored server takes over.
+    /// Copied to the restored server.
     #[serde(default)]
     network: Option<Value>,
-    /// Customer managed key settings, which the restored server takes over.
+    /// Customer managed key settings, copied to the restored server.
     #[serde(default)]
     data_encryption: Option<Value>,
     #[serde(default)]
     availability_zone: Option<String>,
 }
 
-/// Settings of `dataEncryption` a server is created with; the others report the key's status.
+/// `dataEncryption` fields set at creation; the other fields only report the key's status.
 const DATA_ENCRYPTION_SETTINGS: [&str; 5] = [
     "type",
     "primaryKeyURI",
@@ -101,7 +99,7 @@ struct Output {
     source: Option<ServerSummary>,
     #[serde(skip_serializing_if = "Option::is_none")]
     earliest_restore_point: Option<String>,
-    /// The restored server, once the restore was submitted.
+    /// The restored server, once submitted.
     #[serde(skip_serializing_if = "Option::is_none")]
     target: Option<ServerSummary>,
     submitted: bool,
@@ -202,7 +200,7 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
                 return Ok(Response::done(guards, output));
             }
             let body = restore_body(&source, &source_id, &engine, &params.restore_point_in_time);
-            // Only creates the server: a server that appeared since the checks is left alone.
+            // Create only: a server that appeared since the checks is left alone.
             arm.put(
                 &target_id.id(),
                 engine.api_version,
@@ -292,7 +290,7 @@ fn evaluate(
             ),
         }
     });
-    // An existing restore stays valid even once its point has aged out of the backup window.
+    // An existing restore stays valid even after its point leaves the backup window.
     if *target != Target::Restore {
         let earliest = source.and_then(earliest_restore);
         let after_earliest = earliest
@@ -323,13 +321,13 @@ fn restore_body(source: &Server, source_id: &ResourceId, engine: &Engine, point:
             "createMode": "PointInTimeRestore",
             "sourceServerResourceId": source_id.id(),
             engine.point_property: point,
-            // Whether a restore inherits the network settings isn't documented; like the
-            // Azure CLI, pass the source's so it lands in the same subnet or public access.
+            // Azure doesn't document whether a restore inherits the network settings. Like
+            // the Azure CLI, pass the source's.
             "network": source.properties.network,
         },
     });
-    // Like the Azure CLI, keep the source's zone, and its key with the identities that read
-    // it, without which a server encrypted with a customer managed key can't be restored.
+    // Like the Azure CLI, keep the source's zone, key and key-reading identities. A server
+    // encrypted with a customer managed key can't be restored without them.
     if let Some(zone) = source
         .properties
         .availability_zone
@@ -361,8 +359,8 @@ fn restore_body(source: &Server, source_id: &ResourceId, engine: &Engine, point:
     body
 }
 
-/// The source's identity settings for the restored server: the same user-assigned identities,
-/// referenced by ID only, and a system-assigned identity of its own if the source has one.
+/// Identity for the restored server: the source's user-assigned identities (by ID only), plus
+/// its own system-assigned identity if the source has one.
 fn restore_identity(identity: &Value) -> Option<Value> {
     let kind = identity.get("type")?.as_str()?;
     if kind.eq_ignore_ascii_case("None") {

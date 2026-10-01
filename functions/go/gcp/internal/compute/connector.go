@@ -12,18 +12,18 @@ import (
 )
 
 const (
-	// ProjectVar names the project the service runs in, as set by Cloud Run and expected by
-	// the Google client libraries.
+	// ProjectVar names the project the service runs in. Cloud Run sets it and the Google
+	// client libraries read it.
 	ProjectVar = "GOOGLE_CLOUD_PROJECT"
 
 	// EndpointVar overrides the Compute Engine API endpoint, e.g. for local tests. It is the
-	// API host only, without the /compute/v1 path, e.g. http://127.0.0.1:8080.
+	// host only, without the /compute/v1 path, e.g. http://127.0.0.1:8080.
 	EndpointVar = "GCP_COMPUTE_ENDPOINT"
 )
 
 // EnvConnector connects to Compute Engine as the running service, in the project named by
-// [ProjectVar]. The client is created on first use and shared by later invocations; a
-// failure to create it isn't remembered.
+// [ProjectVar]. It creates the client on first use and reuses it for later invocations. If
+// creating it fails, the next call tries again.
 type EnvConnector struct {
 	mu     sync.Mutex
 	client *sdkClient

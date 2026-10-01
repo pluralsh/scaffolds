@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 )
 
-// canonicalJSON encodes v compactly with object keys sorted and without HTML escaping, so
-// the bodies are byte for byte what the Rust functions return.
+// canonicalJSON encodes v compactly, with sorted object keys and no HTML escaping, so bodies
+// match what the Rust functions return byte for byte.
 func canonicalJSON(v any) ([]byte, error) {
 	raw, err := json.Marshal(v)
 	if err != nil {

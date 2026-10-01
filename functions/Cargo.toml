@@ -5,8 +5,8 @@ members = ["crates/*", "bins/*"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-# Matches the toolchain in rust-toolchain.toml; Cargo only picks dependency versions that
-# support it, so an older value holds dependencies back.
+# Matches rust-toolchain.toml. Cargo only picks dependency versions that support this version,
+# so an older value holds dependencies back.
 rust-version = "1.98"
 license = "Apache-2.0"
 repository = "https://github.com/pluralsh/scaffolds"

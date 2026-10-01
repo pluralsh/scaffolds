@@ -2,8 +2,7 @@ package core
 
 import "context"
 
-// Handler is a function's logic: it receives the decoded request and answers with a
-// [Response].
+// Handler is a function's logic. It takes the decoded request and returns a [Response].
 type Handler[P, R any] interface {
 	Handle(ctx context.Context, req Request[P]) (Response[R], error)
 }

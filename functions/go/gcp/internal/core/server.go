@@ -11,10 +11,10 @@ import (
 // maxBodyBytes bounds the tool input a function reads.
 const maxBodyBytes = 2 << 20
 
-// Server serves a [Handler] over HTTP, e.g. as a Cloud Run function. Every POST is an
-// invocation: the body is the workbench tool input and the response body is the [Response].
-// Errors use the same errorType/errorMessage shape as Lambda function errors, with a 4xx/5xx
-// status that callers report as failures.
+// Server serves a [Handler] over HTTP, e.g. as a Cloud Run function. Each POST is one
+// invocation: the request body is the tool input and the response body is the [Response].
+// Errors get a 4xx/5xx status and an errorType/errorMessage body, the same shape as Lambda
+// function errors.
 type Server[P, R any] struct {
 	handler Handler[P, R]
 }

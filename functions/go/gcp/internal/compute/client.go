@@ -1,9 +1,8 @@
-// Package compute is a thin Compute Engine client for the calls the functions make, built on
-// the official SDK.
+// Package compute is a thin Compute Engine client, built on the official SDK, for the calls
+// the functions make.
 //
-// Functions depend on [Client] and obtain one from a [Connector]. Credentials come from
-// Application Default Credentials, which on Cloud Run resolve to the service's own service
-// account through the metadata server.
+// Functions use a [Client] obtained from a [Connector]. Credentials come from Application
+// Default Credentials, which on Cloud Run is the service's own service account.
 package compute
 
 import (
@@ -33,8 +32,7 @@ type SnapshotRequest struct {
 type Client interface {
 	// Disk returns the disk, or nil if it doesn't exist.
 	Disk(ctx context.Context, zone, name string) (*Disk, error)
-	// Snapshots returns the snapshots in the project carrying label=value, following
-	// pagination.
+	// Snapshots returns all snapshots in the project with label=value, across all pages.
 	Snapshots(ctx context.Context, label, value string) ([]*Snapshot, error)
 	// CreateSnapshot starts a snapshot of a disk and returns the operation name.
 	CreateSnapshot(ctx context.Context, req SnapshotRequest) (string, error)

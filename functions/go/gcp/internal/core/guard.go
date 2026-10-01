@@ -1,6 +1,6 @@
 package core
 
-// Guard is the result of a single safety check evaluated before an action is taken.
+// Guard is the result of a safety check run before acting.
 type Guard struct {
 	Name   string `json:"name"`
 	Passed bool   `json:"passed"`
@@ -22,7 +22,7 @@ func Check(name string, passed bool, detail string) Guard {
 	return Guard{Name: name, Passed: passed, Detail: detail}
 }
 
-// Guards are the safety checks of one invocation, in the order they were evaluated.
+// Guards are the safety checks of one invocation, in evaluation order.
 type Guards []Guard
 
 // Passed reports whether every guard passed.

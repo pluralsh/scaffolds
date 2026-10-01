@@ -9,18 +9,18 @@ import (
 	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/volume"
 )
 
-// snapshotNameDiskLen is how much of the disk name a snapshot name keeps, leaving room for
-// its suffix within the 63 characters of a resource name.
+// snapshotNameDiskLen is how much of the disk name a snapshot name keeps. It leaves room for
+// the suffix within the 63-character limit on resource names.
 const snapshotNameDiskLen = 40
 
 // Params are the operation-specific fields of the tool input.
 type Params struct {
 	Zone string `json:"zone" required:"true"`
 	Disk string `json:"disk" required:"true"`
-	// PVName is the PersistentVolume the disk was created for; the caller confirms it no
+	// PVName is the PersistentVolume the disk was created for. The caller confirms it no
 	// longer exists.
 	PVName volume.PVName `json:"pvName" required:"true"`
-	// Snapshot takes a snapshot and waits for it to complete before deleting. Defaults to true.
+	// Snapshot requires a completed snapshot before deleting. Defaults to true.
 	Snapshot *bool `json:"snapshot"`
 }
 

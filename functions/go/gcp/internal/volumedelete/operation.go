@@ -82,8 +82,8 @@ func (o *operation) inspect(ctx context.Context) (target, error) {
 	return found, nil
 }
 
-// createSnapshot starts the pre-deletion snapshot. The execute is refused: the disk is
-// deleted by a later execute, once the snapshot has completed.
+// createSnapshot starts the pre-deletion snapshot and refuses the execute. A later execute
+// deletes the disk once the snapshot completes.
 func (o *operation) createSnapshot(ctx context.Context, diskID string, guards core.Guards, output Output) (core.Response[Output], error) {
 	req := o.params.snapshotRequest(diskID, o.clock.Now())
 	op, err := o.client.CreateSnapshot(ctx, req)

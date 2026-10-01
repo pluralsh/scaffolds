@@ -22,7 +22,7 @@ impl Error {
         Self::Provider(msg.to_string())
     }
 
-    /// Stable, machine-readable error category reported to the caller as the error type.
+    /// Stable error category, reported to the caller as the error type.
     pub fn kind(&self) -> &'static str {
         match self {
             Self::InvalidRequest(_) => "InvalidRequest",

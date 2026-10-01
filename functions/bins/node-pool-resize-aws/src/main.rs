@@ -12,7 +12,7 @@ use functions_aws::provider_error;
 use functions_core::{Action, Error, Guard, Request, Response};
 use serde::{Deserialize, Serialize};
 
-/// Nodes EKS allows in a managed node group (practical upper bound we also use for ASGs).
+/// Largest size EKS allows for a managed node group, also used as the limit for ASGs.
 const AWS_MAX_COUNT: i64 = 1000;
 
 /// Environment variable with the largest count callers may set, at most [`AWS_MAX_COUNT`].
@@ -30,10 +30,10 @@ struct Params {
     /// EKS managed node group name (with `clusterName`).
     #[serde(default)]
     nodegroup_name: Option<String>,
-    /// Auto Scaling group name (standalone mode).
+    /// Auto Scaling group name, used instead of `clusterName` and `nodegroupName`.
     #[serde(default)]
     auto_scaling_group_name: Option<String>,
-    /// New desired number of nodes / instances.
+    /// New desired number of nodes.
     count: i64,
 }
 
@@ -52,7 +52,7 @@ struct TargetView {
     min: Option<i64>,
     max: Option<i64>,
     state: String,
-    /// Cluster autoscaler owns scaling.
+    /// Whether the cluster autoscaler scales the group.
     autoscaling: bool,
 }
 
@@ -317,7 +317,7 @@ async fn scale_nodegroup(
     target: &TargetView,
     count: i64,
 ) -> Result<(), Error> {
-    // Keep min/max; only desired changes. Raise max if the new desired is above it.
+    // Keep min and max, raising max if the new count is above it.
     let min = target.min.unwrap_or(0).max(0) as i32;
     let max = target.max.unwrap_or(count).max(count) as i32;
     let desired = count as i32;
@@ -393,8 +393,7 @@ fn evaluate(target: Option<&TargetView>, count: i64, max_allowed: i64) -> Vec<Gu
             (min_floor..=max_allowed).contains(&count),
             format!("{count} nodes; allowed {min_floor} to {max_allowed}"),
         ),
-        // Also refuse counts above the group's current max when we would not raise max for ASG-only?
-        // For EKS/ASG we raise max on execute, so only the installation cap applies.
+        // Execute raises the group's max when needed, so only the installation cap applies.
     ]
 }
 

@@ -1,5 +1,5 @@
-# Grants invoking the functions, and nothing else. Attach it to the IAM principal of the
-# workbench cloud connection.
+# Allows only invoking the functions. Attach it to the IAM principal of the workbench cloud
+# connection.
 data "aws_iam_policy_document" "invoke" {
   statement {
     sid       = "InvokeFunctions"
@@ -26,7 +26,7 @@ data "plural_cloud_connection" "workbench" {
   }
 }
 
-# Tools of functions that change resources require human approval of every call.
+# Every call to a tool of a function that changes resources needs human approval.
 resource "plural_workbench_tool" "function" {
   for_each = local.functions
 

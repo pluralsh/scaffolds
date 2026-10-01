@@ -7,8 +7,7 @@ import (
 	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/volume"
 )
 
-// snapshotLabel is the label on the pre-deletion snapshot holding the numeric ID of the disk
-// it was taken of.
+// snapshotLabel is the pre-deletion snapshot label that holds the numeric ID of its disk.
 const snapshotLabel = "plural-sh-volume-delete"
 
 // The Compute Engine snapshot statuses that end a snapshot.
@@ -21,8 +20,7 @@ const (
 // snapshots are the snapshots carrying [snapshotLabel] for a disk.
 type snapshots []*compute.Snapshot
 
-// status is the status of the most recent snapshot taken of the disk diskID, ignoring
-// snapshots outside the window.
+// status is the status of the latest snapshot of the disk diskID within the window.
 func (s snapshots) status(diskID string, window volume.SnapshotWindow) volume.SnapshotStatus {
 	latest := s.latest(diskID, window)
 	if latest == nil {

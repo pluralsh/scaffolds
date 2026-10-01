@@ -1,8 +1,8 @@
 name: Functions Release
 
 # Push a functions/vX.Y.Z tag to publish the function packages and SHA256SUMS as a GitHub release.
-# Tags with a suffix (functions/vX.Y.Z-rc.1) are published as pre-releases. X.Y.Z must be the
-# version in functions/Cargo.toml, the release being prepared; suffixed tags are its candidates.
+# Tags with a suffix (functions/vX.Y.Z-rc.1) are published as pre-releases. X.Y.Z must match
+# the version in functions/Cargo.toml, also for suffixed tags.
 # A manual run builds the artifacts without publishing anything.
 on:
   push:

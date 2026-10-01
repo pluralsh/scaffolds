@@ -138,8 +138,8 @@ impl MockArm {
         self.state.lock().unwrap().requests.clone()
     }
 
-    /// Every request but GETs, in order. Read-only actions sent as POST, such as health
-    /// checks, are included.
+    /// Every non-GET request, in order. This includes read-only POST actions such as health
+    /// checks.
     pub fn writes(&self) -> Vec<Recorded> {
         self.requests()
             .into_iter()
