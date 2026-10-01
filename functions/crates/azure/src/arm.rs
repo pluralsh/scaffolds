@@ -414,7 +414,7 @@ impl Arm {
         let text = resp
             .text()
             .await
-            .map_err(|err| Error::provider(format!("ARM: {err}")))?;
+            .map_err(transport_error)?;
         if !status.is_success() {
             return Err(Error::provider(api_error(status.as_u16(), &text)));
         }
@@ -529,7 +529,7 @@ impl Arm {
         let mut req = req
             .bearer_auth(&self.token)
             .build()
-            .map_err(|err| Error::provider(format!("ARM: {err}")))?;
+            .map_err(transport_error)?;
         let mut attempt = 1;
         loop {
             // Bodies are JSON bytes, so requests can always be cloned.
@@ -542,7 +542,7 @@ impl Arm {
                 .client
                 .execute(req)
                 .await
-                .map_err(|err| Error::provider(format!("ARM: {err}")))?;
+                .map_err(transport_error)?;
             match retry {
                 Some(next) if retryable(next.method(), resp.status()) => {
                     let wait = retry_wait(resp.headers(), attempt);
@@ -560,6 +560,18 @@ impl Arm {
             }
         }
     }
+}
+
+/// An error reaching ARM, with its causes: reqwest's own message doesn't say whether the
+/// request timed out, the connection failed or TLS did.
+fn transport_error(err: reqwest::Error) -> Error {
+    let mut msg = format!("ARM: {err}");
+    let mut source = std::error::Error::source(&err);
+    while let Some(cause) = source {
+        msg.push_str(&format!(": {cause}"));
+        source = cause.source();
+    }
+    Error::provider(msg)
 }
 
 /// How long to wait before polling a long-running operation again: the Retry-After seconds
@@ -616,7 +628,7 @@ async fn json<T: DeserializeOwned>(resp: reqwest::Response) -> Result<T, Error> 
     let body = resp
         .text()
         .await
-        .map_err(|err| Error::provider(format!("ARM: {err}")))?;
+        .map_err(transport_error)?;
     if !status.is_success() {
         return Err(Error::provider(api_error(status.as_u16(), &body)));
     }
