@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan evaluates the safety checks and lists what is deleted and kept without changing anything. execute deletes the instance with its boot disk and keeps its data disks; execute again if it reports that the instance is still updating its disks."
+    },
+    "zone": {
+      "type": "string",
+      "pattern": "^[a-z]+-[a-z]+[0-9]+-[a-z]$",
+      "description": "Zone of the instance, e.g. us-central1-a."
+    },
+    "instance": {
+      "type": "string",
+      "pattern": "^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$",
+      "description": "Name of the Compute Engine instance to delete, in the project of the function."
+    }
+  },
+  "required": [
+    "action",
+    "zone",
+    "instance"
+  ],
+  "additionalProperties": false
+}

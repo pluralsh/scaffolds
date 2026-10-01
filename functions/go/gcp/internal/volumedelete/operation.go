@@ -11,7 +11,7 @@ import (
 
 // operation is a single invocation of the function, after its input was validated.
 type operation struct {
-	client           compute.Client
+	client           compute.Disks
 	clock            core.Clock
 	action           core.Action
 	params           Params

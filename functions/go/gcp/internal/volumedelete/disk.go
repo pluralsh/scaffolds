@@ -3,7 +3,6 @@ package volumedelete
 import (
 	"encoding/json"
 	"strconv"
-	"strings"
 
 	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/compute"
 	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/core"
@@ -54,7 +53,7 @@ func (d disk) volume() *volume.Volume {
 func (d disk) attachedTo() []string {
 	var instances []string
 	for _, user := range d.GetUsers() {
-		instances = append(instances, user[strings.LastIndexByte(user, '/')+1:])
+		instances = append(instances, compute.NameFromURL(user))
 	}
 	return instances
 }

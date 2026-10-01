@@ -19,6 +19,7 @@ import (
 type sdkClient struct {
 	disks     *computev1.DisksClient
 	snapshots *computev1.SnapshotsClient
+	instances *computev1.InstancesClient
 	project   string
 }
 
@@ -34,18 +35,18 @@ func newSDKClient(ctx context.Context, project string, opts ...option.ClientOpti
 		_ = disks.Close()
 		return nil, sdkError(err)
 	}
-	return &sdkClient{disks: disks, snapshots: snapshots, project: project}, nil
+	instances, err := computev1.NewInstancesRESTClient(ctx, opts...)
+	if err != nil {
+		_ = disks.Close()
+		_ = snapshots.Close()
+		return nil, sdkError(err)
+	}
+	return &sdkClient{disks: disks, snapshots: snapshots, instances: instances, project: project}, nil
 }
 
 func (c *sdkClient) Disk(ctx context.Context, zone, name string) (*Disk, error) {
 	disk, err := c.disks.Get(ctx, &computepb.GetDiskRequest{Project: c.project, Zone: zone, Disk: name})
-	if err != nil {
-		if apiErr, ok := errors.AsType[*googleapi.Error](err); ok && apiErr.Code == http.StatusNotFound {
-			return nil, nil
-		}
-		return nil, sdkError(err)
-	}
-	return disk, nil
+	return found(disk, err)
 }
 
 func (c *sdkClient) Snapshots(ctx context.Context, label, value string) ([]*Snapshot, error) {
@@ -89,6 +90,44 @@ func (c *sdkClient) DeleteDisk(ctx context.Context, zone, name string) (string, 
 		return "", sdkError(err)
 	}
 	return operationName(op)
+}
+
+func (c *sdkClient) Instance(ctx context.Context, zone, name string) (*Instance, error) {
+	instance, err := c.instances.Get(ctx, &computepb.GetInstanceRequest{Project: c.project, Zone: zone, Instance: name})
+	return found(instance, err)
+}
+
+func (c *sdkClient) SetDiskAutoDelete(ctx context.Context, zone, instance, deviceName string, autoDelete bool) (string, error) {
+	op, err := c.instances.SetDiskAutoDelete(ctx, &computepb.SetDiskAutoDeleteInstanceRequest{
+		Project:    c.project,
+		Zone:       zone,
+		Instance:   instance,
+		DeviceName: deviceName,
+		AutoDelete: autoDelete,
+	})
+	if err != nil {
+		return "", sdkError(err)
+	}
+	return operationName(op)
+}
+
+func (c *sdkClient) DeleteInstance(ctx context.Context, zone, name string) (string, error) {
+	op, err := c.instances.Delete(ctx, &computepb.DeleteInstanceRequest{Project: c.project, Zone: zone, Instance: name})
+	if err != nil {
+		return "", sdkError(err)
+	}
+	return operationName(op)
+}
+
+// found is the resource a get returned, or nil if it doesn't exist.
+func found[T any](resource *T, err error) (*T, error) {
+	if err == nil {
+		return resource, nil
+	}
+	if apiErr, ok := errors.AsType[*googleapi.Error](err); ok && apiErr.Code == http.StatusNotFound {
+		return nil, nil
+	}
+	return nil, sdkError(err)
 }
 
 // operationName is the name of an operation the API started.

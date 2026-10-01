@@ -25,6 +25,7 @@ internal/core          request/response envelope, guards, errors and the HTTP se
 internal/compute       Compute Engine client (interface, SDK implementation, connector)
 internal/volume        cloud-agnostic volume deletion rules
 internal/volumedelete  the VolumeDelete function
+internal/vmdelete      the VMDelete function
 ```
 
 `just check` needs `golangci-lint` v2, configured by `go/gcp/.golangci.yml`.

@@ -40,3 +40,9 @@ func (n ResourceName) Valid() bool {
 	}
 	return true
 }
+
+// NameFromURL is the name at the end of a resource URL, e.g. the instance name of
+// `https://www.googleapis.com/compute/v1/projects/p/zones/z/instances/node-1`.
+func NameFromURL(url string) string {
+	return url[strings.LastIndexByte(url, '/')+1:]
+}

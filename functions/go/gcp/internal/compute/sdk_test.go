@@ -176,3 +176,70 @@ func TestOperationsNeedAName(t *testing.T) {
 		t.Errorf("err = %v", err)
 	}
 }
+
+func TestInstanceReturnsTheInstance(t *testing.T) {
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/compute/v1/projects/test-project/zones/us-central1-a/instances/vm-1" {
+			t.Errorf("unexpected request %s %s", r.Method, r.URL)
+		}
+		writeJSON(w, http.StatusOK, `{"name":"vm-1","status":"RUNNING","deletionProtection":true,`+
+			`"disks":[{"deviceName":"vm-1","boot":true,"autoDelete":false,"type":"PERSISTENT","source":"https://x/disks/vm-1"}],`+
+			`"metadata":{"items":[{"key":"created-by","value":"projects/1/zones/z/instanceGroupManagers/web"}]}}`)
+	})
+
+	instance, err := c.Instance(t.Context(), "us-central1-a", "vm-1")
+
+	if err != nil || instance == nil {
+		t.Fatalf("got %v, %v", instance, err)
+	}
+	disk := instance.GetDisks()[0]
+	if instance.GetName() != "vm-1" || instance.GetStatus() != "RUNNING" || !instance.GetDeletionProtection() ||
+		disk.GetDeviceName() != "vm-1" || !disk.GetBoot() || disk.GetAutoDelete() || disk.GetSource() != "https://x/disks/vm-1" ||
+		instance.GetMetadata().GetItems()[0].GetValue() != "projects/1/zones/z/instanceGroupManagers/web" {
+		t.Errorf("instance = %v", instance)
+	}
+}
+
+func TestInstanceIsNilWhenNotFound(t *testing.T) {
+	c := newTestClient(t, func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusNotFound, `{"error":{"code":404,"message":"The resource was not found","errors":[{"reason":"notFound"}]}}`)
+	})
+
+	instance, err := c.Instance(t.Context(), "us-central1-a", "vm-1")
+
+	if instance != nil || err != nil {
+		t.Errorf("got %v, %v", instance, err)
+	}
+}
+
+func TestSetDiskAutoDeleteStartsAnOperation(t *testing.T) {
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		if r.Method != http.MethodPost || r.URL.Path != "/compute/v1/projects/test-project/zones/us-central1-a/instances/vm-1/setDiskAutoDelete" ||
+			q.Get("deviceName") != "vm-1-data" || q.Get("autoDelete") != "false" {
+			t.Errorf("unexpected request %s %s", r.Method, r.URL)
+		}
+		writeJSON(w, http.StatusOK, `{"name":"operation-3","status":"RUNNING"}`)
+	})
+
+	op, err := c.SetDiskAutoDelete(t.Context(), "us-central1-a", "vm-1", "vm-1-data", false)
+
+	if err != nil || op != "operation-3" {
+		t.Errorf("got %q, %v", op, err)
+	}
+}
+
+func TestDeleteInstanceStartsAnOperation(t *testing.T) {
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete || r.URL.Path != "/compute/v1/projects/test-project/zones/us-central1-a/instances/vm-1" {
+			t.Errorf("unexpected request %s %s", r.Method, r.URL)
+		}
+		writeJSON(w, http.StatusOK, `{"name":"operation-4","status":"RUNNING"}`)
+	})
+
+	op, err := c.DeleteInstance(t.Context(), "us-central1-a", "vm-1")
+
+	if err != nil || op != "operation-4" {
+		t.Errorf("got %q, %v", op, err)
+	}
+}

@@ -12,6 +12,7 @@ import (
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
 
 	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/core"
+	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/vmdelete"
 	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/volumedelete"
 )
 
@@ -19,4 +20,5 @@ func init() {
 	slog.SetDefault(core.NewLogger(os.Stdout))
 
 	functions.HTTP("VolumeDelete", core.NewServer(volumedelete.New()).ServeHTTP)
+	functions.HTTP("VMDelete", core.NewServer(vmdelete.New()).ServeHTTP)
 }

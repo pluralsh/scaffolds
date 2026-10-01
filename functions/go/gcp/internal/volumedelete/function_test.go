@@ -16,6 +16,9 @@ import (
 
 // fakeCompute is a Compute Engine that holds one disk and records what is asked of it.
 type fakeCompute struct {
+	// Instances aren't used by this function; calling them panics.
+	compute.Instances
+
 	disk      *compute.Disk
 	snapshots []*compute.Snapshot
 	err       error

@@ -45,7 +45,7 @@ enables.
 |---|---|---|
 | `volume-delete` | AWS, Azure, GCP | Deletes an orphaned volume (EBS volume, managed disk, zonal persistent disk) that Kubernetes created for a PersistentVolumeClaim, after snapshotting it. |
 | `node-pool-resize` | AWS, Azure | Sets the desired size of a manually scaled node group (EKS managed node group / ASG, or AKS node pool). |
-| `vm-delete` | AWS, Azure | Deletes a standalone VM/instance with its OS disk/volume and network interfaces, keeping its data disks/volumes. |
+| `vm-delete` | AWS, Azure, GCP | Deletes a standalone VM/instance with its OS disk/volume and network interfaces, keeping its data disks/volumes. |
 | `lb-frontend-delete` | Azure | Removes what a deleted Kubernetes `LoadBalancer` Service left on an AKS load balancer. |
 | `db-restore` | Azure | Restores a PostgreSQL or MySQL flexible server to a point in time, as a new server. |
 | `ssh-access` | Azure | Grants an Entra ID user short-lived SSH login to a Linux VM. |
@@ -54,7 +54,7 @@ Every deployed function is registered as a workbench tool. Every function change
 resources, so every call of their tools requires human approval in the workbench.
 
 On AWS, the installation deploys `volume-delete`, `vm-delete` and `node-pool-resize`. On GCP,
-it deploys `volume-delete`. On Azure, every function gets its permissions only on the resource
+it deploys `volume-delete` and `vm-delete`. On Azure, every function gets its permissions only on the resource
 groups it may act on (`scopes` in terraform, by function key), and the installation deploys a
 function for each resource group it is given:
 
@@ -164,6 +164,24 @@ instance is still updating, a later `execute` terminates it. Once the result rep
 interfaces. Permissions: describe instances and network interfaces in the region, and modify
 or terminate those resources. EKS and Auto Scaling membership are only enforced by the
 function.
+
+#### GCP
+
+Takes `zone` and `instance`. Instances created by a managed instance group (`created-by`
+metadata), GKE nodes (`goog-gke-node` or `goog-k8s-cluster-name` labels), instances with
+deletion protection and instances that are starting, stopping or being repaired are refused;
+running, stopped and suspended instances can be deleted. Compute Engine network interfaces
+aren't separate resources and go with the instance; static external IPs are kept. Local SSDs
+are always deleted with the instance, so `plan` lists them (`localSsds`). `execute` first
+sets auto-delete on the boot disk and clears it on the data disks, then deletes the instance.
+Compute Engine applies the flags in the background, so deleting an instance usually takes two
+`execute` calls: the first sets them and is refused, and a later one deletes the instance.
+Once the result reports `autoDeleteSet`, deleting the instance in any way also deletes its
+boot disk and keeps its data disks. Permissions: a project custom role to read and delete
+instances and set their disks' auto-delete flag (`compute.instances.get`, `.delete`,
+`.setDiskAutoDelete`, and `compute.disks.update`, which changing the flag requires). It
+covers every instance in the project; managed instance group and GKE membership are only
+enforced by the function.
 
 ### lb-frontend-delete (Azure)
 

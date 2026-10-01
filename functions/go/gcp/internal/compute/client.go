@@ -17,6 +17,10 @@ type (
 	Disk = computepb.Disk
 	// Snapshot is a snapshot of a persistent disk.
 	Snapshot = computepb.Snapshot
+	// Instance is a VM instance.
+	Instance = computepb.Instance
+	// AttachedDisk is a disk as attached to an instance.
+	AttachedDisk = computepb.AttachedDisk
 )
 
 // SnapshotRequest describes a snapshot to take of a disk.
@@ -30,6 +34,12 @@ type SnapshotRequest struct {
 
 // Client is the Compute Engine API as the functions use it.
 type Client interface {
+	Disks
+	Instances
+}
+
+// Disks are the disk and snapshot calls.
+type Disks interface {
 	// Disk returns the disk, or nil if it doesn't exist.
 	Disk(ctx context.Context, zone, name string) (*Disk, error)
 	// Snapshots returns all snapshots in the project with label=value, across all pages.
@@ -38,6 +48,17 @@ type Client interface {
 	CreateSnapshot(ctx context.Context, req SnapshotRequest) (string, error)
 	// DeleteDisk starts deleting the disk and returns the operation name.
 	DeleteDisk(ctx context.Context, zone, name string) (string, error)
+}
+
+// Instances are the VM instance calls.
+type Instances interface {
+	// Instance returns the instance, or nil if it doesn't exist.
+	Instance(ctx context.Context, zone, name string) (*Instance, error)
+	// SetDiskAutoDelete starts setting whether the disk attached to the instance as deviceName
+	// is deleted with it, and returns the operation name.
+	SetDiskAutoDelete(ctx context.Context, zone, instance, deviceName string, autoDelete bool) (string, error)
+	// DeleteInstance starts deleting the instance and returns the operation name.
+	DeleteInstance(ctx context.Context, zone, name string) (string, error)
 }
 
 // Connector provides the [Client] an invocation uses.

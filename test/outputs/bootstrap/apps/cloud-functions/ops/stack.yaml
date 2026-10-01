@@ -29,9 +29,12 @@ spec:
       - node-pool-resize
     
     
+    
   # Before terraform runs, the init container downloads this cloud's release packages into
   # /artifacts/<version> and verifies them against SHA256SUMS. With raw, the operator ignores the
-  # other jobSpec fields, so on Azure the workload identity is also set in raw.
+  # other jobSpec fields, and a stack's jobSpec replaces the default one from the deployment
+  # settings, so the stacks service account, which carries the cloud identity (Azure and GKE
+  # workload identity), is also set in raw.
   jobSpec:
     namespace: plrl-deploy-operator
     raw:

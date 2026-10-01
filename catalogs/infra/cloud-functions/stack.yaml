@@ -32,6 +32,11 @@ spec:
       - vm-delete
       - node-pool-resize
     {% endif %}
+    {% if context.cloud == 'gcp' %}
+    functions:
+      - volume-delete
+      - vm-delete
+    {% endif %}
     {% if context.cloud == 'azure' %}
     # Functions are deployed for the resource groups they may act on.
     functions:
@@ -73,7 +78,9 @@ spec:
     {% endif %}
   # Before terraform runs, the init container downloads this cloud's release packages into
   # /artifacts/<version> and verifies them against SHA256SUMS. With raw, the operator ignores the
-  # other jobSpec fields, so on Azure the workload identity is also set in raw.
+  # other jobSpec fields, and a stack's jobSpec replaces the default one from the deployment
+  # settings, so the stacks service account, which carries the cloud identity (Azure and GKE
+  # workload identity), is also set in raw.
   jobSpec:
     namespace: plrl-deploy-operator
     raw:
@@ -85,7 +92,7 @@ spec:
             azure.workload.identity/use: "true"
         {% endif %}
         spec:
-          {% if context.cloud == 'azure' %}
+          {% if context.cloud == 'azure' or context.cloud == 'gcp' %}
           serviceAccountName: stacks
           {% endif %}
           initContainers:

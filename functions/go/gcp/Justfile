@@ -1,7 +1,11 @@
-# Local development and end-to-end testing of the GCP functions, see README.md.
+# Local development and end-to-end testing of the GCP functions, see README.md and docs/.
+#
+# Recipes are grouped: dev (build, test, serve), gcp (project and credentials) and one group per
+# function, named after its key in the terraform catalog. Function recipes are prefixed with
+# `volume-` or `vm-`. Recipes that act on a function take its key, e.g. `just serve vm-delete`.
 #
 # Every variable can be set from the environment or on the command line, e.g.
-# `ZONE=europe-central2-b just fixtures` or `just zone=europe-central2-b fixtures`.
+# `ZONE=europe-central2-b just volume-fixtures` or `just zone=europe-central2-b volume-fixtures`.
 
 # Variables are only evaluated when a recipe uses them, so `just test` doesn't call gcloud.
 set lazy
@@ -13,51 +17,61 @@ allow_skip_snapshot := env("ALLOW_SKIP_SNAPSHOT", "false")
 
 # Prefix of every resource the e2e recipes create.
 prefix := env("P", "e2e-vd")
-vm := prefix + "-vm"
-disks := "ok att det nok8s nopv skip other"
 
-sa := prefix + "-fn"
-sa_email := sa + "@" + project + ".iam.gserviceaccount.com"
-# Custom role IDs can't be reused for 7 days after deletion.
-role := env("ROLE", "e2eVolumeDelete")
-# Keep in sync with `permissions` of volume-delete in
+# volume-delete fixtures: test disks and the VM the "att" disk is attached to.
+volume_vm := prefix + "-vm"
+volume_disks := "ok att det nok8s nopv skip other"
+
+# vm-delete fixtures: instances, a managed instance group and its template.
+vmd := prefix + "-vmd"
+
+# Like terraform, every function gets its own service account (`<prefix>-<function>`) and
+# custom role (`e2e_<function>`). Keep the permissions in sync with `permissions` in
 # catalogs/infra/cloud-functions/terraform/gcp/locals.tf.
 volume_delete_permissions := "compute.disks.get,compute.disks.delete,compute.disks.createSnapshot,compute.snapshots.create,compute.snapshots.list,compute.snapshots.setLabels"
+vm_delete_permissions := "compute.instances.get,compute.instances.delete,compute.instances.setDiskAutoDelete,compute.disks.update"
 
 # List the recipes.
 default:
     @just --list --unsorted
 
-# --- Development ---
+# --- dev ---
 
 # Format check, vet, lint and unit tests.
+[group('dev')]
 check: fmt-check vet lint test
 
+[group('dev')]
 fmt-check:
     #!/usr/bin/env bash
     set -euo pipefail
     unformatted="$(gofmt -l .)"
     if [ -n "$unformatted" ]; then echo "gofmt needed:"; echo "$unformatted"; exit 1; fi
 
+[group('dev')]
 vet:
     go vet ./...
 
+[group('dev')]
 lint:
     golangci-lint run ./...
 
-# Unit tests, e.g. `just test -run TestPlan ./internal/volumedelete`.
+# Unit tests, e.g. `just test -run TestPlan ./internal/vmdelete`.
+[group('dev')]
 test *args="./...":
     go test -race {{ args }}
 
 # Serve a function locally on the port, acting in the project as the ADC identity.
-serve target="VolumeDelete":
-    FUNCTION_TARGET={{ quote(target) }} \
+[group('dev')]
+serve fn="volume-delete":
+    FUNCTION_TARGET={{ quote(if fn == "volume-delete" { "VolumeDelete" } else if fn == "vm-delete" { "VMDelete" } else { error("unknown function " + fn + ", expected volume-delete or vm-delete") }) }} \
     GOOGLE_CLOUD_PROJECT={{ quote(project) }} \
     ALLOW_SKIP_SNAPSHOT={{ quote(allow_skip_snapshot) }} \
     PORT={{ quote(port) }} \
     go run ./cmd
 
 # POST a raw JSON body to the local function and print the status and response.
+[group('dev')]
 invoke body:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -67,11 +81,73 @@ invoke body:
     resp="${out%$'\n'*}"
     if [ -n "$resp" ]; then jq . <<<"$resp" 2>/dev/null || echo "$resp"; fi
 
+# --- gcp ---
+
+# Enable the APIs the functions and the e2e recipes use.
+[group('gcp')]
+apis:
+    gcloud services enable compute.googleapis.com iam.googleapis.com --project {{ quote(project) }}
+
+# Use your own account as ADC. Restart `just serve` afterwards.
+[group('gcp')]
+login-user:
+    gcloud auth application-default login
+    gcloud auth application-default set-quota-project {{ quote(project) }}
+
+# Use a function's minimal service account (see sa-create) as ADC. Restart `just serve` afterwards.
+[group('gcp')]
+login-sa fn="volume-delete":
+    gcloud auth application-default login --impersonate-service-account {{ quote(prefix + "-" + fn + "@" + project + ".iam.gserviceaccount.com") }}
+
+# Create a function's service account with the same custom role terraform grants.
+[group('gcp')]
+sa-create fn="volume-delete":
+    @# Fails here, before anything is created, on an unknown function.
+    @: {{ quote(if fn == "volume-delete" { volume_delete_permissions } else if fn == "vm-delete" { vm_delete_permissions } else { error("unknown function " + fn + ", expected volume-delete or vm-delete") }) }}
+    gcloud iam service-accounts create {{ quote(prefix + "-" + fn) }} --project {{ quote(project) }} \
+      --display-name "{{ fn }} local e2e"
+    gcloud iam roles create {{ quote("e2e_" + replace(fn, "-", "_")) }} --project {{ quote(project) }} --stage GA \
+      --title "{{ fn }} local e2e" --permissions {{ quote(if fn == "volume-delete" { volume_delete_permissions } else if fn == "vm-delete" { vm_delete_permissions } else { error("unknown function " + fn) }) }}
+    gcloud projects add-iam-policy-binding {{ quote(project) }} --condition None \
+      --member "serviceAccount:{{ prefix + "-" + fn + "@" + project + ".iam.gserviceaccount.com" }}" --role "projects/{{ project }}/roles/{{ "e2e_" + replace(fn, "-", "_") }}"
+    gcloud iam service-accounts add-iam-policy-binding {{ quote(prefix + "-" + fn + "@" + project + ".iam.gserviceaccount.com") }} --project {{ quote(project) }} \
+      --member "user:$(gcloud config get account)" --role roles/iam.serviceAccountTokenCreator
+
+# Remove a permission from a function's custom role, for the permission test cases.
+[group('gcp')]
+role-remove fn permission:
+    gcloud iam roles update {{ quote("e2e_" + replace(fn, "-", "_")) }} --project {{ quote(project) }} --remove-permissions {{ quote(permission) }}
+
+# Add a permission back to a function's custom role.
+[group('gcp')]
+role-add fn permission:
+    gcloud iam roles update {{ quote("e2e_" + replace(fn, "-", "_")) }} --project {{ quote(project) }} --add-permissions {{ quote(permission) }}
+
+# Delete a function's service account and its custom role.
+[group('gcp')]
+sa-delete fn="volume-delete":
+    -gcloud projects remove-iam-policy-binding {{ quote(project) }} --condition None \
+      --member "serviceAccount:{{ prefix + "-" + fn + "@" + project + ".iam.gserviceaccount.com" }}" --role "projects/{{ project }}/roles/{{ "e2e_" + replace(fn, "-", "_") }}"
+    -gcloud iam roles delete {{ quote("e2e_" + replace(fn, "-", "_")) }} --project {{ quote(project) }}
+    -gcloud iam service-accounts delete {{ quote(prefix + "-" + fn + "@" + project + ".iam.gserviceaccount.com") }} --project {{ quote(project) }} --quiet
+
+# List every resource the e2e recipes created.
+[group('gcp')]
+resources:
+    gcloud compute disks list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,zone.basename(),status,users.basename())'
+    gcloud compute snapshots list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,status,sourceDisk.basename(),creationTimestamp)'
+    gcloud compute instances list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,zone.basename(),status)'
+    gcloud compute instance-groups managed list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,zone.basename(),targetSize)'
+
+# --- volume-delete ---
+
 # Plan a VolumeDelete. snapshot is empty (omitted), true or false.
-plan disk pv snapshot="": (_volume-delete "plan" disk pv snapshot)
+[group('volume-delete')]
+volume-plan disk pv snapshot="": (_volume-delete "plan" disk pv snapshot)
 
 # Execute a VolumeDelete. snapshot is empty (omitted), true or false.
-execute disk pv snapshot="": (_volume-delete "execute" disk pv snapshot)
+[group('volume-delete')]
+volume-execute disk pv snapshot="": (_volume-delete "execute" disk pv snapshot)
 
 _volume-delete action disk pv snapshot:
     #!/usr/bin/env bash
@@ -85,51 +161,9 @@ _volume-delete action disk pv snapshot:
     echo "> $body"
     just port={{ quote(port) }} invoke "$body"
 
-# --- GCP project ---
-
-# Enable the APIs the function and the e2e recipes use.
-apis:
-    gcloud services enable compute.googleapis.com iam.googleapis.com --project {{ quote(project) }}
-
-# Use your own account as ADC. Restart `just serve` afterwards.
-login-user:
-    gcloud auth application-default login
-    gcloud auth application-default set-quota-project {{ quote(project) }}
-
-# Use the minimal service account as ADC (see sa-create). Restart `just serve` afterwards.
-login-sa:
-    gcloud auth application-default login --impersonate-service-account {{ quote(sa_email) }}
-
-# Create the function's service account with the same custom role terraform grants.
-sa-create:
-    gcloud iam service-accounts create {{ quote(sa) }} --project {{ quote(project) }} \
-      --display-name "VolumeDelete local e2e"
-    gcloud iam roles create {{ quote(role) }} --project {{ quote(project) }} --stage GA \
-      --title "VolumeDelete local e2e" --permissions {{ quote(volume_delete_permissions) }}
-    gcloud projects add-iam-policy-binding {{ quote(project) }} --condition None \
-      --member "serviceAccount:{{ sa_email }}" --role "projects/{{ project }}/roles/{{ role }}"
-    gcloud iam service-accounts add-iam-policy-binding {{ quote(sa_email) }} --project {{ quote(project) }} \
-      --member "user:$(gcloud config get account)" --role roles/iam.serviceAccountTokenCreator
-
-# Remove a permission from the custom role, e.g. for test cases G3 and G4.
-role-remove permission:
-    gcloud iam roles update {{ quote(role) }} --project {{ quote(project) }} --remove-permissions {{ quote(permission) }}
-
-# Add a permission back to the custom role.
-role-add permission:
-    gcloud iam roles update {{ quote(role) }} --project {{ quote(project) }} --add-permissions {{ quote(permission) }}
-
-# Delete the service account and its custom role.
-sa-delete:
-    -gcloud projects remove-iam-policy-binding {{ quote(project) }} --condition None \
-      --member "serviceAccount:{{ sa_email }}" --role "projects/{{ project }}/roles/{{ role }}"
-    -gcloud iam roles delete {{ quote(role) }} --project {{ quote(project) }}
-    -gcloud iam service-accounts delete {{ quote(sa_email) }} --project {{ quote(project) }} --quiet
-
-# --- E2E fixtures ---
-
 # Create the test disks and VM, and attach the "att" disk to the VM.
-fixtures:
+[group('volume-delete')]
+volume-fixtures:
     #!/usr/bin/env bash
     set -euo pipefail
     # The CSI metadata the GCE PD CSI driver writes to the description of the disks it creates.
@@ -148,48 +182,111 @@ fixtures:
     mkdisk nopv  '{"kubernetes.io/created-for/pvc/name":"data"}'
     mkdisk skip  "$(csi pvc-e2e-skip)"
     mkdisk other "$(csi pvc-e2e-other)"
-    gcloud compute instances create {{ quote(vm) }} --project {{ quote(project) }} --zone {{ quote(zone) }} \
+    gcloud compute instances create {{ quote(volume_vm) }} --project {{ quote(project) }} --zone {{ quote(zone) }} \
       --machine-type e2-micro --image-family debian-12 --image-project debian-cloud --quiet
-    gcloud compute instances attach-disk {{ quote(vm) }} --disk "{{ prefix }}-att" --project {{ quote(project) }} --zone {{ quote(zone) }}
+    gcloud compute instances attach-disk {{ quote(volume_vm) }} --disk "{{ prefix }}-att" --project {{ quote(project) }} --zone {{ quote(zone) }}
 
-# Recreate one disk with CSI metadata for pv, e.g. `just recreate e2e-vd-ok pvc-e2e-ok`.
-recreate disk pv:
+# Recreate one disk with CSI metadata for pv, e.g. `just volume-recreate e2e-vd-ok pvc-e2e-ok`.
+[group('volume-delete')]
+volume-recreate disk pv:
     gcloud compute disks create {{ quote(disk) }} --project {{ quote(project) }} --zone {{ quote(zone) }} \
       --size 10GB --type pd-standard --quiet \
       --description "$(jq -cn --arg pv {{ quote(pv) }} '{"kubernetes.io/created-for/pv/name": $pv, "kubernetes.io/created-for/pvc/name": "data", "kubernetes.io/created-for/pvc/namespace": "e2e"}')"
 
 # Attach a disk to the test VM.
-attach disk:
-    gcloud compute instances attach-disk {{ quote(vm) }} --disk {{ quote(disk) }} --project {{ quote(project) }} --zone {{ quote(zone) }}
+[group('volume-delete')]
+volume-attach disk:
+    gcloud compute instances attach-disk {{ quote(volume_vm) }} --disk {{ quote(disk) }} --project {{ quote(project) }} --zone {{ quote(zone) }}
 
 # Detach a disk from the test VM.
-detach disk:
-    gcloud compute instances detach-disk {{ quote(vm) }} --disk {{ quote(disk) }} --project {{ quote(project) }} --zone {{ quote(zone) }}
+[group('volume-delete')]
+volume-detach disk:
+    gcloud compute instances detach-disk {{ quote(volume_vm) }} --disk {{ quote(disk) }} --project {{ quote(project) }} --zone {{ quote(zone) }}
 
 # Show a disk's ID, status, users, last detach time and description.
-disk disk:
+[group('volume-delete')]
+volume-disk disk:
     gcloud compute disks describe {{ quote(disk) }} --project {{ quote(project) }} --zone {{ quote(zone) }} \
       --format 'yaml(id,status,users,lastDetachTimestamp,description)'
 
 # List the pre-deletion snapshots labelled with a disk's ID.
-snapshots disk:
+[group('volume-delete')]
+volume-snapshots disk:
     gcloud compute snapshots list --project {{ quote(project) }} \
       --filter "labels.plural-sh-volume-delete=$(gcloud compute disks describe {{ quote(disk) }} --project {{ quote(project) }} --zone {{ quote(zone) }} --format 'value(id)')" \
       --format 'table(name,status,sourceDiskId,creationTimestamp)'
 
-# List every resource the e2e recipes created.
-resources:
-    gcloud compute disks list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,zone.basename(),status,users.basename())'
-    gcloud compute snapshots list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,status,sourceDisk.basename(),creationTimestamp)'
-    gcloud compute instances list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,zone.basename(),status)'
-
 # Delete the test VM, disks and snapshots. Keeps the service account, see sa-delete.
-cleanup:
+[group('volume-delete')]
+volume-cleanup:
     #!/usr/bin/env bash
     set -uo pipefail
-    gcloud compute instances delete {{ quote(vm) }} --project {{ quote(project) }} --zone {{ quote(zone) }} --quiet
-    for d in {{ disks }}; do
+    gcloud compute instances delete {{ quote(volume_vm) }} --project {{ quote(project) }} --zone {{ quote(zone) }} --quiet
+    for d in {{ volume_disks }}; do
       gcloud compute disks delete "{{ prefix }}-$d" --project {{ quote(project) }} --zone {{ quote(zone) }} --quiet
     done
     gcloud compute snapshots list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'value(name)' \
       | xargs -r gcloud compute snapshots delete --project {{ quote(project) }} --quiet
+
+# --- vm-delete ---
+
+# Plan a VMDelete of an instance in the zone.
+[group('vm-delete')]
+vm-plan instance: (_vm-delete "plan" instance)
+
+# Execute a VMDelete of an instance in the zone.
+[group('vm-delete')]
+vm-execute instance: (_vm-delete "execute" instance)
+
+_vm-delete action instance:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    body="$(jq -cn --arg action {{ quote(action) }} --arg zone {{ quote(zone) }} --arg instance {{ quote(instance) }} \
+      '{action: $action, zone: $zone, instance: $instance}')"
+    echo "> $body"
+    just port={{ quote(port) }} invoke "$body"
+
+# Create the test instances: standalone, deletion-protected, stopped, and a one-instance group.
+[group('vm-delete')]
+vm-fixtures:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkvm() {
+      gcloud compute instances create "{{ vmd }}-$1" --project {{ quote(project) }} --zone {{ quote(zone) }} \
+        --machine-type e2-micro --image-family debian-12 --image-project debian-cloud --quiet "${@:2}"
+    }
+    # The boot disk is kept and the data disk deleted, the opposite of what deleting needs.
+    mkvm ok --no-boot-disk-auto-delete \
+      --create-disk "name={{ vmd }}-ok-data,size=10GB,type=pd-standard,auto-delete=yes"
+    mkvm prot --deletion-protection
+    mkvm stopped
+    gcloud compute instances stop "{{ vmd }}-stopped" --project {{ quote(project) }} --zone {{ quote(zone) }} --quiet
+    gcloud compute instance-templates create "{{ vmd }}-tpl" --project {{ quote(project) }} \
+      --machine-type e2-micro --image-family debian-12 --image-project debian-cloud --quiet
+    gcloud compute instance-groups managed create "{{ vmd }}-mig" --project {{ quote(project) }} --zone {{ quote(zone) }} \
+      --template "{{ vmd }}-tpl" --size 1 --quiet
+
+# Show an instance's status, deletion protection, disks and how it was created.
+[group('vm-delete')]
+vm-show instance:
+    gcloud compute instances describe {{ quote(instance) }} --project {{ quote(project) }} --zone {{ quote(zone) }} \
+      --format 'yaml(name,status,deletionProtection,disks[].deviceName,disks[].boot,disks[].autoDelete,disks[].type,labels,metadata.items)'
+
+# Print the name of the instance in the managed instance group fixture.
+[group('vm-delete')]
+vm-mig-instance:
+    @gcloud compute instance-groups managed list-instances "{{ vmd }}-mig" --project {{ quote(project) }} --zone {{ quote(zone) }} \
+      --format 'value(instance.basename())'
+
+# Delete the test instances, group and template, including the disks they kept.
+[group('vm-delete')]
+vm-cleanup:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    gcloud compute instances update "{{ vmd }}-prot" --no-deletion-protection --project {{ quote(project) }} --zone {{ quote(zone) }}
+    gcloud compute instance-groups managed delete "{{ vmd }}-mig" --project {{ quote(project) }} --zone {{ quote(zone) }} --quiet
+    gcloud compute instance-templates delete "{{ vmd }}-tpl" --project {{ quote(project) }} --quiet
+    gcloud compute instances list --project {{ quote(project) }} --filter "name~^{{ vmd }}-" --format 'value(name)' \
+      | xargs -r gcloud compute instances delete --project {{ quote(project) }} --zone {{ quote(zone) }} --quiet
+    gcloud compute disks list --project {{ quote(project) }} --filter "name~^{{ vmd }}-" --format 'value(name)' \
+      | xargs -r gcloud compute disks delete --project {{ quote(project) }} --zone {{ quote(zone) }} --quiet

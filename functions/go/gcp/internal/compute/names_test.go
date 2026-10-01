@@ -28,3 +28,15 @@ func TestValidatesResourceNames(t *testing.T) {
 		}
 	}
 }
+
+func TestNameFromURL(t *testing.T) {
+	for url, want := range map[string]string{
+		"https://www.googleapis.com/compute/v1/projects/p/zones/z/instances/node-1": "node-1",
+		"projects/1/zones/z/instanceGroupManagers/web":                              "web",
+		"vm-1": "vm-1",
+	} {
+		if got := NameFromURL(url); got != want {
+			t.Errorf("NameFromURL(%q) = %q, want %q", url, got, want)
+		}
+	}
+}
