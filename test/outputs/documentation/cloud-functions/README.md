@@ -188,16 +188,18 @@ Restores a PostgreSQL or MySQL flexible server (`serverId`) to a point in time
 server (`targetServerName`) in the same resource group. The source server is never changed:
 restoring over it or into an existing server is refused, so applications only move to the
 restored data when they are pointed at the new server. The new server gets the source's
-network settings (subnet and private DNS zone, or public access) and admin login; Azure
-doesn't copy firewall rules or private endpoints. `execute` submits the restore, which takes
+network settings (subnet and private DNS zone, or public access), availability zone, admin
+login, and, for a server encrypted with a customer managed key, its key and the
+user-assigned identities that read it; Azure doesn't copy firewall rules or private
+endpoints. `execute` submits the restore, which takes
 a while; calling again with the same parameters reports the new server's state and hostname.
 The new server is tagged with its source and restore point, and is only ever created: a
 server that appears under the target name in the meantime is left alone. Permissions in
 `scopes["db-restore"]`: read and write flexible servers, and join subnets and private DNS
 zones for servers in a virtual network, which it can also join in `network_scopes`, e.g. a
-private DNS zone in a hub resource group. Writing servers also allows changing existing ones;
-only the function's checks prevent that. Servers encrypted with customer managed keys aren't
-supported.
+private DNS zone in a hub resource group, and assign user-assigned identities, so identities
+in another resource group need it in the scopes too. Writing servers also allows changing
+existing ones; only the function's checks prevent that.
 
 ### ssh-access (Azure)
 

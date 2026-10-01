@@ -125,6 +125,9 @@ locals {
         # Servers in a virtual network are restored into the source's subnet and private DNS zone.
         "Microsoft.Network/virtualNetworks/subnets/join/action",
         "Microsoft.Network/privateDnsZones/join/action",
+        # Servers encrypted with a customer managed key are restored with the source's
+        # user-assigned identities, which read the key.
+        "Microsoft.ManagedIdentity/userAssignedIdentities/assign/action",
       ]
       condition = null
       network_actions = [

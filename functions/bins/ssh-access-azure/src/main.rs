@@ -265,8 +265,13 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
         principal_id: principal.clone(),
         role: params.role,
         expires_at: (!params.revoke).then(|| format_time(expires)),
-        command: (!params.revoke)
-            .then(|| connect_command(&vm_id, std::env::var(BASTION_VAR).ok().as_deref())),
+        command: if params.revoke {
+            None
+        } else {
+            let bastion =
+                bastion(std::env::var(BASTION_VAR).ok().as_deref()).map_err(Error::provider)?;
+            Some(connect_command(&vm_id, bastion.as_ref()))
+        },
         other_access,
         granted: false,
         removed: 0,
@@ -314,22 +319,69 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
     }
 
     // A grant for the same user and role updates the existing assignment, and never shortens it.
-    let existing = ours.iter().find(|a| {
-        a.properties.principal_id.eq_ignore_ascii_case(&principal)
-            && Role::of(&a.properties.role_definition_id) == Some(params.role)
-            && a.expires_at().is_some_and(|e| e > now)
-    });
-    if let Some(current) = existing.and_then(|a| a.expires_at()) {
-        expires = expires.max(current);
-        output.expires_at = Some(format_time(expires));
-    }
+    let existing = ours
+        .iter()
+        .copied()
+        .find(|a| is_grant(a, &principal, params.role, now));
     let name = existing.map_or_else(new_guid, |a| a.name.clone());
+    expires = expires.max(existing.and_then(Assignment::expires_at).unwrap_or(0));
+    let granted = put_grant(&arm, &vm_id, &name, &principal, params.role, expires).await;
+    match granted {
+        // A concurrent grant created the user's assignment first: extend that one instead.
+        Err(Error::Provider(msg))
+            if existing.is_none() && msg.starts_with("RoleAssignmentExists:") =>
+        {
+            let assignments = assignments_at(&arm, &vm_id.id()).await?;
+            let Some(current) = assignments.iter().find(|a| {
+                a.properties.scope.eq_ignore_ascii_case(&vm_id.id())
+                    && is_grant(a, &principal, params.role, now)
+            }) else {
+                return Err(Error::Provider(msg));
+            };
+            expires = expires.max(current.expires_at().unwrap_or(0));
+            put_grant(
+                &arm,
+                &vm_id,
+                &current.name,
+                &principal,
+                params.role,
+                expires,
+            )
+            .await?;
+        }
+        result => result?,
+    }
+    output.expires_at = Some(format_time(expires));
+    tracing::info!(vm = %vm_id.id(), principal = %principal, role = ?params.role, expires, "granted ssh access");
+    output.granted = true;
+    Ok(Response::done(guards, output))
+}
+
+/// Whether `assignment` is an unexpired grant of `role` to `principal` by this function.
+fn is_grant(assignment: &Assignment, principal: &str, role: Role, now: i64) -> bool {
+    assignment
+        .properties
+        .principal_id
+        .eq_ignore_ascii_case(principal)
+        && Role::of(&assignment.properties.role_definition_id) == Some(role)
+        && assignment.expires_at().is_some_and(|e| e > now)
+}
+
+/// Creates or updates the role assignment `name` on the VM, granting `role` until `expires`.
+async fn put_grant(
+    arm: &Arm,
+    vm_id: &ResourceId,
+    name: &str,
+    principal: &str,
+    role: Role,
+    expires: i64,
+) -> Result<(), Error> {
     let body = json!({
         "properties": {
             "roleDefinitionId": format!(
                 "/subscriptions/{}/providers/Microsoft.Authorization/roleDefinitions/{}",
                 vm_id.subscription,
-                params.role.definition()
+                role.definition()
             ),
             "principalId": principal,
             "principalType": "User",
@@ -337,15 +389,12 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
         }
     });
     arm.put(
-        &assignment_path(&vm_id.id(), &name),
+        &assignment_path(&vm_id.id(), name),
         AUTHORIZATION_API_VERSION,
         &body,
         Precondition::Always,
     )
-    .await?;
-    tracing::info!(vm = %vm_id.id(), principal = %principal, role = ?params.role, expires, "granted ssh access");
-    output.granted = true;
-    Ok(Response::done(guards, output))
+    .await
 }
 
 /// Removes the expired role assignments this function created in its resource groups.
@@ -468,9 +517,42 @@ fn format_time(unix: i64) -> String {
         .unwrap_or_else(|| unix.to_string())
 }
 
+/// The Bastion host users connect through, from `BASTION_ID`. A value that isn't a Bastion
+/// host ID is an error rather than no Bastion host, so a typo doesn't hand out a direct
+/// connection command.
+fn bastion(value: Option<&str>) -> Result<Option<ResourceId>, String> {
+    match value.map(str::trim).filter(|v| !v.is_empty()) {
+        None => Ok(None),
+        Some(v) => ResourceId::parse(v, &[arm::BASTION_HOST])
+            .map(Some)
+            .ok_or_else(|| format!("{BASTION_VAR} {v:?} isn't a Bastion host resource ID")),
+    }
+}
+
+/// Resource groups the timer removes expired access in, from `SCOPES`. A trailing slash is
+/// dropped so that assignments below the scope still match it.
+fn scopes(value: Option<&str>) -> Result<Vec<String>, String> {
+    let Some(value) = value else {
+        return Ok(vec![]);
+    };
+    let scopes: Vec<String> =
+        serde_json::from_str(value).map_err(|err| format!("{SCOPES_VAR}: {err}"))?;
+    scopes
+        .into_iter()
+        .map(|scope| {
+            let trimmed = scope.trim().trim_end_matches('/');
+            if trimmed.is_empty() {
+                Err(format!("{SCOPES_VAR}: empty scope {scope:?}"))
+            } else {
+                Ok(trimmed.to_owned())
+            }
+        })
+        .collect()
+}
+
 /// Command to connect: through the Bastion host if there is one, directly otherwise.
-fn connect_command(vm: &ResourceId, bastion: Option<&str>) -> String {
-    match bastion.and_then(|b| ResourceId::parse(b, &[arm::BASTION_HOST])) {
+fn connect_command(vm: &ResourceId, bastion: Option<&ResourceId>) -> String {
+    match bastion {
         Some(b) => format!(
             "az network bastion ssh --subscription {} --resource-group {} --name {} --target-resource-id {} --auth-type AAD",
             b.subscription,
@@ -506,11 +588,10 @@ async fn main() -> std::io::Result<()> {
     let client = functions_http::https_client().map_err(std::io::Error::other)?;
     let connector = Connector::from_env(client).map_err(std::io::Error::other)?;
     let timer_connector = connector.clone();
-    let scopes: Arc<Vec<String>> = Arc::new(match std::env::var(SCOPES_VAR) {
-        Ok(v) => serde_json::from_str(&v)
-            .map_err(|err| std::io::Error::other(format!("{SCOPES_VAR}: {err}")))?,
-        Err(_) => vec![],
-    });
+    let scopes =
+        Arc::new(scopes(std::env::var(SCOPES_VAR).ok().as_deref()).map_err(std::io::Error::other)?);
+    // A misconfigured Bastion host fails the start instead of every grant.
+    bastion(std::env::var(BASTION_VAR).ok().as_deref()).map_err(std::io::Error::other)?;
 
     functions_http::run_with_timer(
         move |req| {
@@ -655,12 +736,13 @@ mod tests {
 
     #[test]
     fn connects_through_bastion_when_configured() {
-        let bastion = format!(
+        let bastion = bastion(Some(&format!(
             "/subscriptions/{SUB}/resourceGroups/net/providers/Microsoft.Network/bastionHosts/hub"
-        );
+        )))
+        .unwrap();
 
         assert_eq!(
-            connect_command(&vm_id(), Some(&bastion)),
+            connect_command(&vm_id(), bastion.as_ref()),
             format!(
                 "az network bastion ssh --subscription {SUB} --resource-group net --name hub --target-resource-id {} --auth-type AAD",
                 vm_id().id()
@@ -670,10 +752,35 @@ mod tests {
             connect_command(&vm_id(), None),
             format!("az ssh vm --ids {}", vm_id().id())
         );
+    }
+
+    #[test]
+    fn refuses_a_bastion_id_that_isnt_one() {
+        assert_eq!(bastion(None), Ok(None));
+        assert_eq!(bastion(Some(" ")), Ok(None));
+        for bad in [
+            "not-an-id".to_owned(),
+            format!(
+                "/subscriptions/{SUB}/resourceGroups/net/providers/Microsoft.Network/virtualNetworks/hub"
+            ),
+        ] {
+            let err = bastion(Some(&bad)).unwrap_err();
+            assert!(err.contains("BASTION_ID"), "{err}");
+        }
+    }
+
+    #[test]
+    fn drops_trailing_slashes_of_scopes() {
+        let rg = format!("/subscriptions/{SUB}/resourceGroups/vms");
         assert_eq!(
-            connect_command(&vm_id(), Some("not-an-id")),
-            format!("az ssh vm --ids {}", vm_id().id())
+            scopes(Some(
+                &serde_json::to_string(&[format!("{rg}/"), rg.clone()]).unwrap()
+            )),
+            Ok(vec![rg.clone(), rg])
         );
+        assert_eq!(scopes(None), Ok(vec![]));
+        assert!(scopes(Some(r#"["/"]"#)).is_err());
+        assert!(scopes(Some("not json")).is_err());
     }
 
     #[test]
@@ -870,6 +977,45 @@ mod handler_tests {
         assert_eq!(
             writes[0].body["properties"]["description"],
             description(later)
+        );
+    }
+
+    #[tokio::test]
+    async fn extends_the_grant_a_concurrent_call_created_first() {
+        let mock = MockArm::start().await;
+        let theirs = now() + 60 * 60;
+        script_vm(&mock, vec![], true);
+        // The other call's assignment appears after this one read the VM's assignments.
+        mock.on(
+            Method::GET,
+            &assignments_path(&vm()),
+            200,
+            json!({"value": [assignment("theirs", &vm(), USER, USER_LOGIN_ROLE, Some(description(theirs)))]}),
+        )
+        .on_any(
+            Method::PUT,
+            409,
+            json!({"error": {"code": "RoleAssignmentExists", "message": "The role assignment already exists."}}),
+        )
+        .on(Method::PUT, &format!("{}/theirs", assignments_path(&vm())), 200, json!({}));
+
+        let resp = call(
+            &mock,
+            json!({"action": "execute", "vmId": vm(), "principalId": USER, "durationMinutes": 10}),
+        )
+        .await;
+
+        assert_eq!(resp["outcome"], "done", "{resp}");
+        assert_eq!(resp["result"]["granted"], true);
+        assert_eq!(resp["result"]["expiresAt"], format_time(theirs));
+        let writes = mock.writes();
+        assert_eq!(writes.len(), 2);
+        assert!(arm::is_guid(writes[0].path.rsplit('/').next().unwrap()));
+        assert!(writes[1].path.ends_with("/theirs"));
+        // The longer of the two grants wins.
+        assert_eq!(
+            writes[1].body["properties"]["description"],
+            description(theirs)
         );
     }
 
