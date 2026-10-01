@@ -119,6 +119,17 @@ variable "maximum_instance_count" {
   default     = 10
 }
 
+variable "log_retention_days" {
+  type        = number
+  description = "Retention of the functions' logs in the Log Analytics workspace behind Application Insights, in days."
+  default     = 30
+
+  validation {
+    condition     = var.log_retention_days >= 30 && var.log_retention_days <= 730
+    error_message = "log_retention_days must be between 30 and 730."
+  }
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags applied to every Azure resource."

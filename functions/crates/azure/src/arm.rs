@@ -16,7 +16,7 @@ use crate::{ARM_SCOPE, provider_error};
 const ENDPOINT_VAR: &str = "AZURE_ARM_ENDPOINT";
 const ENDPOINT: &str = "https://management.azure.com";
 
-/// Longest wait between two polls of a long-running operation.
+/// Wait between two polls of a long-running operation when ARM doesn't say how long to wait.
 const POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
 
 /// Attempts of a request ARM throttled or failed to serve.
@@ -375,9 +375,15 @@ impl Arm {
             let page: List<T> = json(resp).await?;
             items.extend(page.value);
             match page.next_link {
-                // Only follow links back to the same endpoint, as they carry the token.
+                None => return Ok(items),
+                // Only follow links back to the same endpoint, as they carry the token. A
+                // partial list must not pass for the whole one.
                 Some(next) if same_origin(&next, &self.endpoint) => req = self.client.get(next),
-                _ => return Ok(items),
+                Some(next) => {
+                    return Err(Error::provider(format!(
+                        "ARM: {path} links its next page to another endpoint ({next})"
+                    )));
+                }
             }
         }
     }
@@ -442,17 +448,12 @@ impl Arm {
                     "ARM: {path} was accepted without a location to poll"
                 )));
             };
-            let wait = resp
-                .headers()
-                .get(reqwest::header::RETRY_AFTER)
-                .and_then(|v| v.to_str().ok()?.parse().ok())
-                .map_or(POLL_INTERVAL, |secs: u64| {
-                    std::time::Duration::from_secs(secs).min(POLL_INTERVAL)
-                });
-            if tokio::time::Instant::now() + wait >= deadline {
+            // Polls when ARM asks to, and once more at the deadline if that is later.
+            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+            if remaining.is_zero() {
                 return Ok(None);
             }
-            tokio::time::sleep(wait).await;
+            tokio::time::sleep(poll_wait(resp.headers()).min(remaining)).await;
             resp = self.send(self.client.get(location)).await?;
         }
     }
@@ -560,6 +561,15 @@ impl Arm {
             }
         }
     }
+}
+
+/// How long to wait before polling a long-running operation again: the Retry-After seconds
+/// ARM asked for, or [`POLL_INTERVAL`].
+fn poll_wait(headers: &reqwest::header::HeaderMap) -> std::time::Duration {
+    headers
+        .get(reqwest::header::RETRY_AFTER)
+        .and_then(|v| v.to_str().ok()?.trim().parse().ok())
+        .map_or(POLL_INTERVAL, std::time::Duration::from_secs)
 }
 
 /// Whether a request that got `status` can be sent again. Throttled and unavailable requests
@@ -853,6 +863,14 @@ mod retry_tests {
     }
 
     #[test]
+    fn polls_as_asked_or_every_interval() {
+        let mut headers = HeaderMap::new();
+        assert_eq!(poll_wait(&headers), POLL_INTERVAL);
+        headers.insert(RETRY_AFTER, HeaderValue::from_static("10"));
+        assert_eq!(poll_wait(&headers), std::time::Duration::from_secs(10));
+    }
+
+    #[test]
     fn waits_as_asked_up_to_a_limit_or_backs_off() {
         let after = |secs: &str| {
             let mut headers = HeaderMap::new();
@@ -874,7 +892,7 @@ mod retry_tests {
 }
 
 #[cfg(all(test, feature = "mock"))]
-mod retry_mock_tests {
+mod mock_tests {
     use serde_json::json;
 
     use super::*;
@@ -949,5 +967,138 @@ mod retry_mock_tests {
 
         assert!(result.is_err());
         assert_eq!(mock.writes().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn follows_next_links_to_the_end() {
+        let mock = MockArm::start().await;
+        let list = "/subscriptions/s/resourceGroups/rg/providers/Microsoft.Compute/disks";
+        mock.on(
+            Method::GET,
+            list,
+            200,
+            json!({"value": [{"name": "a"}], "nextLink": format!("{}{list}?$skiptoken=2", mock.url())}),
+        )
+        .on(Method::GET, list, 200, json!({"value": [{"name": "b"}]}));
+        let arm = mock.connector().connect().await.unwrap();
+
+        let items: Vec<Value> = arm.list(list, COMPUTE_API_VERSION, None).await.unwrap();
+
+        assert_eq!(items, vec![json!({"name": "a"}), json!({"name": "b"})]);
+        assert!(mock.requests()[1].query.contains("skiptoken=2"));
+    }
+
+    #[tokio::test]
+    async fn refuses_next_links_to_another_endpoint() {
+        let mock = MockArm::start().await;
+        let list = "/subscriptions/s/resourceGroups/rg/providers/Microsoft.Compute/disks";
+        mock.on(
+            Method::GET,
+            list,
+            200,
+            json!({"value": [{"name": "a"}], "nextLink": "https://example.com/next"}),
+        );
+        let arm = mock.connector().connect().await.unwrap();
+
+        let err = arm
+            .list::<Value>(list, COMPUTE_API_VERSION, None)
+            .await
+            .unwrap_err();
+
+        assert!(err.to_string().contains("another endpoint"), "{err}");
+        assert_eq!(mock.requests().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn reports_an_etag_conflict_without_resending() {
+        let mock = MockArm::start().await;
+        mock.on(
+            Method::PUT,
+            PATH,
+            412,
+            json!({"error": {"code": "PreconditionFailed", "message": "The ETag doesn't match."}}),
+        );
+        let arm = mock.connector().connect().await.unwrap();
+
+        let err = arm
+            .put(
+                PATH,
+                COMPUTE_API_VERSION,
+                &json!({}),
+                Precondition::IfMatch(Some("\"stale\"")),
+            )
+            .await
+            .unwrap_err();
+
+        assert!(err.to_string().contains("PreconditionFailed"), "{err}");
+        assert_eq!(mock.writes().len(), 1);
+    }
+
+    const OPERATION: &str =
+        "/subscriptions/s/providers/Microsoft.Network/locations/eastus/operationResults/op";
+
+    #[tokio::test]
+    async fn polls_a_long_running_action_for_its_result() {
+        let mock = MockArm::start().await;
+        let location = format!("{}{OPERATION}", mock.url());
+        let action = format!("{PATH}/health");
+        mock.on_with_headers(
+            Method::POST,
+            &action,
+            202,
+            &[("Location", &location), ("Retry-After", "0")],
+            json!({}),
+        )
+        .on_with_headers(
+            Method::GET,
+            OPERATION,
+            202,
+            &[("Location", &location), ("Retry-After", "0")],
+            json!({}),
+        )
+        .on(Method::GET, OPERATION, 200, json!({"up": 1}));
+        let arm = mock.connector().connect().await.unwrap();
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(5);
+
+        let result = arm
+            .post_and_wait(&action, COMPUTE_API_VERSION, deadline)
+            .await
+            .unwrap();
+
+        assert_eq!(result, Some(json!({"up": 1})));
+        assert_eq!(mock.requests().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn polls_once_more_at_the_deadline_when_asked_to_wait_longer() {
+        let mock = MockArm::start().await;
+        let location = format!("{}{OPERATION}", mock.url());
+        let action = format!("{PATH}/health");
+        mock.on_with_headers(
+            Method::POST,
+            &action,
+            202,
+            &[("Location", &location), ("Retry-After", "30")],
+            json!({}),
+        )
+        .on_with_headers(
+            Method::GET,
+            OPERATION,
+            202,
+            &[("Location", &location), ("Retry-After", "30")],
+            json!({}),
+        );
+        let arm = mock.connector().connect().await.unwrap();
+        let started = tokio::time::Instant::now();
+        let deadline = started + std::time::Duration::from_millis(300);
+
+        let result = arm
+            .post_and_wait(&action, COMPUTE_API_VERSION, deadline)
+            .await
+            .unwrap();
+
+        assert_eq!(result, None);
+        assert_eq!(mock.requests().len(), 2);
+        assert!(started.elapsed() < std::time::Duration::from_secs(2));
     }
 }

@@ -13,6 +13,11 @@ output "functions" {
   }
 }
 
+output "application_insights_id" {
+  description = "Application Insights resource holding the functions' logs and invocations."
+  value       = azurerm_application_insights.functions.id
+}
+
 output "invoke_role_definition_id" {
   description = "Role to assign to the cloud connection service principal on each of invoke_scopes so workbenches can invoke the functions."
   value       = azurerm_role_definition.invoke.role_definition_resource_id

@@ -6,8 +6,9 @@
 //! again with the same parameters reports the new server's state and hostname. The new server
 //! is tagged with its source and restore point, so a server that happens to have the target
 //! name is never mistaken for the restore. The restored server gets the source's network
-//! settings (the same delegated subnet and private DNS zone, or public access); firewall
-//! rules and private endpoints aren't copied by Azure.
+//! settings (the same delegated subnet and private DNS zone, or public access), availability
+//! zone, and user-assigned identities and customer managed key, if the source is encrypted
+//! with one; firewall rules and private endpoints aren't copied by Azure.
 
 use std::collections::HashMap;
 
@@ -44,6 +45,9 @@ struct Server {
     tags: HashMap<String, String>,
     #[serde(default)]
     properties: ServerProperties,
+    /// Managed identities, which the restored server needs to read a customer managed key.
+    #[serde(default)]
+    identity: Option<Value>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -58,7 +62,21 @@ struct ServerProperties {
     /// Network settings, which the restored server takes over.
     #[serde(default)]
     network: Option<Value>,
+    /// Customer managed key settings, which the restored server takes over.
+    #[serde(default)]
+    data_encryption: Option<Value>,
+    #[serde(default)]
+    availability_zone: Option<String>,
 }
+
+/// Settings of `dataEncryption` a server is created with; the others report the key's status.
+const DATA_ENCRYPTION_SETTINGS: [&str; 5] = [
+    "type",
+    "primaryKeyURI",
+    "primaryUserAssignedIdentityId",
+    "geoBackupKeyURI",
+    "geoBackupUserAssignedIdentityId",
+];
 
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -295,7 +313,7 @@ fn evaluate(
 
 /// PUT body creating the restored server next to the source.
 fn restore_body(source: &Server, source_id: &ResourceId, engine: &Engine, point: &str) -> Value {
-    json!({
+    let mut body = json!({
         "location": source.location,
         "tags": {
             SOURCE_TAG: source_id.name,
@@ -309,7 +327,55 @@ fn restore_body(source: &Server, source_id: &ResourceId, engine: &Engine, point:
             // Azure CLI, pass the source's so it lands in the same subnet or public access.
             "network": source.properties.network,
         },
-    })
+    });
+    // Like the Azure CLI, keep the source's zone, and its key with the identities that read
+    // it, without which a server encrypted with a customer managed key can't be restored.
+    if let Some(zone) = source
+        .properties
+        .availability_zone
+        .as_deref()
+        .filter(|z| !z.is_empty())
+    {
+        body["properties"]["availabilityZone"] = json!(zone);
+    }
+    if let Some(encryption) = source
+        .properties
+        .data_encryption
+        .as_ref()
+        .and_then(Value::as_object)
+    {
+        let settings: serde_json::Map<String, Value> = DATA_ENCRYPTION_SETTINGS
+            .iter()
+            .filter_map(|key| {
+                let value = encryption.get(*key).filter(|v| !v.is_null())?;
+                Some(((*key).to_owned(), value.clone()))
+            })
+            .collect();
+        if !settings.is_empty() {
+            body["properties"]["dataEncryption"] = Value::Object(settings);
+        }
+    }
+    if let Some(identity) = source.identity.as_ref().and_then(restore_identity) {
+        body["identity"] = identity;
+    }
+    body
+}
+
+/// The source's identity settings for the restored server: the same user-assigned identities,
+/// referenced by ID only, and a system-assigned identity of its own if the source has one.
+fn restore_identity(identity: &Value) -> Option<Value> {
+    let kind = identity.get("type")?.as_str()?;
+    if kind.eq_ignore_ascii_case("None") {
+        return None;
+    }
+    let mut out = json!({ "type": kind });
+    if let Some(assigned) = identity
+        .get("userAssignedIdentities")
+        .and_then(Value::as_object)
+    {
+        out["userAssignedIdentities"] = assigned.keys().map(|id| (id.clone(), json!({}))).collect();
+    }
+    Some(out)
 }
 
 fn earliest_restore(server: &Server) -> Option<String> {
@@ -498,6 +564,64 @@ mod tests {
             })
         );
         assert!(body["tags"].get("plural.sh-db-restore-source").is_some());
+    }
+
+    #[test]
+    fn restore_body_keeps_the_zone_key_and_identities() {
+        let uami = "/subscriptions/s/resourceGroups/rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/db";
+        let mut source = server("app", "Ready", &[]);
+        source.properties.availability_zone = Some("2".into());
+        source.properties.data_encryption = Some(json!({
+            "type": "AzureKeyVault",
+            "primaryKeyURI": "https://kv.vault.azure.net/keys/db/1",
+            "primaryUserAssignedIdentityId": uami,
+            "geoBackupKeyURI": null,
+            "primaryEncryptionKeyStatus": "Valid",
+        }));
+        source.identity = Some(json!({
+            "type": "UserAssigned",
+            "tenantId": "t",
+            "userAssignedIdentities": {uami: {"principalId": "p", "clientId": "c"}},
+        }));
+
+        for kind in [arm::POSTGRES_FLEXIBLE_SERVER, arm::MYSQL_FLEXIBLE_SERVER] {
+            let body = restore_body(&source, &id("app"), &engine(kind), POINT);
+
+            assert_eq!(body["properties"]["availabilityZone"], "2");
+            assert_eq!(
+                body["properties"]["dataEncryption"],
+                json!({
+                    "type": "AzureKeyVault",
+                    "primaryKeyURI": "https://kv.vault.azure.net/keys/db/1",
+                    "primaryUserAssignedIdentityId": uami,
+                })
+            );
+            assert_eq!(
+                body["identity"],
+                json!({"type": "UserAssigned", "userAssignedIdentities": {uami: {}}})
+            );
+        }
+    }
+
+    #[test]
+    fn restore_body_leaves_out_what_the_source_doesnt_have() {
+        let mut source = server("app", "Ready", &[]);
+        source.properties.availability_zone = Some(String::new());
+        source.identity = Some(json!({"type": "None"}));
+
+        let body = restore_body(
+            &source,
+            &id("app"),
+            &engine(arm::POSTGRES_FLEXIBLE_SERVER),
+            POINT,
+        );
+
+        assert!(body.get("identity").is_none(), "{body}");
+        assert!(
+            body["properties"].get("availabilityZone").is_none(),
+            "{body}"
+        );
+        assert!(body["properties"].get("dataEncryption").is_none(), "{body}");
     }
 
     #[test]

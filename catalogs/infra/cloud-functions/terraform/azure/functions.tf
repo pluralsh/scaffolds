@@ -1,5 +1,11 @@
-resource "azurerm_storage_account" "functions" {
-  name                            = local.storage_account_name
+# Each app gets a storage account of its own for its package and the Functions host's state,
+# including its keys. The app reaches it with the account key, so a shared account would let
+# any app read or replace the others' packages and keys. Identity-based access isn't used, as
+# the azurerm provider doesn't configure it correctly for Flex Consumption apps yet.
+resource "azurerm_storage_account" "function" {
+  for_each = local.functions
+
+  name                            = local.storage_account_names[each.key]
   resource_group_name             = data.azurerm_resource_group.functions.name
   location                        = var.region
   account_tier                    = "Standard"
@@ -9,12 +15,31 @@ resource "azurerm_storage_account" "functions" {
   tags                            = var.tags
 }
 
-# Each app gets its own deployment container so deployments don't overwrite each other.
+# The Functions host sends the handlers' logs and the invocations to Application Insights,
+# which keeps them in the workspace.
+resource "azurerm_log_analytics_workspace" "functions" {
+  name                = "${var.name}-functions-${substr(local.hash, 0, 6)}"
+  resource_group_name = data.azurerm_resource_group.functions.name
+  location            = var.region
+  sku                 = "PerGB2018"
+  retention_in_days   = var.log_retention_days
+  tags                = var.tags
+}
+
+resource "azurerm_application_insights" "functions" {
+  name                = "${var.name}-functions-${substr(local.hash, 0, 6)}"
+  resource_group_name = data.azurerm_resource_group.functions.name
+  location            = var.region
+  workspace_id        = azurerm_log_analytics_workspace.functions.id
+  application_type    = "other"
+  tags                = var.tags
+}
+
 resource "azurerm_storage_container" "function" {
   for_each = local.functions
 
   name                  = local.app_names[each.key]
-  storage_account_id    = azurerm_storage_account.functions.id
+  storage_account_id    = azurerm_storage_account.function[each.key].id
   container_access_type = "private"
 }
 
@@ -42,9 +67,9 @@ resource "azurerm_function_app_flex_consumption" "function" {
   service_plan_id     = azurerm_service_plan.function[each.key].id
 
   storage_container_type      = "blobContainer"
-  storage_container_endpoint  = "${azurerm_storage_account.functions.primary_blob_endpoint}${azurerm_storage_container.function[each.key].name}"
+  storage_container_endpoint  = "${azurerm_storage_account.function[each.key].primary_blob_endpoint}${azurerm_storage_container.function[each.key].name}"
   storage_authentication_type = "StorageAccountConnectionString"
-  storage_access_key          = azurerm_storage_account.functions.primary_access_key
+  storage_access_key          = azurerm_storage_account.function[each.key].primary_access_key
 
   runtime_name           = "custom"
   runtime_version        = "1.0"
@@ -57,7 +82,9 @@ resource "azurerm_function_app_flex_consumption" "function" {
     type = "SystemAssigned"
   }
 
-  site_config {}
+  site_config {
+    application_insights_connection_string = azurerm_application_insights.functions.connection_string
+  }
 
   app_settings = each.value.environment
 

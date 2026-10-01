@@ -13,7 +13,10 @@ workbench tools. The function sources live in `functions/` of
     CloudWatch log group, an IAM policy allowing only to invoke the functions, and one
     `LAMBDA` workbench tool per function.
   - Azure: one Flex Consumption function app (custom handler) per function, each with its
-    own system-assigned managed identity, in the resource group of the mgmt cluster; a role
+    own system-assigned managed identity and its own storage account for its package and
+    keys, in the resource group of the mgmt cluster, sending
+    its logs and invocations to an Application Insights resource backed by a Log Analytics
+    workspace (`application_insights_id` output); a role
     allowing only to resolve each function's URL and its own key (not the app's host or
     master keys), and one `AZURE_FUNCTION` workbench tool per function. The functions'
     permissions are custom roles defined in the subscription and assigned on the resource
@@ -126,8 +129,10 @@ data disks/volumes are kept (delete them with `volume-delete` if needed).
 
 Takes `vmId`. Public IPs follow the delete option of their network interface. VMs of scale
 sets, AKS nodes (`aks-managed-*` tags) and VMs with unmanaged OS disks are refused.
-`execute` first sets the delete options on the VM and then deletes it; if the VM is still
-updating, a later `execute` deletes it. Both are sent with the VM's ETag, so a VM changed in
+`execute` first sets the delete options on the VM and then deletes it. Azure usually reports
+the VM as updating for a while after the first step, so deleting a VM usually takes two
+`execute` calls: the first sets the delete options and is refused while the VM updates, and
+a later one, once it has finished, deletes it. Both are sent with the VM's ETag, so a VM changed in
 the meantime is left alone. Once the result reports `deleteOptionsSet`, deleting the VM in
 any way also deletes its OS disk and network interfaces. Permissions in
 `scopes["vm-delete"]`: read, update and delete VMs, and read, update and delete disks and
@@ -188,16 +193,18 @@ Restores a PostgreSQL or MySQL flexible server (`serverId`) to a point in time
 server (`targetServerName`) in the same resource group. The source server is never changed:
 restoring over it or into an existing server is refused, so applications only move to the
 restored data when they are pointed at the new server. The new server gets the source's
-network settings (subnet and private DNS zone, or public access) and admin login; Azure
-doesn't copy firewall rules or private endpoints. `execute` submits the restore, which takes
+network settings (subnet and private DNS zone, or public access), availability zone, admin
+login, and, for a server encrypted with a customer managed key, its key and the
+user-assigned identities that read it; Azure doesn't copy firewall rules or private
+endpoints. `execute` submits the restore, which takes
 a while; calling again with the same parameters reports the new server's state and hostname.
 The new server is tagged with its source and restore point, and is only ever created: a
 server that appears under the target name in the meantime is left alone. Permissions in
 `scopes["db-restore"]`: read and write flexible servers, and join subnets and private DNS
 zones for servers in a virtual network, which it can also join in `network_scopes`, e.g. a
-private DNS zone in a hub resource group. Writing servers also allows changing existing ones;
-only the function's checks prevent that. Servers encrypted with customer managed keys aren't
-supported.
+private DNS zone in a hub resource group, and assign user-assigned identities, so identities
+in another resource group need it in the scopes too. Writing servers also allows changing
+existing ones; only the function's checks prevent that.
 
 ### ssh-access (Azure)
 
@@ -242,7 +249,7 @@ submit the change and report the resource state without waiting for it to comple
 
 Terraform variables not set by the stack, such as `functions`, `log_retention_days` (AWS),
 `scopes`, `network_scopes`, `node_pool_max_count`, `ssh_access_max_minutes`, `ssh_bastion_id`,
-`resource_group_name` and `instance_memory_in_mb` (Azure), `max_instance_count` and
+`resource_group_name`, `instance_memory_in_mb` and `log_retention_days` (Azure), `max_instance_count` and
 `release_retention_days` (GCP, how long the source and images of earlier releases are kept) or
 `tags`, can be added to `variables` in the stack.
 

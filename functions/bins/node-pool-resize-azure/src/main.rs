@@ -10,7 +10,9 @@ use functions_core::{Action, Error, Guard, Request, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-const AKS_API_VERSION: &str = "2026-07-01";
+/// A GA version that has had months to roll out to every region; the function only uses
+/// long-standing agent pool properties.
+const AKS_API_VERSION: &str = "2026-04-01";
 
 /// Nodes AKS allows in a single node pool.
 const AKS_MAX_COUNT: i64 = 1000;
