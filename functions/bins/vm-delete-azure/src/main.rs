@@ -6,8 +6,9 @@
 //!
 //! Azure deletes a VM's disks and network interfaces with it according to their
 //! `deleteOption`, so execute first sets the OS disk and network interfaces to `Delete` and the
-//! data disks to `Detach`, and then deletes the VM. If the VM is still updating after the first
-//! step, execute is refused and a later execute deletes it.
+//! data disks to `Detach`, and then deletes the VM. Azure usually reports the VM as updating for
+//! a while after the first step; execute is then refused, and a later execute, once the VM has
+//! finished updating, deletes it. Deleting a VM therefore usually takes two executes.
 
 use std::collections::HashMap;
 
@@ -504,6 +505,7 @@ mod handler_tests {
         assert!(mock.writes().is_empty());
     }
 
+    /// The uncommon case where Azure finishes the update before answering the PATCH.
     #[tokio::test]
     async fn sets_delete_options_then_deletes_in_one_execute() {
         let mock = MockArm::start().await;
@@ -549,6 +551,48 @@ mod handler_tests {
         assert_eq!(resp["result"]["deleteOptionsSet"], true);
         assert_eq!(resp["result"]["deleted"], false);
         assert_eq!(mock.writes().len(), 1, "no delete while the VM updates");
+    }
+
+    /// The usual sequence: the VM updates after the first execute, refuses while it does, and
+    /// is deleted by the execute after that.
+    #[tokio::test]
+    async fn deletes_over_several_executes_while_the_vm_updates() {
+        let mock = MockArm::start().await;
+        mock.on(Method::GET, VM, 200, vm("Succeeded", false, "1"))
+            .on(Method::GET, VM, 200, vm("Updating", true, "2"))
+            .on(Method::GET, VM, 200, vm("Succeeded", true, "3"))
+            .on(Method::PATCH, VM, 200, vm("Updating", true, "2"))
+            .on(Method::DELETE, VM, 202, Value::Null);
+
+        let first = call(&mock, "execute").await;
+        let second = call(&mock, "execute").await;
+        let third = call(&mock, "execute").await;
+
+        assert_eq!(first["outcome"], "refused", "{first}");
+        assert_eq!(first["result"]["deleteOptionsSet"], true);
+        assert_eq!(second["outcome"], "refused", "{second}");
+        assert!(
+            second["guards"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|g| g["name"] == "idle" && g["passed"] == false),
+            "{second}"
+        );
+        assert_eq!(third["outcome"], "done", "{third}");
+        assert_eq!(third["result"]["deleted"], true);
+        let writes: Vec<_> = mock
+            .writes()
+            .into_iter()
+            .map(|w| (w.method, w.if_match))
+            .collect();
+        assert_eq!(
+            writes,
+            [
+                (Method::PATCH, Some("1".to_owned())),
+                (Method::DELETE, Some("3".to_owned())),
+            ]
+        );
     }
 
     #[tokio::test]

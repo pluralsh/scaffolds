@@ -13,7 +13,10 @@ workbench tools. The function sources live in `functions/` of
     CloudWatch log group, an IAM policy allowing only to invoke the functions, and one
     `LAMBDA` workbench tool per function.
   - Azure: one Flex Consumption function app (custom handler) per function, each with its
-    own system-assigned managed identity, in the resource group of the mgmt cluster; a role
+    own system-assigned managed identity and its own storage account for its package and
+    keys, in the resource group of the mgmt cluster, sending
+    its logs and invocations to an Application Insights resource backed by a Log Analytics
+    workspace (`application_insights_id` output); a role
     allowing only to resolve each function's URL and its own key (not the app's host or
     master keys), and one `AZURE_FUNCTION` workbench tool per function. The functions'
     permissions are custom roles defined in the subscription and assigned on the resource
@@ -138,8 +141,10 @@ data disks/volumes are kept (delete them with `volume-delete` if needed).
 
 Takes `vmId`. Public IPs follow the delete option of their network interface. VMs of scale
 sets, AKS nodes (`aks-managed-*` tags) and VMs with unmanaged OS disks are refused.
-`execute` first sets the delete options on the VM and then deletes it; if the VM is still
-updating, a later `execute` deletes it. Both are sent with the VM's ETag, so a VM changed in
+`execute` first sets the delete options on the VM and then deletes it. Azure usually reports
+the VM as updating for a while after the first step, so deleting a VM usually takes two
+`execute` calls: the first sets the delete options and is refused while the VM updates, and
+a later one, once it has finished, deletes it. Both are sent with the VM's ETag, so a VM changed in
 the meantime is left alone. Once the result reports `deleteOptionsSet`, deleting the VM in
 any way also deletes its OS disk and network interfaces. Permissions in
 `scopes["vm-delete"]`: read, update and delete VMs, and read, update and delete disks and
@@ -256,9 +261,9 @@ submit the change and report the resource state without waiting for it to comple
 
 Terraform variables not set by the stack, such as `functions`, `log_retention_days` (AWS),
 `node_pool_max_count` (AWS, Azure), `scopes`, `network_scopes`, `ssh_access_max_minutes`,
-`ssh_bastion_id`, `resource_group_name` and `instance_memory_in_mb` (Azure),
-`max_instance_count` and `release_retention_days` (GCP, how long the source and images of
-earlier releases are kept) or
+`ssh_bastion_id`, `resource_group_name`, `instance_memory_in_mb` and `log_retention_days`
+(Azure), `max_instance_count` and `release_retention_days` (GCP, how long the source and
+images of earlier releases are kept) or
 `tags`, can be added to `variables` in the stack.
 
 ## Contributing
