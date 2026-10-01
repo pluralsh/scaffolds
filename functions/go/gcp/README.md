@@ -14,8 +14,10 @@ in `docs/`. The `Justfile` wraps every step; run `just` to list the recipes.
 | `volume-delete` | `VolumeDelete` | `internal/volumedelete` | [docs/volume-delete.md](docs/volume-delete.md) |
 | `vm-delete` | `VMDelete` | `internal/vmdelete` | [docs/vm-delete.md](docs/vm-delete.md) |
 
-The function key is the one in the terraform catalog (`local.catalog` in `locals.tf`). Recipes
-that act on a function take it, e.g. `just serve vm-delete`.
+The function key is the one in the terraform catalog (`local.catalog` in
+`catalogs/infra/cloud-functions/terraform/gcp/locals.tf`), and the name of the file defining
+it there, e.g. `vm-delete.tf`. Recipes that act on a function take it, e.g.
+`just serve vm-delete`.
 
 - [Layout](#layout)
 - [Prerequisites](#prerequisites)
@@ -170,9 +172,9 @@ Conventions in the matrices:
 ## Running as the minimal service account
 
 Terraform gives each function its own service account with a project custom role holding
-only the permissions listed in `catalog` in
-`catalogs/infra/cloud-functions/terraform/gcp/locals.tf`. The Justfile copies those lists
-into `<function>_permissions` variables, so keep them in sync. The service account recipes
+only the `permissions` in its `catalogs/infra/cloud-functions/terraform/gcp/<function>.tf`.
+The Justfile copies those lists into `<function>_permissions` variables, so keep them in
+sync. The service account recipes
 take the function key, `volume-delete` by default:
 
 ```bash
@@ -197,11 +199,18 @@ with `just sa-delete <function>`.
    own.
 2. Register the entry point in `functions.go`. CI checks that every `entry_point` in the
    terraform catalog is registered there.
-3. In `catalogs/infra/cloud-functions/terraform/gcp`: add the function to `local.catalog` in
-   `locals.tf` with its minimal permissions, and its tool schema to `schemas/`. Add it to the
-   `functions` default in `variables.tf` and to the GCP list in the catalog's `stack.yaml`, then
-   regenerate the contract outputs with `plural pr contracts --file test/contracts.yaml` from
-   the repo root.
+3. In `catalogs/infra/cloud-functions/terraform/gcp`:
+   - add `<function>.tf` defining `local.<function>`: entry point, tool description, memory,
+     timeout, environment, minimal permissions and schema, plus any variables only it uses;
+   - add its tool schema to `schemas/<function>.json`;
+   - register it in `local.catalog` in `locals.tf`, and add it to the `functions` default in
+     `variables.tf` and to the GCP list in the catalog's `stack.yaml`.
+
+   `modules/function` deploys it: the Cloud Run function and workbench tool in `main.tf`, its
+   service account, custom role and invoker binding in `iam.tf`. Shared resources are in
+   `build.tf` (APIs, Artifact Registry repository, source bucket) and `iam.tf` (the build
+   service account and its grants). Then regenerate the contract outputs with
+   `plural pr contracts --file test/contracts.yaml` from the repo root.
 4. In the `Justfile`: map the key to the entry point in `serve`, add `<function>_permissions`
    and its case in `sa-create`, and add a group with plan, execute, fixtures and cleanup
    recipes.
@@ -215,7 +224,7 @@ with `just sa-delete <function>`.
 | 502 `GOOGLE_CLOUD_PROJECT is not set` | The variable was missing when the server started. |
 | 502 `could not find default credentials` | No ADC. Run `just login-user`. |
 | Credential or project change has no effect | The client is cached. Restart the server. |
-| 502 with `403` and a permission name | The identity lacks that permission. Compare with `locals.tf`. |
+| 502 with `403` and a permission name | The identity lacks that permission. Compare with the function's `<function>.tf` in the terraform. |
 | 502 `API has not been used in project` | Run `just apis`. |
 | 404 from curl | Without `FUNCTION_TARGET`, each function is at `/<EntryPoint>`, e.g. `/VMDelete`, not `/`. |
 | `kubernetes` guard of volume-delete fails on a real CSI disk | `pvName` must equal `kubernetes.io/created-for/pv/name` in `just volume-disk <disk>`. |

@@ -26,19 +26,13 @@ variable "invoker_service_account" {
 
 variable "functions" {
   type        = list(string)
-  description = "Functions to deploy, by key of local.catalog."
+  description = "Functions to deploy, by key of local.catalog in locals.tf."
   default     = ["volume-delete", "vm-delete"]
 
   validation {
     condition     = length(var.functions) > 0
     error_message = "At least one function must be deployed."
   }
-}
-
-variable "allow_skip_snapshot" {
-  type        = bool
-  description = "Let callers skip the snapshot taken before a disk is deleted. When false, volume-delete always snapshots first and its tool schema has no snapshot input."
-  default     = false
 }
 
 variable "artifact_version" {

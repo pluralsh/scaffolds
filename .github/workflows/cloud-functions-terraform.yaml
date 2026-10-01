@@ -62,7 +62,7 @@ jobs:
           terraform_version: 1.5.7
           terraform_wrapper: false
 
-      - run: terraform fmt -check -diff
+      - run: terraform fmt -check -diff -recursive
       - run: terraform init -backend=false -input=false
       - run: terraform validate
 
@@ -86,12 +86,12 @@ jobs:
           exit $status
 
       # GCP functions are Go entry points instead, registered with functions.HTTP in
-      # functions/go/gcp/functions.go.
+      # functions/go/gcp/functions.go. Each function sets its entry_point in its own <key>.tf.
       - name: check function entry points
         if: matrix.cloud == 'gcp'
         run: |
-          entry_points=$(sed -n 's/^ *entry_point *= *"\(.*\)"$/\1/p' locals.tf)
-          if [[ -z "$entry_points" ]]; then echo "::error::no entry_point found in locals.tf"; exit 1; fi
+          entry_points=$(sed -n 's/^ *entry_point *= *"\(.*\)"$/\1/p' *.tf)
+          if [[ -z "$entry_points" ]]; then echo "::error::no entry_point found in *.tf"; exit 1; fi
           status=0
           for entry_point in $entry_points; do
             if ! grep -q "functions.HTTP(\"$entry_point\"" "$GITHUB_WORKSPACE/functions/go/gcp/functions.go"; then
