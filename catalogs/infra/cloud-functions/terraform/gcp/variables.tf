@@ -58,6 +58,17 @@ variable "artifact_dir" {
   default     = "/artifacts"
 }
 
+variable "release_retention_days" {
+  type        = number
+  description = "Days the source and images of earlier releases are kept. Source is deleted that long after a newer release replaced it, and images once they are that old, except for the 5 most recent versions of each function."
+  default     = 30
+
+  validation {
+    condition     = var.release_retention_days >= 1
+    error_message = "release_retention_days must be at least 1."
+  }
+}
+
 variable "max_instance_count" {
   type        = number
   description = "Maximum number of instances each function scales out to."

@@ -60,6 +60,8 @@ locals {
   run_services = {
     for key, fn in google_cloudfunctions2_function.function : key => element(split("/", fn.service_config[0].service), length(split("/", fn.service_config[0].service)) - 1)
   }
+  # Artifact Registry repository IDs are unique per project and region.
+  repository_id = "${var.name}-functions"
   # Bucket names are globally unique.
   bucket_name = "plrl-fn-${substr(sha1("${local.project_id}/${var.name}"), 0, 16)}"
 }

@@ -1,6 +1,6 @@
 module github.com/pluralsh/scaffolds/functions/go/gcp
 
-go 1.26.0
+go 1.27
 
 require (
 	cloud.google.com/go/compute v1.70.0

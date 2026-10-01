@@ -8,12 +8,10 @@ type Zone string
 // Valid reports whether the zone is `<region>-<zone letter>`, e.g. `us-central1-a` or
 // `northamerica-northeast1-b`.
 func (z Zone) Valid() bool {
-	zone := string(z)
-	i := strings.LastIndexByte(zone, '-')
-	if i < 0 {
+	region, letter, ok := strings.CutLast(string(z), "-")
+	if !ok {
 		return false
 	}
-	region, letter := zone[:i], zone[i+1:]
 	area, location, ok := strings.Cut(region, "-")
 	if !ok {
 		return false

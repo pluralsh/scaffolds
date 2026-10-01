@@ -20,8 +20,9 @@ workbench tools. The function sources live in `functions/` of
     in the project of the mgmt cluster, reachable only by identities granted
     `roles/run.invoker`, and one `CLOUD_RUN` workbench tool per function. The functions are
     written in Go. Terraform uploads their source to a private bucket and Cloud Build builds
-    it as a dedicated service account with only the build permissions, so no Preview feature
-    is involved.
+    it as a dedicated service account into an Artifact Registry repository of the
+    installation, the only repository that account can write to, so no Preview feature is
+    involved.
 
 An init container of the stack run downloads the function packages from the GitHub release
 and verifies them against its `SHA256SUMS`, so the mgmt cluster needs to reach `github.com`
@@ -215,7 +216,8 @@ submit the change and report the resource state without waiting for it to comple
 
 Terraform variables not set by the stack, such as `functions`, `log_retention_days` (AWS),
 `scopes`, `node_pool_max_count`, `ssh_access_max_minutes`, `ssh_bastion_id`,
-`resource_group_name` and `instance_memory_in_mb` (Azure), `max_instance_count` (GCP) or
+`resource_group_name` and `instance_memory_in_mb` (Azure), `max_instance_count` and
+`release_retention_days` (GCP, how long the source and images of earlier releases are kept) or
 `tags`, can be added to `variables` in the stack.
 
 ## Contributing

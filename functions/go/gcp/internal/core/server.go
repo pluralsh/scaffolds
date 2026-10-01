@@ -32,8 +32,7 @@ func (s *Server[P, R]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBodyBytes))
 	if err != nil {
-		var tooLarge *http.MaxBytesError
-		if errors.As(err, &tooLarge) {
+		if _, tooLarge := errors.AsType[*http.MaxBytesError](err); tooLarge {
 			w.WriteHeader(http.StatusRequestEntityTooLarge)
 			return
 		}
@@ -68,8 +67,8 @@ func (s *Server[P, R]) invoke(ctx context.Context, body []byte) ([]byte, error) 
 
 // fail logs err and reports it to the caller. Errors other than [Error] are provider errors.
 func (s *Server[P, R]) fail(ctx context.Context, w http.ResponseWriter, err error) {
-	var e *Error
-	if !errors.As(err, &e) {
+	e, ok := errors.AsType[*Error](err)
+	if !ok {
 		e = Providerf("%v", err)
 	}
 	slog.ErrorContext(ctx, "invocation failed", "error_type", string(e.Kind), "error", e.Error())
