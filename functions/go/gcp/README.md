@@ -3,7 +3,7 @@
 Operational functions that run as Cloud Run functions, the 2nd generation of Cloud Functions.
 Every function is a [Functions Framework](https://github.com/GoogleCloudPlatform/functions-framework-go)
 entry point registered in `functions.go`. Production deploys go through
-`catalogs/infra/cloud-functions/terraform/gcp`.
+`catalogs/infra/cloud-functions-gcp/terraform`.
 
 This README covers what all functions share: running one locally against a real GCP project,
 calling it, and testing it end to end. Each function's behaviour, fixtures and test matrix are
@@ -15,7 +15,7 @@ in `docs/`. The `Justfile` wraps every step; run `just` to list the recipes.
 | `vm-delete` | `VMDelete` | `internal/vmdelete` | [docs/vm-delete.md](docs/vm-delete.md) |
 
 The function key is the one in the terraform catalog (`local.catalog` in
-`catalogs/infra/cloud-functions/terraform/gcp/locals.tf`), and the name of the file defining
+`catalogs/infra/cloud-functions-gcp/terraform/locals.tf`), and the name of the file defining
 it there, e.g. `vm-delete.tf`. Recipes that act on a function take it, e.g.
 `just serve vm-delete`.
 
@@ -172,7 +172,7 @@ Conventions in the matrices:
 ## Running as the minimal service account
 
 Terraform gives each function its own service account with a project custom role holding
-only the `permissions` in its `catalogs/infra/cloud-functions/terraform/gcp/<function>.tf`.
+only the `permissions` in its `catalogs/infra/cloud-functions-gcp/terraform/<function>.tf`.
 The Justfile copies those lists into `<function>_permissions` variables, so keep them in
 sync. The service account recipes
 take the function key, `volume-delete` by default:
@@ -199,7 +199,7 @@ with `just sa-delete <function>`.
    own.
 2. Register the entry point in `functions.go`. CI checks that every `entry_point` in the
    terraform catalog is registered there.
-3. In `catalogs/infra/cloud-functions/terraform/gcp`:
+3. In `catalogs/infra/cloud-functions-gcp/terraform`:
    - add `<function>.tf` defining `local.<function>`: entry point, tool description, memory,
      timeout, environment, minimal permissions and schema, plus any variables only it uses;
    - add its tool schema to `schemas/<function>.json`;

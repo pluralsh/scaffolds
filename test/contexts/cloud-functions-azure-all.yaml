@@ -1,5 +1,4 @@
 name: ops-az-all
-cloud: azure
 region: eastus
 cloudConnection: azure-workbench
 version: v0.1.0-spike.1
@@ -8,7 +7,6 @@ clusterResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resour
 networkResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/network
 vmResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms
 databaseResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/databases
-sshResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms
 sshBastionId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/hub/providers/Microsoft.Network/bastionHosts/hub-bastion
 allowSkipSnapshot: true
 nodePoolMaxCount: 20

@@ -27,7 +27,7 @@ vmd := prefix + "-vmd"
 
 # Like terraform, every function gets its own service account (`<prefix>-<function>`) and
 # custom role (`e2e_<function>`). Keep the permissions in sync with `permissions` in
-# catalogs/infra/cloud-functions/terraform/gcp/<function>.tf.
+# catalogs/infra/cloud-functions-gcp/terraform/<function>.tf.
 volume_delete_permissions := "compute.disks.get,compute.disks.delete,compute.disks.createSnapshot,compute.snapshots.create,compute.snapshots.list,compute.snapshots.setLabels"
 vm_delete_permissions := "compute.instances.get,compute.instances.delete,compute.instances.setDiskAutoDelete,compute.disks.update"
 

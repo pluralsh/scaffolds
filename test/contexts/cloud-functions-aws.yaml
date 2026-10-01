@@ -1,5 +1,4 @@
 name: ops
-cloud: aws
 region: us-east-2
 cloudConnection: aws-workbench
 version: v0.1.0-spike.1

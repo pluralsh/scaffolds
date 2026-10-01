@@ -1,10 +1,12 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
-  name: cloud-functions-ops-gcp
+  name: cloud-functions-{{ context.name }}
   namespace: apps
 spec:
-
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   detach: false
   type: TERRAFORM
   approval: true
@@ -12,19 +14,21 @@ spec:
   actor: console@plural.sh
   git:
     ref: main
-    folder: terraform/apps/cloud-functions/ops-gcp
+    folder: terraform/apps/cloud-functions/{{ context.name }}
   repositoryRef:
     name: infra
     namespace: infra
   variables:
-    name: "ops-gcp"
-    region: "us-central1"
-    cloud_connection: "gcp-workbench"
-    artifact_version: "v0.1.0-spike.1"
-    
-    
-    invoker_service_account: "plural-workbench@my-project.iam.gserviceaccount.com"
-    
+    name: "{{ context.name }}"
+    region: "{{ context.region }}"
+    cloud_connection: "{{ context.cloudConnection }}"
+    artifact_version: "{{ context.version }}"
+    {% if context.allowSkipSnapshot == true or context.allowSkipSnapshot == "true" %}
+    allow_skip_snapshot: true
+    {% endif %}
+    {% if context.invokerServiceAccount %}
+    invoker_service_account: "{{ context.invokerServiceAccount }}"
+    {% endif %}
     functions:
       - volume-delete
       - vm-delete
@@ -45,10 +49,10 @@ spec:
               command: ["/bin/sh", "-ec"]
               args:
                 - |
-                  base=https://github.com/pluralsh/scaffolds/releases/download/functions/v0.1.0-spike.1
-                  mkdir -p /artifacts/v0.1.0-spike.1 && cd /artifacts/v0.1.0-spike.1
+                  base=https://github.com/pluralsh/scaffolds/releases/download/functions/{{ context.version }}
+                  mkdir -p /artifacts/{{ context.version }} && cd /artifacts/{{ context.version }}
                   curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS"
-                  grep -E -- '-gcp\.(zip|tar\.gz)$' SHA256SUMS > packages.sums || { echo "no gcp functions in v0.1.0-spike.1"; exit 1; }
+                  grep -E -- '-gcp\.(zip|tar\.gz)$' SHA256SUMS > packages.sums || { echo "no gcp functions in {{ context.version }}"; exit 1; }
                   for zip in $(awk '{print $2}' packages.sums); do
                     curl -fsSL --retry 3 -o "$zip" "$base/$zip"
                   done

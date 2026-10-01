@@ -27,7 +27,7 @@ jobs:
         with:
           filters: |
             terraform:
-              - catalogs/infra/cloud-functions/terraform/**
+              - catalogs/infra/cloud-functions-*/terraform/**
               - functions/bins/**
               - functions/go/gcp/functions.go
               - .github/workflows/cloud-functions-terraform.yaml
@@ -49,7 +49,7 @@ jobs:
         - gcp
     defaults:
       run:
-        working-directory: catalogs/infra/cloud-functions/terraform/${{ matrix.cloud }}
+        working-directory: catalogs/infra/cloud-functions-${{ matrix.cloud }}/terraform
     steps:
       - uses: actions/checkout@v7
         name: checkout repo

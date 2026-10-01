@@ -1,10 +1,12 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
-  name: cloud-functions-ops
+  name: cloud-functions-{{ context.name }}
   namespace: apps
 spec:
-
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
   detach: false
   type: TERRAFORM
   approval: true
@@ -12,23 +14,25 @@ spec:
   actor: console@plural.sh
   git:
     ref: main
-    folder: terraform/apps/cloud-functions/ops
+    folder: terraform/apps/cloud-functions/{{ context.name }}
   repositoryRef:
     name: infra
     namespace: infra
   variables:
-    name: "ops"
-    region: "us-east-2"
-    cloud_connection: "aws-workbench"
-    artifact_version: "v0.1.0-spike.1"
-    
+    name: "{{ context.name }}"
+    region: "{{ context.region }}"
+    cloud_connection: "{{ context.cloudConnection }}"
+    artifact_version: "{{ context.version }}"
+    {% if context.allowSkipSnapshot == true or context.allowSkipSnapshot == "true" %}
+    allow_skip_snapshot: true
+    {% endif %}
     functions:
       - volume-delete
       - vm-delete
       - node-pool-resize
-    
-    node_pool_max_count: 50
-    
+    {% if context.nodePoolMaxCount %}
+    node_pool_max_count: {{ context.nodePoolMaxCount }}
+    {% endif %}
   # Before terraform runs, the init container downloads the release's AWS packages into
   # /artifacts/<version> and verifies them against SHA256SUMS.
   jobSpec:
@@ -42,10 +46,10 @@ spec:
               command: ["/bin/sh", "-ec"]
               args:
                 - |
-                  base=https://github.com/pluralsh/scaffolds/releases/download/functions/v0.1.0-spike.1
-                  mkdir -p /artifacts/v0.1.0-spike.1 && cd /artifacts/v0.1.0-spike.1
+                  base=https://github.com/pluralsh/scaffolds/releases/download/functions/{{ context.version }}
+                  mkdir -p /artifacts/{{ context.version }} && cd /artifacts/{{ context.version }}
                   curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS"
-                  grep -E -- '-aws\.(zip|tar\.gz)$' SHA256SUMS > packages.sums || { echo "no aws functions in v0.1.0-spike.1"; exit 1; }
+                  grep -E -- '-aws\.(zip|tar\.gz)$' SHA256SUMS > packages.sums || { echo "no aws functions in {{ context.version }}"; exit 1; }
                   for zip in $(awk '{print $2}' packages.sums); do
                     curl -fsSL --retry 3 -o "$zip" "$base/$zip"
                   done

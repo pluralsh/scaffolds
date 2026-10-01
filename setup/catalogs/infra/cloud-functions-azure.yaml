@@ -1,0 +1,108 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: cloud-functions-azure
+spec:
+  name: cloud-functions-azure
+  icon: https://docs.plural.sh/favicon-128.png
+  identifier: mgmt
+  documentation: |
+    Deploys the operational Azure functions (volume-delete, lb-frontend-delete, node-pool-resize, vm-delete, db-restore and ssh-access)
+    and registers them as Plural workbench tools.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/infra/cloud-functions-azure
+    templates:
+      - source: stack.yaml
+        destination: "bootstrap/apps/cloud-functions/{{ context.name }}/stack.yaml"
+        external: true
+      - source: terraform
+        destination: terraform/apps/cloud-functions/{{ context.name }}
+        external: true
+      - source: README.md
+        destination: documentation/cloud-functions-azure/README.md
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: infra
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up Azure cloud functions {{ context.name }}"
+  message: |
+    Set up Azure cloud functions {{ context.name }} ({{ context.region }})
+
+    Will deploy volume-delete, lb-frontend-delete, node-pool-resize, vm-delete, db-restore and ssh-access from release {{ context.version }} and register each as a
+    workbench tool. Every call of a function requires human approval.
+
+    Plural Service: mgmt/apps
+  confirmation:
+    text: |
+      The functions are invoked by workbenches through a cloud connection, which needs
+      permission to invoke them. Every function is registered as a workbench tool, and every
+      call of a function requires human approval.
+    checklist:
+      - label: "I will assign the invoke_role_definition_id output to the cloud connection's service principal on each of invoke_scopes."
+      - label: "The cloud connection is in the same Azure subscription as the functions."
+  configuration:
+    - name: name
+      type: STRING
+      documentation: Name of this installation, used as a prefix for every function, role and workbench tool.
+      validation:
+        regex: "^[a-z][a-z0-9-]{0,39}$"
+    - name: region
+      type: STRING
+      documentation: Azure location to deploy the function apps to. It must support the Flex Consumption plan.
+    - name: cloudConnection
+      type: STRING
+      documentation: Name of the Plural cloud connection workbenches use to invoke the functions. It must be for Azure.
+    - name: nodeResourceGroup
+      type: STRING
+      documentation: Resource group ID of the AKS node resource group (/subscriptions/<id>/resourceGroups/MC_...). volume-delete and lb-frontend-delete may only act on disks and load balancers there.
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    - name: clusterResourceGroup
+      type: STRING
+      documentation: Resource group ID of the AKS clusters whose node pools node-pool-resize may resize.
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    - name: vmResourceGroup
+      type: STRING
+      documentation: Resource group ID of the standalone VMs vm-delete may delete and ssh-access may grant Entra ID login to.
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    - name: databaseResourceGroup
+      type: STRING
+      documentation: Resource group ID of the PostgreSQL and MySQL flexible servers db-restore may restore (into new servers in the same resource group).
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    - name: networkResourceGroup
+      type: STRING
+      optional: true
+      documentation: Resource group ID of the network the clusters and databases use outside the resource groups above, such as a BYO or hub VNet, public IP prefixes or private DNS zones. node-pool-resize, lb-frontend-delete and db-restore only get the join actions there, which changing resources that reference them needs.
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    - name: sshBastionId
+      type: STRING
+      optional: true
+      documentation: Resource ID of the Azure Bastion host (Standard SKU or higher, native client support) users connect through; ssh-access returns the az network bastion ssh command for it. Leave empty for a direct az ssh vm command.
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/Microsoft\\.Network/bastionHosts/[^/]+$"
+    - name: nodePoolMaxCount
+      type: INT
+      optional: true
+      documentation: Largest node count node-pool-resize may set. Defaults to 100; at most 1000.
+    - name: sshAccessMaxMinutes
+      type: INT
+      optional: true
+      documentation: Longest access ssh-access may grant, in minutes. Defaults to 240; at most 1440 (a day).
+    - name: allowSkipSnapshot
+      type: BOOL
+      optional: true
+      documentation: Let volume-delete callers skip the snapshot it takes before deleting a volume. Off by default, so every deleted volume can be restored from its snapshot.
+    - name: version
+      type: STRING
+      documentation: Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds).
+      validation:
+        regex: "^v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.]+)?$"
