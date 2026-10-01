@@ -174,6 +174,15 @@ fn serve(
         if_none_match: header("if-none-match"),
         body: serde_json::from_slice(body).unwrap_or(Value::Null),
     });
+    // Like ARM, which answers 411 Length Required to writes without a length, e.g. a POST
+    // without a body that doesn't say it has none.
+    let writes = [Method::POST, Method::PUT, Method::PATCH];
+    if writes.contains(&method)
+        && header("content-length").is_none()
+        && header("transfer-encoding").is_none()
+    {
+        return StatusCode::LENGTH_REQUIRED.into_response();
+    }
     let reply = state
         .replies
         .get_mut(&key(&method, uri.path()))

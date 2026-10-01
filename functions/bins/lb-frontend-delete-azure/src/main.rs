@@ -84,9 +84,10 @@ type Frontend = Named<FrontendProperties>;
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct FrontendProperties {
-    #[serde(default)]
+    // ARM spells IP in capitals, which camelCase wouldn't.
+    #[serde(default, rename = "publicIPAddress")]
     public_ip_address: Option<SubResource>,
-    #[serde(default)]
+    #[serde(default, rename = "privateIPAddress")]
     private_ip_address: Option<String>,
     #[serde(default)]
     outbound_rules: Vec<SubResource>,
@@ -951,12 +952,45 @@ mod tests {
     }
 
     #[test]
+    fn reads_the_frontends_addresses_as_arm_spells_them() {
+        let raw = json!({"properties": {"frontendIPConfigurations": [{"name": FE, "properties": {
+            "publicIPAddress": {"id": pip_id().id()},
+            "privateIPAddress": "10.0.0.4",
+        }}]}});
+        let props = &lb(&raw).properties.frontends[0].properties;
+
+        assert_eq!(
+            props.public_ip_address.as_ref().map(|ip| ip.id.as_str()),
+            Some(pip_id().id().as_str())
+        );
+        assert_eq!(props.private_ip_address.as_deref(), Some("10.0.0.4"));
+    }
+
+    #[test]
+    fn refuses_a_frontend_whose_public_ip_another_service_owns() {
+        let raw = raw_lb(true);
+        let p = plan(Some(&lb(&raw)), Some(&pip(Some("apps/other"), true)));
+
+        assert_eq!(failed(&p.guards), ["public-ip-owner"]);
+    }
+
+    #[test]
     fn keeps_public_ips_aks_did_not_create_for_the_frontend() {
         let mut raw = raw_lb(true);
         raw["properties"]["frontendIPConfigurations"][0]["properties"]["publicIPAddress"] = json!({"id": "/subscriptions/s/resourceGroups/net/providers/Microsoft.Network/publicIPAddresses/static"});
         let p = plan(Some(&lb(&raw)), None);
 
         assert!(failed(&p.guards).is_empty());
+        let owner = p
+            .guards
+            .iter()
+            .find(|g| g.name == "public-ip-owner")
+            .unwrap();
+        assert!(
+            owner.detail.contains("AKS didn't create"),
+            "{}",
+            owner.detail
+        );
         assert!(!p.remaining);
     }
 

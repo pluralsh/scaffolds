@@ -18,6 +18,9 @@ const ENDPOINT: &str = "https://management.azure.com";
 
 /// Wait between two polls of a long-running operation when ARM doesn't say how long to wait.
 const POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
+/// Longest wait between two polls of an action the caller waits for. ARM asks for more (e.g.
+/// load balancer rule health says 10 seconds), but such results are usually ready in about 2.
+const ACTION_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(1);
 
 /// Maximum attempts for a request that ARM throttles or fails to serve.
 const ATTEMPTS: u32 = 3;
@@ -411,10 +414,7 @@ impl Arm {
         let req = precondition.apply(self.request(Method::PATCH, path, api_version).json(body));
         let resp = self.send(req).await?;
         let status = resp.status();
-        let text = resp
-            .text()
-            .await
-            .map_err(transport_error)?;
+        let text = resp.text().await.map_err(transport_error)?;
         if !status.is_success() {
             return Err(Error::provider(api_error(status.as_u16(), &text)));
         }
@@ -429,9 +429,11 @@ impl Arm {
         api_version: &str,
         deadline: tokio::time::Instant,
     ) -> Result<Option<Value>, Error> {
-        let mut resp = self
-            .send(self.request(Method::POST, path, api_version))
-            .await?;
+        // ARM answers 411 to a POST without a body unless it says it has none.
+        let req = self
+            .request(Method::POST, path, api_version)
+            .header(reqwest::header::CONTENT_LENGTH, 0);
+        let mut resp = self.send(req).await?;
         loop {
             if resp.status() != reqwest::StatusCode::ACCEPTED {
                 return json(resp).await.map(Some);
@@ -447,12 +449,13 @@ impl Arm {
                     "ARM: {path} was accepted without a location to poll"
                 )));
             };
-            // Polls when ARM asks to, and once more at the deadline if that is later.
+            // Polls when ARM asks to, or sooner, and once more at the deadline.
             let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
             if remaining.is_zero() {
                 return Ok(None);
             }
-            tokio::time::sleep(poll_wait(resp.headers()).min(remaining)).await;
+            let wait = poll_wait(resp.headers()).min(ACTION_POLL_INTERVAL);
+            tokio::time::sleep(wait.min(remaining)).await;
             resp = self.send(self.client.get(location)).await?;
         }
     }
@@ -538,11 +541,7 @@ impl Arm {
             } else {
                 None
             };
-            let resp = self
-                .client
-                .execute(req)
-                .await
-                .map_err(transport_error)?;
+            let resp = self.client.execute(req).await.map_err(transport_error)?;
             match retry {
                 Some(next) if retryable(next.method(), resp.status()) => {
                     let wait = retry_wait(resp.headers(), attempt);
@@ -625,10 +624,7 @@ fn same_origin(url: &str, endpoint: &str) -> bool {
 
 async fn json<T: DeserializeOwned>(resp: reqwest::Response) -> Result<T, Error> {
     let status = resp.status();
-    let body = resp
-        .text()
-        .await
-        .map_err(transport_error)?;
+    let body = resp.text().await.map_err(transport_error)?;
     if !status.is_success() {
         return Err(Error::provider(api_error(status.as_u16(), &body)));
     }
@@ -1079,6 +1075,32 @@ mod mock_tests {
 
         assert_eq!(result, Some(json!({"up": 1})));
         assert_eq!(mock.requests().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn polls_sooner_than_arm_asks_for() {
+        let mock = MockArm::start().await;
+        let location = format!("{}{OPERATION}", mock.url());
+        let action = format!("{PATH}/health");
+        mock.on_with_headers(
+            Method::POST,
+            &action,
+            202,
+            &[("Location", &location), ("Retry-After", "10")],
+            json!({}),
+        )
+        .on(Method::GET, OPERATION, 200, json!({"up": 0}));
+        let arm = mock.connector().connect().await.unwrap();
+        let started = tokio::time::Instant::now();
+        let deadline = started + std::time::Duration::from_secs(8);
+
+        let result = arm
+            .post_and_wait(&action, COMPUTE_API_VERSION, deadline)
+            .await
+            .unwrap();
+
+        assert_eq!(result, Some(json!({"up": 0})));
+        assert!(started.elapsed() < std::time::Duration::from_secs(2));
     }
 
     #[tokio::test]
