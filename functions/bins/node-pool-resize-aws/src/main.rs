@@ -2,7 +2,12 @@
 //!
 //! Exactly one target is required: either `clusterName` + `nodegroupName` (EKS managed node
 //! group) or `autoScalingGroupName` (ASG directly). Groups scaled by the cluster autoscaler
-//! are refused. The new count is capped by the installation's `MAX_NODE_COUNT`.
+//! are refused, and so are Auto Scaling groups that belong to an EKS managed node group: EKS
+//! owns their size, so those are resized through the node group. The new count is capped by
+//! the installation's `MAX_NODE_COUNT`.
+//!
+//! The group's own minimum and maximum must contain the new desired size, so `execute` lowers
+//! the minimum or raises the maximum when it has to. `plan` reports the limits it would set.
 
 use aws_sdk_autoscaling::Client as AsgClient;
 use aws_sdk_eks::Client as EksClient;
@@ -20,6 +25,9 @@ const MAX_COUNT_VAR: &str = "MAX_NODE_COUNT";
 
 /// Tag the cluster autoscaler sets when it owns an Auto Scaling group.
 const CA_ENABLED_TAG: &str = "k8s.io/cluster-autoscaler/enabled";
+
+/// Tag EKS sets on the Auto Scaling group of a managed node group.
+const EKS_NODEGROUP_TAG: &str = "eks:nodegroup-name";
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -54,6 +62,8 @@ struct TargetView {
     state: String,
     /// Whether the cluster autoscaler scales the group.
     autoscaling: bool,
+    /// EKS managed node group an Auto Scaling group belongs to, which owns its size.
+    eks_nodegroup: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -79,6 +89,11 @@ struct Output {
     #[serde(skip_serializing_if = "Option::is_none")]
     from: Option<i64>,
     to: i64,
+    /// The group's minimum and maximum size after the change, see [`limits`].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    new_min: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    new_max: Option<i64>,
     /// Whether the new desired size was submitted. Scaling continues in the background.
     submitted: bool,
 }
@@ -166,10 +181,13 @@ async fn handle(
     };
 
     let guards = evaluate(target.as_ref(), params.count, max);
+    let new_limits = target.as_ref().map(|t| limits(t, params.count));
     let mut output = Output {
         target: target.as_ref().map(summary),
         from: target.as_ref().and_then(|t| t.desired),
         to: params.count,
+        new_min: new_limits.map(|(min, _)| min),
+        new_max: new_limits.map(|(_, max)| max),
         submitted: false,
     };
 
@@ -264,6 +282,7 @@ fn nodegroup_view(ng: &Nodegroup, autoscaling: bool) -> TargetView {
             .map(|s| s.as_str().to_owned())
             .unwrap_or_default(),
         autoscaling,
+        eks_nodegroup: None,
     }
 }
 
@@ -282,6 +301,11 @@ async fn find_asg(asg: &AsgClient, name: &str) -> Result<Option<TargetView>, Err
         t.key().is_some_and(|k| k == CA_ENABLED_TAG)
             && t.value().is_some_and(|v| v.eq_ignore_ascii_case("true"))
     });
+    let eks_nodegroup = tags
+        .iter()
+        .find(|t| t.key() == Some(EKS_NODEGROUP_TAG))
+        .and_then(|t| t.value())
+        .map(str::to_owned);
     Ok(Some(TargetView {
         kind: Target::Asg,
         name: group.auto_scaling_group_name().unwrap_or(name).to_owned(),
@@ -290,6 +314,7 @@ async fn find_asg(asg: &AsgClient, name: &str) -> Result<Option<TargetView>, Err
         max: group.max_size().map(i64::from),
         state: "Active".into(),
         autoscaling,
+        eks_nodegroup,
     }))
 }
 
@@ -317,10 +342,8 @@ async fn scale_nodegroup(
     target: &TargetView,
     count: i64,
 ) -> Result<(), Error> {
-    // Keep min and max, raising max if the new count is above it.
-    let min = target.min.unwrap_or(0).max(0) as i32;
-    let max = target.max.unwrap_or(count).max(count) as i32;
-    let desired = count as i32;
+    let (min, max) = limits(target, count);
+    let (min, max, desired) = (min as i32, max as i32, count as i32);
     eks.update_nodegroup_config()
         .cluster_name(cluster)
         .nodegroup_name(nodegroup)
@@ -343,8 +366,8 @@ async fn scale_asg(
     target: &TargetView,
     count: i64,
 ) -> Result<(), Error> {
-    let min = target.min.unwrap_or(0).min(count).max(0) as i32;
-    let max = target.max.unwrap_or(count).max(count) as i32;
+    let (min, max) = limits(target, count);
+    let (min, max) = (min as i32, max as i32);
     asg.update_auto_scaling_group()
         .auto_scaling_group_name(name)
         .min_size(min)
@@ -354,6 +377,18 @@ async fn scale_asg(
         .await
         .map_err(provider_error)?;
     Ok(())
+}
+
+/// The minimum and maximum size to set with the new desired size: the group's own, widened to
+/// contain it. EKS and Auto Scaling both reject a desired size outside them, and EKS needs a
+/// maximum of at least 1.
+fn limits(target: &TargetView, count: i64) -> (i64, i64) {
+    let min = target.min.unwrap_or(count).min(count).max(0);
+    let max = target.max.unwrap_or(count).max(count);
+    match target.kind {
+        Target::Eks => (min, max.max(1)),
+        Target::Asg => (min, max),
+    }
 }
 
 fn evaluate(target: Option<&TargetView>, count: i64, max_allowed: i64) -> Vec<Guard> {
@@ -388,12 +423,20 @@ fn evaluate(target: Option<&TargetView>, count: i64, max_allowed: i64) -> Vec<Gu
                 "cluster autoscaler not enabled on this group",
             ),
         },
+        match &target.eks_nodegroup {
+            Some(nodegroup) => Guard::fail(
+                "not-eks-managed",
+                format!(
+                    "belongs to EKS node group {nodegroup}; set clusterName and nodegroupName instead so EKS stays in charge"
+                ),
+            ),
+            None => Guard::pass("not-eks-managed", "not part of an EKS managed node group"),
+        },
         Guard::check(
             "count-allowed",
             (min_floor..=max_allowed).contains(&count),
             format!("{count} nodes; allowed {min_floor} to {max_allowed}"),
         ),
-        // Execute raises the group's max when needed, so only the installation cap applies.
     ]
 }
 
@@ -474,6 +517,7 @@ mod tests {
             max: Some(5),
             state: state.into(),
             autoscaling,
+            eks_nodegroup: None,
         }
     }
 
@@ -535,9 +579,326 @@ mod tests {
     }
 
     #[test]
+    fn refuses_asgs_of_eks_node_groups() {
+        let mut t = view(Target::Asg, 2, false, "Active");
+        t.eks_nodegroup = Some("apps".into());
+
+        assert_eq!(failed(&evaluate(Some(&t), 4, 10)), ["not-eks-managed"]);
+    }
+
+    #[test]
+    fn widens_the_limits_to_contain_the_count() {
+        let mut t = view(Target::Asg, 3, false, "Active");
+        t.min = Some(2);
+        t.max = Some(4);
+
+        assert_eq!(limits(&t, 3), (2, 4));
+        assert_eq!(limits(&t, 0), (0, 4), "min is lowered");
+        assert_eq!(limits(&t, 6), (2, 6), "max is raised");
+        t.max = Some(0);
+        t.min = Some(0);
+        assert_eq!(limits(&t, 0), (0, 0));
+        t.kind = Target::Eks;
+        assert_eq!(limits(&t, 0), (0, 1), "EKS needs a maximum of at least 1");
+    }
+
+    #[test]
     fn caps_max_count() {
         assert_eq!(cap(None), AWS_MAX_COUNT);
         assert_eq!(cap(Some("100")), 100);
         assert_eq!(cap(Some("99999")), AWS_MAX_COUNT);
+    }
+}
+
+/// The handler against scripted EKS and Auto Scaling responses, asserting on the changes it
+/// sends.
+#[cfg(test)]
+mod handler_tests {
+    use aws_sdk_autoscaling::operation::describe_auto_scaling_groups::DescribeAutoScalingGroupsOutput;
+    use aws_sdk_autoscaling::operation::update_auto_scaling_group::UpdateAutoScalingGroupOutput;
+    use aws_sdk_autoscaling::types::{AutoScalingGroup, TagDescription};
+    use aws_sdk_eks::error::ErrorMetadata;
+    use aws_sdk_eks::operation::describe_nodegroup::{
+        DescribeNodegroupError, DescribeNodegroupOutput,
+    };
+    use aws_sdk_eks::operation::update_nodegroup_config::UpdateNodegroupConfigOutput;
+    use aws_sdk_eks::types::{NodegroupResources, NodegroupStatus};
+    use aws_smithy_mocks::{Rule, RuleMode, mock, mock_client};
+    use serde_json::{Value, json};
+
+    use super::*;
+
+    /// The limits and desired size a change is expected to set.
+    type Expect = (i32, i32, i32);
+
+    fn tag(key: &str, value: &str) -> TagDescription {
+        TagDescription::builder().key(key).value(value).build()
+    }
+
+    fn group(min: i32, max: i32, desired: i32, tags: &[(&str, &str)]) -> AutoScalingGroup {
+        let mut builder = AutoScalingGroup::builder()
+            .auto_scaling_group_name("workers")
+            .min_size(min)
+            .max_size(max)
+            .desired_capacity(desired);
+        for (key, value) in tags {
+            builder = builder.tags(tag(key, value));
+        }
+        builder.build()
+    }
+
+    fn nodegroup(status: NodegroupStatus, min: i32, max: i32, desired: i32) -> Nodegroup {
+        Nodegroup::builder()
+            .nodegroup_name("apps")
+            .status(status)
+            .scaling_config(
+                NodegroupScalingConfig::builder()
+                    .min_size(min)
+                    .max_size(max)
+                    .desired_size(desired)
+                    .build(),
+            )
+            .resources(
+                NodegroupResources::builder()
+                    .auto_scaling_groups(
+                        aws_sdk_eks::types::AutoScalingGroup::builder()
+                            .name("workers")
+                            .build(),
+                    )
+                    .build(),
+            )
+            .build()
+    }
+
+    struct Aws {
+        eks: EksClient,
+        asg: AsgClient,
+        update_nodegroup: Rule,
+        update_asg: Rule,
+    }
+
+    impl Aws {
+        /// `nodegroup` is the EKS node group to find, `groups` the Auto Scaling groups
+        /// describing returns, and `expect` the limits and desired size the update must set.
+        fn new(
+            nodegroup: Option<Nodegroup>,
+            groups: Vec<AutoScalingGroup>,
+            expect: Expect,
+        ) -> Self {
+            let describe_nodegroup = match nodegroup {
+                Some(ng) => mock!(EksClient::describe_nodegroup).then_output(move || {
+                    DescribeNodegroupOutput::builder()
+                        .nodegroup(ng.clone())
+                        .build()
+                }),
+                None => mock!(EksClient::describe_nodegroup).then_error(|| {
+                    DescribeNodegroupError::generic(
+                        ErrorMetadata::builder()
+                            .code("ResourceNotFoundException")
+                            .build(),
+                    )
+                }),
+            };
+            let (min, max, desired) = expect;
+            // A request with other limits matches no rule, which fails the test.
+            let update_nodegroup = mock!(EksClient::update_nodegroup_config)
+                .match_requests(move |req| {
+                    let scaling = req.scaling_config();
+                    req.cluster_name() == Some("prod")
+                        && req.nodegroup_name() == Some("apps")
+                        && scaling.and_then(|s| s.min_size()) == Some(min)
+                        && scaling.and_then(|s| s.max_size()) == Some(max)
+                        && scaling.and_then(|s| s.desired_size()) == Some(desired)
+                })
+                .then_output(|| UpdateNodegroupConfigOutput::builder().build());
+            let eks = mock_client!(
+                aws_sdk_eks,
+                RuleMode::MatchAny,
+                [&describe_nodegroup, &update_nodegroup]
+            );
+
+            let describe_groups =
+                mock!(AsgClient::describe_auto_scaling_groups).then_output(move || {
+                    DescribeAutoScalingGroupsOutput::builder()
+                        .set_auto_scaling_groups(Some(groups.clone()))
+                        .build()
+                });
+            let update_asg = mock!(AsgClient::update_auto_scaling_group)
+                .match_requests(move |req| {
+                    req.auto_scaling_group_name() == Some("workers")
+                        && req.min_size() == Some(min)
+                        && req.max_size() == Some(max)
+                        && req.desired_capacity() == Some(desired)
+                })
+                .then_output(|| UpdateAutoScalingGroupOutput::builder().build());
+            let asg = mock_client!(
+                aws_sdk_autoscaling,
+                RuleMode::MatchAny,
+                [&describe_groups, &update_asg]
+            );
+
+            Self {
+                eks,
+                asg,
+                update_nodegroup,
+                update_asg,
+            }
+        }
+
+        async fn call(&self, params: Value) -> Value {
+            let req = serde_json::from_value(params).unwrap();
+            serde_json::to_value(handle(&self.eks, &self.asg, req).await.unwrap()).unwrap()
+        }
+
+        /// How many times the function resized the node group and the Auto Scaling group.
+        fn writes(&self) -> (usize, usize) {
+            (
+                self.update_nodegroup.num_calls(),
+                self.update_asg.num_calls(),
+            )
+        }
+    }
+
+    fn asg_request(action: &str, count: i64) -> Value {
+        json!({"action": action, "autoScalingGroupName": "workers", "count": count})
+    }
+
+    fn eks_request(action: &str, count: i64) -> Value {
+        json!({"action": action, "clusterName": "prod", "nodegroupName": "apps", "count": count})
+    }
+
+    fn failed(resp: &Value) -> Vec<&str> {
+        resp["guards"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|g| g["passed"] == false)
+            .map(|g| g["name"].as_str().unwrap())
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn plan_reports_the_limits_without_changing_anything() {
+        let aws = Aws::new(None, vec![group(2, 4, 3, &[])], (0, 4, 0));
+
+        let resp = aws.call(asg_request("plan", 0)).await;
+
+        assert_eq!(resp["outcome"], "planned");
+        assert_eq!(resp["result"]["from"], 3);
+        assert_eq!(resp["result"]["newMin"], 0);
+        assert_eq!(resp["result"]["newMax"], 4);
+        assert_eq!(resp["result"]["submitted"], false);
+        assert_eq!(aws.writes(), (0, 0));
+    }
+
+    #[tokio::test]
+    async fn scales_an_asg_lowering_its_minimum() {
+        let aws = Aws::new(None, vec![group(2, 4, 3, &[])], (0, 4, 0));
+
+        let resp = aws.call(asg_request("execute", 0)).await;
+
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(resp["result"]["submitted"], true);
+        assert_eq!(aws.writes(), (0, 1));
+    }
+
+    #[tokio::test]
+    async fn scales_an_asg_raising_its_maximum() {
+        let aws = Aws::new(None, vec![group(2, 4, 3, &[])], (2, 6, 6));
+
+        let resp = aws.call(asg_request("execute", 6)).await;
+
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(aws.writes(), (0, 1));
+    }
+
+    #[tokio::test]
+    async fn does_nothing_when_the_size_is_already_right() {
+        let aws = Aws::new(None, vec![group(2, 4, 3, &[])], (2, 4, 3));
+
+        let resp = aws.call(asg_request("execute", 3)).await;
+
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(resp["result"]["submitted"], false);
+        assert_eq!(aws.writes(), (0, 0));
+    }
+
+    #[tokio::test]
+    async fn never_resizes_autoscaler_or_eks_owned_asgs() {
+        for tags in [
+            vec![(CA_ENABLED_TAG, "true")],
+            vec![(EKS_NODEGROUP_TAG, "apps")],
+        ] {
+            let aws = Aws::new(None, vec![group(2, 4, 3, &tags)], (0, 4, 0));
+
+            let resp = aws.call(asg_request("execute", 0)).await;
+
+            assert_eq!(resp["outcome"], "refused", "{tags:?}");
+            assert_eq!(aws.writes(), (0, 0), "{tags:?}");
+        }
+    }
+
+    #[tokio::test]
+    async fn reports_a_missing_asg() {
+        let aws = Aws::new(None, vec![], (0, 0, 0));
+
+        let resp = aws.call(asg_request("execute", 1)).await;
+
+        assert_eq!(resp["outcome"], "refused");
+        assert_eq!(failed(&resp), ["exists"]);
+    }
+
+    #[tokio::test]
+    async fn scales_a_node_group_lowering_its_minimum() {
+        let ng = nodegroup(NodegroupStatus::Active, 1, 5, 3);
+        let aws = Aws::new(Some(ng), vec![group(1, 5, 3, &[])], (0, 5, 0));
+
+        let resp = aws.call(eks_request("execute", 0)).await;
+
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(resp["result"]["target"]["kind"], "eks");
+        assert_eq!(resp["result"]["submitted"], true);
+        assert_eq!(aws.writes(), (1, 0));
+    }
+
+    #[tokio::test]
+    async fn scales_a_node_group_raising_its_maximum() {
+        let ng = nodegroup(NodegroupStatus::Active, 1, 5, 3);
+        let aws = Aws::new(Some(ng), vec![group(1, 5, 3, &[])], (1, 8, 8));
+
+        let resp = aws.call(eks_request("execute", 8)).await;
+
+        assert_eq!(resp["outcome"], "done");
+        assert_eq!(aws.writes(), (1, 0));
+    }
+
+    #[tokio::test]
+    async fn never_resizes_busy_or_autoscaled_node_groups() {
+        let busy = nodegroup(NodegroupStatus::Updating, 1, 5, 3);
+        let aws = Aws::new(Some(busy), vec![group(1, 5, 3, &[])], (0, 5, 0));
+        let resp = aws.call(eks_request("execute", 0)).await;
+        assert_eq!(failed(&resp), ["idle"]);
+        assert_eq!(aws.writes(), (0, 0));
+
+        // The autoscaler tags the Auto Scaling group behind the node group.
+        let active = nodegroup(NodegroupStatus::Active, 1, 5, 3);
+        let aws = Aws::new(
+            Some(active),
+            vec![group(1, 5, 3, &[(CA_ENABLED_TAG, "true")])],
+            (0, 5, 0),
+        );
+        let resp = aws.call(eks_request("execute", 0)).await;
+        assert_eq!(failed(&resp), ["manually-scaled"]);
+        assert_eq!(aws.writes(), (0, 0));
+    }
+
+    #[tokio::test]
+    async fn reports_a_missing_node_group() {
+        let aws = Aws::new(None, vec![], (0, 0, 0));
+
+        let resp = aws.call(eks_request("execute", 1)).await;
+
+        assert_eq!(resp["outcome"], "refused");
+        assert_eq!(failed(&resp), ["exists"]);
     }
 }

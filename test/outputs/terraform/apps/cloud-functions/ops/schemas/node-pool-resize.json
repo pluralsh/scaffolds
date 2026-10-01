@@ -7,7 +7,7 @@
         "plan",
         "execute"
       ],
-      "description": "plan evaluates the safety checks without changing anything. execute sets the new desired size; EKS or Auto Scaling then adds or removes instances in the background."
+      "description": "plan evaluates the safety checks without changing anything. plan also reports the minimum and maximum size (newMin, newMax) that execute would set. execute sets the new desired size, lowering the group's minimum or raising its maximum when the size is outside them; EKS or Auto Scaling then adds or removes instances in the background."
     },
     "clusterName": {
       "type": "string",
@@ -23,7 +23,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 255,
-      "description": "Auto Scaling group name. Set this instead of clusterName/nodegroupName to scale an ASG directly."
+      "description": "Auto Scaling group name. Set this instead of clusterName/nodegroupName to scale an ASG directly. Auto Scaling groups of EKS managed node groups are refused; use clusterName and nodegroupName for those."
     },
     "count": {
       "type": "integer",
