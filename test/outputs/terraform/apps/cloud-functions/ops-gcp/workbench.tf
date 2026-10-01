@@ -1,7 +1,7 @@
 # A 2nd gen function runs as a Cloud Run service, and roles/run.invoker on that service is
 # what allows calling it.
 resource "google_cloud_run_v2_service_iam_member" "invoker" {
-  for_each = { for key, _ in local.tools : key => local.run_services[key] if var.invoker_service_account != null }
+  for_each = { for key, _ in local.functions : key => local.run_services[key] if var.invoker_service_account != null }
 
   name     = each.value
   location = var.region
@@ -22,7 +22,7 @@ data "plural_cloud_connection" "workbench" {
 
 # Tools of functions that change resources require human approval of every call.
 resource "plural_workbench_tool" "function" {
-  for_each = local.tools
+  for_each = local.functions
 
   name                = replace(local.service_names[each.key], "-", "_")
   tool                = "CLOUD_RUN"

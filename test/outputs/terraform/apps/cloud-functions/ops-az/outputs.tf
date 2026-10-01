@@ -19,8 +19,8 @@ output "invoke_role_definition_id" {
 }
 
 output "invoke_scopes" {
-  description = "Function apps of the functions registered as workbench tools. Assign invoke_role_definition_id on these, not on the resource group, so unregistered functions stay uninvokable."
-  value       = [for key, _ in local.tools : azurerm_function_app_flex_consumption.function[key].id]
+  description = "Function apps of the functions. Assign invoke_role_definition_id on these, not on the resource group, so other function apps in it stay uninvokable."
+  value       = [for key, _ in local.functions : azurerm_function_app_flex_consumption.function[key].id]
 }
 
 output "workbench_tool_ids" {

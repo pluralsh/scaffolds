@@ -35,7 +35,9 @@ const PUBLIC_IP_PREFIX: &str = "kubernetes-";
 const UID_DIGITS: usize = 31;
 
 /// How long to wait for the backend health of the frontend's rules, within an invocation.
-const HEALTH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
+/// With the reads before it and the update after it, a call fits in the 30 seconds callers
+/// wait.
+const HEALTH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(8);
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

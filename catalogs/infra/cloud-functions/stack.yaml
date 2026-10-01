@@ -26,6 +26,11 @@ spec:
     {% if context.invokerServiceAccount %}
     invoker_service_account: "{{ context.invokerServiceAccount }}"
     {% endif %}
+    {% if context.cloud == 'aws' %}
+    functions:
+      - volume-delete
+      - vm-delete
+    {% endif %}
     {% if context.cloud == 'azure' %}
     # Functions are deployed for the resource groups they may act on.
     functions:
@@ -58,6 +63,9 @@ spec:
       {% if context.sshResourceGroup %}
       ssh-access: ["{{ context.sshResourceGroup }}"]
       {% endif %}
+    {% if context.networkResourceGroup %}
+    network_scopes: ["{{ context.networkResourceGroup }}"]
+    {% endif %}
     {% if context.sshBastionId %}
     ssh_bastion_id: "{{ context.sshBastionId }}"
     {% endif %}

@@ -17,6 +17,7 @@ reqwest = { workspace = true, features = ["json", "query"] }
 serde.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["time"] }
+tracing.workspace = true
 
 # The in-process ARM mock for handler tests.
 async-trait = { workspace = true, optional = true }

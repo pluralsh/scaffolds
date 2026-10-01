@@ -941,7 +941,7 @@ mod handler_tests {
         let mock = MockArm::start().await;
         let (broken, ok) = (rg("broken"), rg("ok"));
         let vm_scope = format!("{ok}/providers/Microsoft.Compute/virtualMachines/vm-2");
-        mock.on(Method::GET, &assignments_path(&broken), 500, json!({"error": {"code": "InternalServerError", "message": "boom"}}))
+        mock.on(Method::GET, &assignments_path(&broken), 403, json!({"error": {"code": "AuthorizationFailed", "message": "boom"}}))
             .on(
                 Method::GET,
                 &assignments_path(&ok),

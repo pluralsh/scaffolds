@@ -21,18 +21,12 @@ variable "cloud_connection" {
 variable "functions" {
   type        = list(string)
   description = "Functions to deploy, by key of local.catalog."
-  default     = ["volume-delete"]
+  default     = ["volume-delete", "vm-delete"]
 
   validation {
     condition     = length(var.functions) > 0
     error_message = "At least one function must be deployed."
   }
-}
-
-variable "register_destructive_tools" {
-  type        = bool
-  description = "Register functions that change or delete resources as workbench tools. Every call of those tools then requires human approval."
-  default     = false
 }
 
 variable "allow_skip_snapshot" {

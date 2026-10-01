@@ -75,7 +75,7 @@ resource "azurerm_role_definition" "function" {
   for_each = { for key, fn in local.functions : key => fn if length(fn.actions) > 0 }
 
   name              = local.app_names[each.key]
-  scope             = "/subscriptions/${local.identity_context["subscription_id"]}"
+  scope             = local.subscription_id
   description       = "Permissions of the ${local.app_names[each.key]} operational function."
   assignable_scopes = each.value.scopes
 
@@ -105,4 +105,55 @@ resource "azurerm_role_assignment" "function" {
   principal_type     = "ServicePrincipal"
   condition          = local.functions[each.value.key].condition
   condition_version  = local.functions[each.value.key].condition == null ? null : "2.0"
+}
+
+# The join actions of the functions that reference networks, on the network resource groups,
+# without their other actions there.
+resource "azurerm_role_definition" "network" {
+  for_each = { for key, fn in local.functions : key => fn if length(fn.network_scopes) > 0 }
+
+  name              = "${local.app_names[each.key]}-network"
+  scope             = local.subscription_id
+  description       = "Network join permissions of the ${local.app_names[each.key]} operational function."
+  assignable_scopes = each.value.network_scopes
+
+  permissions {
+    actions = each.value.network_actions
+  }
+}
+
+resource "azurerm_role_assignment" "network" {
+  for_each = merge([
+    for key, role in azurerm_role_definition.network : {
+      for scope in local.functions[key].network_scopes : "${key}|${scope}" => { key = key, scope = scope, role = role.role_definition_resource_id }
+    }
+  ]...)
+
+  scope              = each.value.scope
+  role_definition_id = each.value.role
+  principal_id       = azurerm_function_app_flex_consumption.function[each.value.key].identity[0].principal_id
+  principal_type     = "ServicePrincipal"
+}
+
+# Reads ARM only serves at subscription scope, such as the results of long-running actions.
+resource "azurerm_role_definition" "subscription" {
+  for_each = { for key, fn in local.functions : key => fn if length(fn.subscription_actions) > 0 }
+
+  name              = "${local.app_names[each.key]}-subscription"
+  scope             = local.subscription_id
+  description       = "Subscription-wide reads of the ${local.app_names[each.key]} operational function."
+  assignable_scopes = [local.subscription_id]
+
+  permissions {
+    actions = each.value.subscription_actions
+  }
+}
+
+resource "azurerm_role_assignment" "subscription" {
+  for_each = azurerm_role_definition.subscription
+
+  scope              = local.subscription_id
+  role_definition_id = each.value.role_definition_resource_id
+  principal_id       = azurerm_function_app_flex_consumption.function[each.key].identity[0].principal_id
+  principal_type     = "ServicePrincipal"
 }

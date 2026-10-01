@@ -10,6 +10,11 @@ on:
     - functions/go/gcp/functions.go
     - .github/workflows/cloud-functions-terraform.yaml
 
+# A new push to a PR supersedes its running validation.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     name: validate ${{ matrix.cloud }}
@@ -43,8 +48,8 @@ jobs:
       - run: terraform init -backend=false -input=false
       - run: terraform validate
 
-      # The functions deploy the release packages named after these binaries, and the package
-      # format follows the bin's cloud suffix, so a typo or rename would only fail at deploy time.
+      # AWS and Azure deploy the release packages named after their Rust binaries, whose package
+      # format follows the bin's cloud suffix. A typo or rename would only fail at deploy time.
       - name: check function binaries
         if: matrix.cloud != 'gcp'
         env:
@@ -52,7 +57,6 @@ jobs:
         run: |
           bins=$(sed -n 's/^ *binary *= *"\(.*\)"$/\1/p' locals.tf)
           if [[ -z "$bins" ]]; then echo "::error::no binary found in locals.tf"; exit 1; fi
-          status=0
           for bin in $bins; do
             if [[ "$bin" != *-"$CLOUD" ]]; then
               echo "::error::$bin does not end with -$CLOUD"; status=1

@@ -9,9 +9,11 @@ locals {
   # Every function that can be deployed. `function` is the HTTP function inside the app (the
   # folder holding its function.json in the package), `actions` is the minimal set of ARM
   # actions the function needs, which its managed identity gets on the resource groups in
-  # var.scopes, and `condition` an optional condition on those role assignments. `destructive` functions change or delete resources and are only registered as
-  # workbench tools when register_destructive_tools is set,
-  # and every call of their tools requires human approval.
+  # var.scopes, and `condition` an optional condition on those role assignments.
+  # `network_actions` are the join actions it also gets on the network resource groups in
+  # var.network_scopes, and `subscription_actions` the reads it gets on the subscription.
+  # Every function is registered as a workbench tool, and every call of the tools of
+  # `destructive` functions, which change or delete resources, requires human approval.
   catalog = {
     volume-delete = {
       binary      = "volume-delete-azure"
@@ -27,8 +29,10 @@ locals {
         "Microsoft.Compute/snapshots/read",
         "Microsoft.Compute/snapshots/write",
       ]
-      condition = null
-      schema    = jsonencode(merge(local.volume_delete_schema, { properties = local.volume_delete_properties }))
+      condition            = null
+      network_actions      = []
+      subscription_actions = []
+      schema               = jsonencode(merge(local.volume_delete_schema, { properties = local.volume_delete_properties }))
     }
     node-pool-resize = {
       binary      = "node-pool-resize-azure"
@@ -36,12 +40,16 @@ locals {
       description = "Sets the node count of a manually scaled AKS node pool; AKS drains the nodes it removes. Pools scaled by the cluster autoscaler are refused. Use action plan first to see the current count and the checks, then execute."
       destructive = true
       environment = { MAX_NODE_COUNT = tostring(var.node_pool_max_count) }
-      actions = [
+      # The update resends the whole pool, and ARM checks the caller may join the subnets and
+      # public IP prefix it references.
+      actions = concat([
         "Microsoft.ContainerService/managedClusters/agentPools/read",
         "Microsoft.ContainerService/managedClusters/agentPools/write",
-      ]
-      condition = null
-      schema    = jsonencode(jsondecode(file("${path.module}/schemas/node-pool-resize.json")))
+      ], local.node_pool_join_actions)
+      condition            = null
+      network_actions      = local.node_pool_join_actions
+      subscription_actions = []
+      schema               = jsonencode(jsondecode(file("${path.module}/schemas/node-pool-resize.json")))
     }
     vm-delete = {
       binary      = "vm-delete-azure"
@@ -62,8 +70,10 @@ locals {
         "Microsoft.Network/networkInterfaces/join/action",
         "Microsoft.Network/networkInterfaces/delete",
       ]
-      condition = null
-      schema    = jsonencode(jsondecode(file("${path.module}/schemas/vm-delete.json")))
+      condition            = null
+      network_actions      = []
+      subscription_actions = []
+      schema               = jsonencode(jsondecode(file("${path.module}/schemas/vm-delete.json")))
     }
     lb-frontend-delete = {
       binary      = "lb-frontend-delete-azure"
@@ -77,14 +87,29 @@ locals {
         "Microsoft.Network/loadBalancers/delete",
         "Microsoft.Network/publicIPAddresses/read",
         "Microsoft.Network/publicIPAddresses/delete",
-        # Updating the load balancer references the public IPs and subnets of its other frontends.
+        # Updating the load balancer references the public IPs, prefixes and subnets of its other
+        # frontends, and the virtual networks of IP-based backend pools.
         "Microsoft.Network/publicIPAddresses/join/action",
+        "Microsoft.Network/publicIPPrefixes/join/action",
         "Microsoft.Network/virtualNetworks/subnets/join/action",
+        "Microsoft.Network/virtualNetworks/joinLoadBalancer/action",
         # Backend health of the frontend's rules, checked before removing it.
         "Microsoft.Network/loadBalancers/loadBalancingRules/health/action",
       ]
       condition = null
-      schema    = jsonencode(jsondecode(file("${path.module}/schemas/lb-frontend-delete.json")))
+      network_actions = [
+        "Microsoft.Network/publicIPAddresses/join/action",
+        "Microsoft.Network/publicIPPrefixes/join/action",
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+        "Microsoft.Network/virtualNetworks/joinLoadBalancer/action",
+      ]
+      # The backend health action is long-running, and ARM serves its result at subscription
+      # scope.
+      subscription_actions = [
+        "Microsoft.Network/locations/operationResults/read",
+        "Microsoft.Network/locations/operations/read",
+      ]
+      schema = jsonencode(jsondecode(file("${path.module}/schemas/lb-frontend-delete.json")))
     }
     db-restore = {
       binary      = "db-restore-azure"
@@ -102,7 +127,12 @@ locals {
         "Microsoft.Network/privateDnsZones/join/action",
       ]
       condition = null
-      schema    = jsonencode(jsondecode(file("${path.module}/schemas/db-restore.json")))
+      network_actions = [
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+        "Microsoft.Network/privateDnsZones/join/action",
+      ]
+      subscription_actions = []
+      schema               = jsonencode(jsondecode(file("${path.module}/schemas/db-restore.json")))
     }
     ssh-access = {
       binary      = "ssh-access-azure"
@@ -124,8 +154,10 @@ locals {
         "Microsoft.Authorization/roleAssignments/write",
         "Microsoft.Authorization/roleAssignments/delete",
       ]
-      condition = local.ssh_access_condition
-      schema    = jsonencode(jsondecode(file("${path.module}/schemas/ssh-access.json")))
+      condition            = local.ssh_access_condition
+      network_actions      = []
+      subscription_actions = []
+      schema               = jsonencode(jsondecode(file("${path.module}/schemas/ssh-access.json")))
     }
   }
 
@@ -141,13 +173,19 @@ locals {
   cluster_context     = jsondecode(data.plural_service_context.cluster.configuration)
   resource_group_name = coalesce(var.resource_group_name, local.cluster_context.resource_group_name)
 
+  node_pool_join_actions = [
+    "Microsoft.Network/virtualNetworks/subnets/join/action",
+    "Microsoft.Network/publicIPPrefixes/join/action",
+  ]
+
   functions = {
-    for key, fn in local.catalog : key => merge(fn, { scopes = lookup(var.scopes, key, []) }) if contains(var.functions, key)
+    for key, fn in local.catalog : key => merge(fn, {
+      scopes         = lookup(var.scopes, key, [])
+      network_scopes = length(fn.network_actions) > 0 ? var.network_scopes : []
+    }) if contains(var.functions, key)
   }
-  # Functions registered as workbench tools, and the only ones the cloud connection should be
-  # allowed to invoke.
-  tools   = { for key, fn in local.functions : key => fn if !fn.destructive || var.register_destructive_tools }
-  unknown = setsubtract(concat(var.functions, keys(var.scopes)), keys(local.catalog))
+  unknown         = setsubtract(concat(var.functions, keys(var.scopes)), keys(local.catalog))
+  subscription_id = "/subscriptions/${local.identity_context["subscription_id"]}"
   # The version is part of the path, so a new release changes zip_deploy_file and redeploys.
   artifacts = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }
 
