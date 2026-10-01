@@ -34,19 +34,6 @@ jobs:
           # `just check-rust` denies warnings already.
           build-warnings: warn
 
-      # The Go version comes from the GCP functions' go.mod, and the module cache is keyed on
-      # their go.sum.
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: functions/go/gcp/go.mod
-          cache-dependency-path: functions/go/gcp/go.sum
-
-      # Only installs golangci-lint: `just check` runs it with functions/go/gcp/.golangci.yml.
-      - uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.14.0
-          install-only: true
-
       - uses: extractions/setup-just@v4
         with:
           just-version: 1.58.0
