@@ -40,8 +40,7 @@ func newSDKClient(ctx context.Context, project string, opts ...option.ClientOpti
 func (c *sdkClient) Disk(ctx context.Context, zone, name string) (*Disk, error) {
 	disk, err := c.disks.Get(ctx, &computepb.GetDiskRequest{Project: c.project, Zone: zone, Disk: name})
 	if err != nil {
-		var apiErr *googleapi.Error
-		if errors.As(err, &apiErr) && apiErr.Code == http.StatusNotFound {
+		if apiErr, ok := errors.AsType[*googleapi.Error](err); ok && apiErr.Code == http.StatusNotFound {
 			return nil, nil
 		}
 		return nil, sdkError(err)

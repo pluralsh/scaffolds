@@ -31,7 +31,7 @@ data "plural_cloud_connection" "workbench" {
 
 # Tools of functions that change resources require human approval of every call.
 resource "plural_workbench_tool" "function" {
-  for_each = local.tools
+  for_each = local.functions
 
   name                = replace("${var.name}-${each.key}", "-", "_")
   tool                = "AZURE_FUNCTION"

@@ -15,6 +15,12 @@ on:
     - functions/**
     - .github/workflows/functions-*.yaml
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # A new push to a PR supersedes its running build. Builds on main always finish, as they save
+  # the cache.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
     uses: ./.github/workflows/functions-build.yaml

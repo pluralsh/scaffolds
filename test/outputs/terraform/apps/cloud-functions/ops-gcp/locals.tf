@@ -10,9 +10,8 @@ locals {
   # Functions Framework in the shared Go source package, and `permissions` is the minimal set
   # of IAM permissions the function needs, granted to its service account through a project
   # custom role.
-  # `destructive` functions change or delete resources and are only registered as workbench
-  # tools when register_destructive_tools is set,
-  # and every call of their tools requires human approval.
+  # Every function is registered as a workbench tool, and every call of the tools of
+  # `destructive` functions, which change or delete resources, requires human approval.
   catalog = {
     volume-delete = {
       entry_point = "VolumeDelete"
@@ -42,8 +41,6 @@ locals {
   functions     = { for key, fn in local.catalog : key => fn if contains(var.functions, key) }
   unknown       = setsubtract(var.functions, keys(local.catalog))
   service_names = { for key, _ in local.functions : key => "${var.name}-${key}" }
-  # Functions registered as workbench tools, and the only ones the cloud connection may invoke.
-  tools = { for key, fn in local.functions : key => fn if !fn.destructive || var.register_destructive_tools }
   # Every function is an entry point of the same Go source package.
   artifact = "${var.artifact_dir}/${var.artifact_version}/functions-gcp.zip"
 
@@ -60,6 +57,8 @@ locals {
   run_services = {
     for key, fn in google_cloudfunctions2_function.function : key => element(split("/", fn.service_config[0].service), length(split("/", fn.service_config[0].service)) - 1)
   }
+  # Artifact Registry repository IDs are unique per project and region.
+  repository_id = "${var.name}-functions"
   # Bucket names are globally unique.
   bucket_name = "plrl-fn-${substr(sha1("${local.project_id}/${var.name}"), 0, 16)}"
 }

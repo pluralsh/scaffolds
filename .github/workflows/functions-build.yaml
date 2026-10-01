@@ -6,8 +6,8 @@ on:
   workflow_call: {}
 
 jobs:
-  check:
-    name: check
+  check-rust:
+    name: check rust
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -31,14 +31,59 @@ jobs:
           # PR caches would evict it.
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
           # Its default, deny, fails the release builds on linker warnings; clippy in
-          # `just check` denies warnings already.
+          # `just check-rust` denies warnings already.
           build-warnings: warn
+
+      # The Go version comes from the GCP functions' go.mod, and the module cache is keyed on
+      # their go.sum.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: functions/go/gcp/go.mod
+          cache-dependency-path: functions/go/gcp/go.sum
+
+      # Only installs golangci-lint: `just check` runs it with functions/go/gcp/.golangci.yml.
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.14.0
+          install-only: true
 
       - uses: extractions/setup-just@v4
         with:
           just-version: 1.58.0
 
-      - run: just check
+      - run: just check-rust
+
+  # The GCP functions are Go and need no Rust toolchain.
+  check-go:
+    name: check go
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v7
+        name: checkout repo
+        with:
+          persist-credentials: false
+
+      - uses: extractions/setup-just@v4
+        with:
+          just-version: 1.58.0
+
+      # The latest 1.27 patch, as on the go127 runtime the functions deploy to.
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27'
+          cache-dependency-path: functions/go/gcp/go.sum
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.14.0
+          install-only: true
+
+      - run: just check-go
 
   package:
     name: package
@@ -65,7 +110,7 @@ jobs:
           # PR caches would evict it.
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
           # Its default, deny, fails the release builds on linker warnings; clippy in
-          # `just check` denies warnings already.
+          # `just check-rust` denies warnings already.
           build-warnings: warn
 
       - uses: extractions/setup-just@v4
@@ -76,7 +121,7 @@ jobs:
       # Zig is pinned too, as cargo-lambda only sets a lower bound on it.
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
       - name: install cargo-lambda
         run: pip install cargo-lambda==1.9.2 ziglang==0.16.0
 

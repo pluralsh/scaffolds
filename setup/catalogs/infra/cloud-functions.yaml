@@ -33,16 +33,16 @@ spec:
   message: |
     Set up cloud functions {{ context.name }} ({{ context.cloud }}, {{ context.region }})
 
-    Will deploy the operational cloud functions from release {{ context.version }}. Functions
-    that change resources are only registered as workbench tools once enabled.
+    Will deploy the operational cloud functions from release {{ context.version }} and register
+    each as a workbench tool. Every call of a function that changes resources requires human
+    approval.
 
     Plural Service: mgmt/apps
   confirmation:
     text: |
       The functions are invoked by workbenches through a cloud connection, which needs
-      permission to invoke them. Functions that change resources are deployed but not
-      registered as workbench tools, and can't be invoked, until register_destructive_tools is
-      set on the stack. Every call of their tools then requires human approval.
+      permission to invoke them. Every function is registered as a workbench tool, and every
+      call of a function that changes resources requires human approval.
     checklist:
       - label: "I will grant the cloud connection the invoke permission from the stack outputs (AWS: attach invoke_policy_arn to its IAM principal; Azure: assign invoke_role_definition_id to its service principal on each of invoke_scopes; GCP: set the invoker service account or grant it roles/run.invoker)."
       - label: "The cloud connection is in the same AWS region, or Azure subscription, as the functions."
@@ -85,6 +85,16 @@ spec:
     - name: clusterResourceGroup
       type: STRING
       documentation: Resource group ID of AKS clusters whose node pools node-pool-resize may resize. Leave empty to not deploy node-pool-resize.
+      optional: true
+      condition:
+        field: cloud
+        operation: EQ
+        value: 'azure'
+      validation:
+        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+    - name: networkResourceGroup
+      type: STRING
+      documentation: Resource group ID of the network the AKS clusters and databases use outside the resource groups above, such as a BYO or hub VNet, public IP prefixes or private DNS zones. node-pool-resize, lb-frontend-delete and db-restore only get the join actions there, which changing resources that reference them needs.
       optional: true
       condition:
         field: cloud

@@ -15,7 +15,7 @@ output "functions" {
 
 output "invoke_policy_arn" {
   description = "IAM policy to attach to the cloud connection principal so workbenches can invoke the functions."
-  value       = one(aws_iam_policy.invoke[*].arn)
+  value       = aws_iam_policy.invoke.arn
 }
 
 output "workbench_tool_ids" {

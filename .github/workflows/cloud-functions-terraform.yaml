@@ -7,7 +7,13 @@ on:
     paths:
     - catalogs/infra/cloud-functions/terraform/**
     - functions/bins/**
+    - functions/go/gcp/functions.go
     - .github/workflows/cloud-functions-terraform.yaml
+
+# A new push to a PR supersedes its running validation.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   validate:
@@ -42,20 +48,35 @@ jobs:
       - run: terraform init -backend=false -input=false
       - run: terraform validate
 
-      # The functions deploy the release packages named after these binaries, and the package
-      # format follows the bin's cloud suffix, so a typo or rename would only fail at deploy time.
+      # AWS and Azure deploy the release packages named after their Rust binaries, whose package
+      # format follows the bin's cloud suffix. A typo or rename would only fail at deploy time.
       - name: check function binaries
+        if: matrix.cloud != 'gcp'
         env:
           CLOUD: ${{ matrix.cloud }}
         run: |
           bins=$(sed -n 's/^ *binary *= *"\(.*\)"$/\1/p' locals.tf)
           if [[ -z "$bins" ]]; then echo "::error::no binary found in locals.tf"; exit 1; fi
-          status=0
           for bin in $bins; do
             if [[ "$bin" != *-"$CLOUD" ]]; then
               echo "::error::$bin does not end with -$CLOUD"; status=1
             elif [[ ! -d "$GITHUB_WORKSPACE/functions/bins/$bin" ]]; then
               echo "::error::$bin is not in functions/bins"; status=1
+            fi
+          done
+          exit $status
+
+      # GCP functions are entry points of the shared Go source package instead, registered with
+      # functions.HTTP in functions/go/gcp/functions.go.
+      - name: check function entry points
+        if: matrix.cloud == 'gcp'
+        run: |
+          entry_points=$(sed -n 's/^ *entry_point *= *"\(.*\)"$/\1/p' locals.tf)
+          if [[ -z "$entry_points" ]]; then echo "::error::no entry_point found in locals.tf"; exit 1; fi
+          status=0
+          for entry_point in $entry_points; do
+            if ! grep -q "functions.HTTP(\"$entry_point\"" "$GITHUB_WORKSPACE/functions/go/gcp/functions.go"; then
+              echo "::error::$entry_point is not registered in functions/go/gcp/functions.go"; status=1
             fi
           done
           exit $status

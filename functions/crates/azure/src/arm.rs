@@ -16,8 +16,16 @@ use crate::{ARM_SCOPE, provider_error};
 const ENDPOINT_VAR: &str = "AZURE_ARM_ENDPOINT";
 const ENDPOINT: &str = "https://management.azure.com";
 
-/// Longest wait between two polls of a long-running operation.
+/// Wait between two polls of a long-running operation when ARM doesn't say how long to wait.
 const POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// Attempts of a request ARM throttled or failed to serve.
+const ATTEMPTS: u32 = 3;
+/// Wait before the first retry when ARM doesn't say how long to wait; it doubles every retry.
+const RETRY_BACKOFF: std::time::Duration = std::time::Duration::from_secs(1);
+/// Longest wait before a retry, whatever ARM's Retry-After says, so that retries fit in the
+/// time a caller waits for the function.
+const MAX_RETRY_WAIT: std::time::Duration = std::time::Duration::from_secs(4);
 
 /// API version of Microsoft.Compute disks and snapshots.
 pub const COMPUTE_API_VERSION: &str = "2024-03-02";
@@ -367,9 +375,15 @@ impl Arm {
             let page: List<T> = json(resp).await?;
             items.extend(page.value);
             match page.next_link {
-                // Only follow links back to the same endpoint, as they carry the token.
+                None => return Ok(items),
+                // Only follow links back to the same endpoint, as they carry the token. A
+                // partial list must not pass for the whole one.
                 Some(next) if same_origin(&next, &self.endpoint) => req = self.client.get(next),
-                _ => return Ok(items),
+                Some(next) => {
+                    return Err(Error::provider(format!(
+                        "ARM: {path} links its next page to another endpoint ({next})"
+                    )));
+                }
             }
         }
     }
@@ -434,17 +448,12 @@ impl Arm {
                     "ARM: {path} was accepted without a location to poll"
                 )));
             };
-            let wait = resp
-                .headers()
-                .get(reqwest::header::RETRY_AFTER)
-                .and_then(|v| v.to_str().ok()?.parse().ok())
-                .map_or(POLL_INTERVAL, |secs: u64| {
-                    std::time::Duration::from_secs(secs).min(POLL_INTERVAL)
-                });
-            if tokio::time::Instant::now() + wait >= deadline {
+            // Polls when ARM asks to, and once more at the deadline if that is later.
+            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+            if remaining.is_zero() {
                 return Ok(None);
             }
-            tokio::time::sleep(wait).await;
+            tokio::time::sleep(poll_wait(resp.headers()).min(remaining)).await;
             resp = self.send(self.client.get(location)).await?;
         }
     }
@@ -515,12 +524,79 @@ impl Arm {
             .query(&[("api-version", api_version)])
     }
 
+    /// Sends the request, retrying it if ARM throttled it or failed to serve it. Requests that
+    /// time out aren't retried, so retries only add their waits to the time a call takes.
     async fn send(&self, req: reqwest::RequestBuilder) -> Result<reqwest::Response, Error> {
-        req.bearer_auth(&self.token)
-            .send()
-            .await
-            .map_err(|err| Error::provider(format!("ARM: {err}")))
+        let mut req = req
+            .bearer_auth(&self.token)
+            .build()
+            .map_err(|err| Error::provider(format!("ARM: {err}")))?;
+        let mut attempt = 1;
+        loop {
+            // Bodies are JSON bytes, so requests can always be cloned.
+            let retry = if attempt < ATTEMPTS {
+                req.try_clone()
+            } else {
+                None
+            };
+            let resp = self
+                .client
+                .execute(req)
+                .await
+                .map_err(|err| Error::provider(format!("ARM: {err}")))?;
+            match retry {
+                Some(next) if retryable(next.method(), resp.status()) => {
+                    let wait = retry_wait(resp.headers(), attempt);
+                    tracing::warn!(
+                        status = resp.status().as_u16(),
+                        attempt,
+                        wait_ms = wait.as_millis() as u64,
+                        "retrying ARM request"
+                    );
+                    tokio::time::sleep(wait).await;
+                    req = next;
+                    attempt += 1;
+                }
+                _ => return Ok(resp),
+            }
+        }
     }
+}
+
+/// How long to wait before polling a long-running operation again: the Retry-After seconds
+/// ARM asked for, or [`POLL_INTERVAL`].
+fn poll_wait(headers: &reqwest::header::HeaderMap) -> std::time::Duration {
+    headers
+        .get(reqwest::header::RETRY_AFTER)
+        .and_then(|v| v.to_str().ok()?.trim().parse().ok())
+        .map_or(POLL_INTERVAL, std::time::Duration::from_secs)
+}
+
+/// Whether a request that got `status` can be sent again. Throttled and unavailable requests
+/// weren't processed, so any of them can. Other server errors may have been processed, so
+/// only reads are retried; a write is left to the caller, who plans again first.
+fn retryable(method: &Method, status: reqwest::StatusCode) -> bool {
+    use reqwest::StatusCode;
+    match status {
+        StatusCode::TOO_MANY_REQUESTS | StatusCode::SERVICE_UNAVAILABLE => true,
+        StatusCode::INTERNAL_SERVER_ERROR
+        | StatusCode::BAD_GATEWAY
+        | StatusCode::GATEWAY_TIMEOUT => method == Method::GET,
+        _ => false,
+    }
+}
+
+/// How long to wait before retry `attempt`: the Retry-After seconds ARM asked for, or an
+/// exponential backoff, at most [`MAX_RETRY_WAIT`].
+fn retry_wait(headers: &reqwest::header::HeaderMap, attempt: u32) -> std::time::Duration {
+    headers
+        .get(reqwest::header::RETRY_AFTER)
+        .and_then(|v| v.to_str().ok()?.trim().parse().ok())
+        .map_or(
+            RETRY_BACKOFF * 2u32.pow(attempt - 1),
+            std::time::Duration::from_secs,
+        )
+        .min(MAX_RETRY_WAIT)
 }
 
 /// Whether `url` has the same scheme, host and port as `endpoint`.
@@ -740,5 +816,289 @@ mod tests {
             "OperationNotAllowed: Disk is attached"
         );
         assert_eq!(api_error(500, ""), "ARM returned HTTP 500");
+    }
+}
+
+#[cfg(test)]
+mod retry_tests {
+    use super::*;
+    use reqwest::StatusCode;
+    use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER};
+
+    #[test]
+    fn retries_throttled_and_unavailable_requests_of_any_method() {
+        for method in [Method::GET, Method::PUT, Method::POST, Method::DELETE] {
+            assert!(
+                retryable(&method, StatusCode::TOO_MANY_REQUESTS),
+                "{method}"
+            );
+            assert!(
+                retryable(&method, StatusCode::SERVICE_UNAVAILABLE),
+                "{method}"
+            );
+        }
+    }
+
+    #[test]
+    fn retries_other_server_errors_of_reads_only() {
+        for status in [
+            StatusCode::INTERNAL_SERVER_ERROR,
+            StatusCode::BAD_GATEWAY,
+            StatusCode::GATEWAY_TIMEOUT,
+        ] {
+            assert!(retryable(&Method::GET, status), "{status}");
+            for method in [Method::PUT, Method::PATCH, Method::POST, Method::DELETE] {
+                assert!(!retryable(&method, status), "{method} {status}");
+            }
+        }
+        for status in [
+            StatusCode::OK,
+            StatusCode::ACCEPTED,
+            StatusCode::NOT_FOUND,
+            StatusCode::CONFLICT,
+            StatusCode::PRECONDITION_FAILED,
+        ] {
+            assert!(!retryable(&Method::GET, status), "{status}");
+        }
+    }
+
+    #[test]
+    fn polls_as_asked_or_every_interval() {
+        let mut headers = HeaderMap::new();
+        assert_eq!(poll_wait(&headers), POLL_INTERVAL);
+        headers.insert(RETRY_AFTER, HeaderValue::from_static("10"));
+        assert_eq!(poll_wait(&headers), std::time::Duration::from_secs(10));
+    }
+
+    #[test]
+    fn waits_as_asked_up_to_a_limit_or_backs_off() {
+        let after = |secs: &str| {
+            let mut headers = HeaderMap::new();
+            headers.insert(RETRY_AFTER, HeaderValue::from_str(secs).unwrap());
+            headers
+        };
+        let secs = std::time::Duration::from_secs;
+        assert_eq!(retry_wait(&after("3"), 1), secs(3));
+        assert_eq!(retry_wait(&after("0"), 2), secs(0));
+        assert_eq!(retry_wait(&after("120"), 1), MAX_RETRY_WAIT);
+        assert_eq!(retry_wait(&HeaderMap::new(), 1), secs(1));
+        assert_eq!(retry_wait(&HeaderMap::new(), 2), secs(2));
+        // A date, which ARM doesn't send, falls back to the backoff.
+        assert_eq!(
+            retry_wait(&after("Wed, 21 Oct 2015 07:28:00 GMT"), 1),
+            secs(1)
+        );
+    }
+}
+
+#[cfg(all(test, feature = "mock"))]
+mod mock_tests {
+    use serde_json::json;
+
+    use super::*;
+    use crate::mock::MockArm;
+
+    const PATH: &str = "/subscriptions/s/resourceGroups/rg/providers/Microsoft.Compute/disks/d";
+    const NOW: &[(&str, &str)] = &[("Retry-After", "0")];
+
+    #[tokio::test]
+    async fn retries_a_throttled_read_until_it_succeeds() {
+        let mock = MockArm::start().await;
+        mock.on_with_headers(Method::GET, PATH, 429, NOW, json!({}))
+            .on_with_headers(Method::GET, PATH, 500, NOW, json!({}))
+            .on(Method::GET, PATH, 200, json!({"name": "d"}));
+        let arm = mock.connector().connect().await.unwrap();
+
+        let disk: Option<Value> = arm.get(PATH, COMPUTE_API_VERSION).await.unwrap();
+
+        assert_eq!(disk.unwrap()["name"], "d");
+        assert_eq!(mock.requests().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn gives_up_after_the_last_attempt() {
+        let mock = MockArm::start().await;
+        mock.on_with_headers(Method::GET, PATH, 503, NOW, json!({}));
+        let arm = mock.connector().connect().await.unwrap();
+
+        let err = arm
+            .get::<Value>(PATH, COMPUTE_API_VERSION)
+            .await
+            .unwrap_err();
+
+        assert!(err.to_string().contains("503"), "{err}");
+        assert_eq!(mock.requests().len(), ATTEMPTS as usize);
+    }
+
+    #[tokio::test]
+    async fn resends_a_throttled_write_with_its_body_and_precondition() {
+        let mock = MockArm::start().await;
+        mock.on_with_headers(Method::PUT, PATH, 429, NOW, json!({}))
+            .on(Method::PUT, PATH, 200, json!({}));
+        let arm = mock.connector().connect().await.unwrap();
+
+        arm.put(
+            PATH,
+            COMPUTE_API_VERSION,
+            &json!({"location": "eastus"}),
+            Precondition::IfMatch(Some("\"etag-1\"")),
+        )
+        .await
+        .unwrap();
+
+        let writes = mock.writes();
+        assert_eq!(writes.len(), 2);
+        for write in writes {
+            assert_eq!(write.body, json!({"location": "eastus"}));
+            assert_eq!(write.if_match.as_deref(), Some("\"etag-1\""));
+        }
+    }
+
+    #[tokio::test]
+    async fn does_not_resend_a_write_that_failed_on_the_server() {
+        let mock = MockArm::start().await;
+        mock.on_with_headers(Method::PUT, PATH, 500, NOW, json!({}))
+            .on(Method::PUT, PATH, 200, json!({}));
+        let arm = mock.connector().connect().await.unwrap();
+
+        let result = arm
+            .put(PATH, COMPUTE_API_VERSION, &json!({}), Precondition::Always)
+            .await;
+
+        assert!(result.is_err());
+        assert_eq!(mock.writes().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn follows_next_links_to_the_end() {
+        let mock = MockArm::start().await;
+        let list = "/subscriptions/s/resourceGroups/rg/providers/Microsoft.Compute/disks";
+        mock.on(
+            Method::GET,
+            list,
+            200,
+            json!({"value": [{"name": "a"}], "nextLink": format!("{}{list}?$skiptoken=2", mock.url())}),
+        )
+        .on(Method::GET, list, 200, json!({"value": [{"name": "b"}]}));
+        let arm = mock.connector().connect().await.unwrap();
+
+        let items: Vec<Value> = arm.list(list, COMPUTE_API_VERSION, None).await.unwrap();
+
+        assert_eq!(items, vec![json!({"name": "a"}), json!({"name": "b"})]);
+        assert!(mock.requests()[1].query.contains("skiptoken=2"));
+    }
+
+    #[tokio::test]
+    async fn refuses_next_links_to_another_endpoint() {
+        let mock = MockArm::start().await;
+        let list = "/subscriptions/s/resourceGroups/rg/providers/Microsoft.Compute/disks";
+        mock.on(
+            Method::GET,
+            list,
+            200,
+            json!({"value": [{"name": "a"}], "nextLink": "https://example.com/next"}),
+        );
+        let arm = mock.connector().connect().await.unwrap();
+
+        let err = arm
+            .list::<Value>(list, COMPUTE_API_VERSION, None)
+            .await
+            .unwrap_err();
+
+        assert!(err.to_string().contains("another endpoint"), "{err}");
+        assert_eq!(mock.requests().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn reports_an_etag_conflict_without_resending() {
+        let mock = MockArm::start().await;
+        mock.on(
+            Method::PUT,
+            PATH,
+            412,
+            json!({"error": {"code": "PreconditionFailed", "message": "The ETag doesn't match."}}),
+        );
+        let arm = mock.connector().connect().await.unwrap();
+
+        let err = arm
+            .put(
+                PATH,
+                COMPUTE_API_VERSION,
+                &json!({}),
+                Precondition::IfMatch(Some("\"stale\"")),
+            )
+            .await
+            .unwrap_err();
+
+        assert!(err.to_string().contains("PreconditionFailed"), "{err}");
+        assert_eq!(mock.writes().len(), 1);
+    }
+
+    const OPERATION: &str =
+        "/subscriptions/s/providers/Microsoft.Network/locations/eastus/operationResults/op";
+
+    #[tokio::test]
+    async fn polls_a_long_running_action_for_its_result() {
+        let mock = MockArm::start().await;
+        let location = format!("{}{OPERATION}", mock.url());
+        let action = format!("{PATH}/health");
+        mock.on_with_headers(
+            Method::POST,
+            &action,
+            202,
+            &[("Location", &location), ("Retry-After", "0")],
+            json!({}),
+        )
+        .on_with_headers(
+            Method::GET,
+            OPERATION,
+            202,
+            &[("Location", &location), ("Retry-After", "0")],
+            json!({}),
+        )
+        .on(Method::GET, OPERATION, 200, json!({"up": 1}));
+        let arm = mock.connector().connect().await.unwrap();
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(5);
+
+        let result = arm
+            .post_and_wait(&action, COMPUTE_API_VERSION, deadline)
+            .await
+            .unwrap();
+
+        assert_eq!(result, Some(json!({"up": 1})));
+        assert_eq!(mock.requests().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn polls_once_more_at_the_deadline_when_asked_to_wait_longer() {
+        let mock = MockArm::start().await;
+        let location = format!("{}{OPERATION}", mock.url());
+        let action = format!("{PATH}/health");
+        mock.on_with_headers(
+            Method::POST,
+            &action,
+            202,
+            &[("Location", &location), ("Retry-After", "30")],
+            json!({}),
+        )
+        .on_with_headers(
+            Method::GET,
+            OPERATION,
+            202,
+            &[("Location", &location), ("Retry-After", "30")],
+            json!({}),
+        );
+        let arm = mock.connector().connect().await.unwrap();
+        let started = tokio::time::Instant::now();
+        let deadline = started + std::time::Duration::from_millis(300);
+
+        let result = arm
+            .post_and_wait(&action, COMPUTE_API_VERSION, deadline)
+            .await
+            .unwrap();
+
+        assert_eq!(result, None);
+        assert_eq!(mock.requests().len(), 2);
+        assert!(started.elapsed() < std::time::Duration::from_secs(2));
     }
 }

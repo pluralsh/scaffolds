@@ -43,22 +43,66 @@ resource "google_project_iam_member" "function" {
 # default service account, which is broadly privileged (it is often granted Editor). It gets
 # the roles Google documents for a custom Cloud Functions build service account
 # (https://cloud.google.com/functions/docs/building): logging.logWriter for the build logs,
-# artifactregistry.writer for the built images, and storage.objectViewer for the source, which
-# is granted on the source bucket only.
+# the only one granted on the project, artifactregistry.writer for the built images on the
+# functions' own repository, and storage.objectViewer on the source bucket.
 resource "google_service_account" "build" {
   account_id   = local.build_service_account
   display_name = "${var.name} operational functions build"
 }
 
-resource "google_project_iam_member" "build" {
-  for_each = toset(["roles/logging.logWriter", "roles/artifactregistry.writer"])
-
+resource "google_project_iam_member" "build_logs" {
   project = local.project_id
-  role    = each.value
+  role    = "roles/logging.logWriter"
   member  = "serviceAccount:${google_service_account.build.email}"
 }
 
-# Private bucket holding the function source that Cloud Build reads.
+moved {
+  from = google_project_iam_member.build["roles/logging.logWriter"]
+  to   = google_project_iam_member.build_logs
+}
+
+# Repository for the images Cloud Build builds from the source, used instead of the
+# gcf-artifacts repository Cloud Functions would create, so the build service account can only
+# write here. Images are deleted once they are release_retention_days old, except for the 5
+# most recent versions of every function, so the deployed image is always kept.
+resource "google_artifact_registry_repository" "functions" {
+  repository_id = local.repository_id
+  location      = var.region
+  format        = "DOCKER"
+  description   = "Images of the ${var.name} operational functions."
+  labels        = var.labels
+
+  cleanup_policies {
+    id     = "delete-old"
+    action = "DELETE"
+    condition {
+      tag_state  = "ANY"
+      older_than = "${var.release_retention_days * 86400}s"
+    }
+  }
+
+  cleanup_policies {
+    id     = "keep-recent"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count = 5
+    }
+  }
+
+  depends_on = [google_project_service.api]
+}
+
+resource "google_artifact_registry_repository_iam_member" "build" {
+  repository = google_artifact_registry_repository.functions.name
+  location   = google_artifact_registry_repository.functions.location
+  role       = "roles/artifactregistry.writer"
+  member     = "serviceAccount:${google_service_account.build.email}"
+}
+
+# Private bucket holding the function source that Cloud Build reads. Every release overwrites
+# the same object, so with versioning the source of earlier releases becomes noncurrent and is
+# deleted after release_retention_days; the current source is never deleted. Soft delete is off,
+# since the source can always be downloaded from the release again.
 resource "google_storage_bucket" "functions" {
   name                        = local.bucket_name
   location                    = var.region
@@ -66,6 +110,24 @@ resource "google_storage_bucket" "functions" {
   public_access_prevention    = "enforced"
   force_destroy               = true
   labels                      = var.labels
+
+  versioning {
+    enabled = true
+  }
+
+  soft_delete_policy {
+    retention_duration_seconds = 0
+  }
+
+  lifecycle_rule {
+    condition {
+      with_state                 = "ARCHIVED"
+      days_since_noncurrent_time = var.release_retention_days
+    }
+    action {
+      type = "Delete"
+    }
+  }
 }
 
 resource "google_storage_bucket_iam_member" "build" {
@@ -78,12 +140,17 @@ data "google_project" "current" {
 }
 
 # The source is read from the directory the stack's init container downloads the release to.
-# It holds the Go module of every GCP function, and the version is part of the object name, so
-# a new release uploads a new object and redeploys the functions.
+# It holds the Go module of every GCP function. A release with different source replaces the
+# object, which gives it a new generation, and the functions pin the generation, so they are
+# rebuilt from exactly that upload.
 resource "google_storage_bucket_object" "source" {
-  name   = "functions-gcp/${var.artifact_version}.zip"
+  name   = "functions-gcp.zip"
   bucket = google_storage_bucket.functions.name
   source = local.artifact
+
+  metadata = {
+    release = var.artifact_version
+  }
 
   lifecycle {
     precondition {
@@ -104,9 +171,10 @@ resource "google_cloudfunctions2_function" "function" {
   labels   = var.labels
 
   build_config {
-    runtime         = "go127"
-    entry_point     = each.value.entry_point
-    service_account = "projects/${local.project_id}/serviceAccounts/${google_service_account.build.email}"
+    runtime           = "go127"
+    entry_point       = each.value.entry_point
+    service_account   = "projects/${local.project_id}/serviceAccounts/${google_service_account.build.email}"
+    docker_repository = google_artifact_registry_repository.functions.id
 
     source {
       storage_source {
@@ -129,7 +197,8 @@ resource "google_cloudfunctions2_function" "function" {
 
   depends_on = [
     google_project_service.api,
-    google_project_iam_member.build,
+    google_project_iam_member.build_logs,
+    google_artifact_registry_repository_iam_member.build,
     google_storage_bucket_iam_member.build,
   ]
 }

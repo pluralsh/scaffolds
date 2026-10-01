@@ -14,9 +14,9 @@ locals {
   }
 
   # Every function that can be deployed. `statements` is the minimal IAM the function needs
-  # on top of writing its own logs. `destructive` functions change or delete resources and are
-  # only registered as workbench tools when register_destructive_tools is set,
-  # and every call of their tools requires human approval.
+  # on top of writing its own logs. Every function is registered as a workbench tool, and every
+  # call of the tools of `destructive` functions, which change or delete resources, requires
+  # human approval.
   catalog = {
     volume-delete = {
       binary      = "volume-delete-aws"
@@ -88,7 +88,5 @@ locals {
   functions      = { for key, fn in local.catalog : key => fn if contains(var.functions, key) }
   unknown        = setsubtract(var.functions, keys(local.catalog))
   function_names = { for key, _ in local.functions : key => "${var.name}-${key}" }
-  # Functions registered as workbench tools, and the only ones the cloud connection may invoke.
-  tools     = { for key, fn in local.functions : key => fn if !fn.destructive || var.register_destructive_tools }
-  artifacts = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }
+  artifacts      = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }
 }

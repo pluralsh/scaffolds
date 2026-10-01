@@ -122,7 +122,9 @@ pub fn https_client() -> Result<reqwest::Client, Error> {
         .map_err(|err| Error::provider(format!("loading root certificates: {err}")))?;
     reqwest::Client::builder()
         .tls_certs_only(roots)
-        .timeout(std::time::Duration::from_secs(20))
+        // Cloud API calls answer within seconds; long operations run asynchronously. A call
+        // makes a few requests and has to fit in the 30 seconds callers wait.
+        .timeout(std::time::Duration::from_secs(8))
         .build()
         .map_err(|err| Error::provider(format!("building HTTPS client: {err}")))
 }

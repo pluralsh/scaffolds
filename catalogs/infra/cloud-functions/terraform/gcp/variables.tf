@@ -35,12 +35,6 @@ variable "functions" {
   }
 }
 
-variable "register_destructive_tools" {
-  type        = bool
-  description = "Register functions that change or delete resources as workbench tools. Every call of those tools then requires human approval."
-  default     = false
-}
-
 variable "allow_skip_snapshot" {
   type        = bool
   description = "Let callers skip the snapshot taken before a disk is deleted. When false, volume-delete always snapshots first and its tool schema has no snapshot input."
@@ -56,6 +50,17 @@ variable "artifact_dir" {
   type        = string
   description = "Directory holding the release's function source package as <artifact_dir>/<artifact_version>/functions-gcp.zip. The stack's init container downloads it there."
   default     = "/artifacts"
+}
+
+variable "release_retention_days" {
+  type        = number
+  description = "Days the source and images of earlier releases are kept. Source is deleted that long after a newer release replaced it, and images once they are that old, except for the 5 most recent versions of each function."
+  default     = 30
+
+  validation {
+    condition     = var.release_retention_days >= 1
+    error_message = "release_retention_days must be at least 1."
+  }
 }
 
 variable "max_instance_count" {

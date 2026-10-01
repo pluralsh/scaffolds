@@ -15,13 +15,18 @@ workbench tools. The function sources live in `functions/` of
   - Azure: one Flex Consumption function app (custom handler) per function, each with its
     own system-assigned managed identity, in the resource group of the mgmt cluster; a role
     allowing only to resolve each function's URL and its own key (not the app's host or
-    master keys), and one `AZURE_FUNCTION` workbench tool per function.
+    master keys), and one `AZURE_FUNCTION` workbench tool per function. The functions'
+    permissions are custom roles defined in the subscription and assigned on the resource
+    groups they act on (and on the subscription for reads Azure only serves there), so the
+    stack's identity needs to manage role definitions and assignments in the subscription,
+    e.g. as Owner, or Contributor and User Access Administrator.
   - GCP: one Cloud Run function (2nd gen) per function running as its own service account,
     in the project of the mgmt cluster, reachable only by identities granted
     `roles/run.invoker`, and one `CLOUD_RUN` workbench tool per function. The functions are
     written in Go. Terraform uploads their source to a private bucket and Cloud Build builds
-    it as a dedicated service account with only the build permissions, so no Preview feature
-    is involved.
+    it as a dedicated service account into an Artifact Registry repository of the
+    installation, the only repository that account can write to, so no Preview feature is
+    involved.
 
 An init container of the stack run downloads the function packages from the GitHub release
 and verifies them against its `SHA256SUMS`, so the mgmt cluster needs to reach `github.com`
@@ -42,9 +47,8 @@ enables.
 | `db-restore` | Azure | Restores a PostgreSQL or MySQL flexible server to a point in time, as a new server. |
 | `ssh-access` | Azure | Grants an Entra ID user short-lived SSH login to a Linux VM. |
 
-Every function changes resources, so none is registered as a workbench tool, or can be
-invoked by the cloud connection, unless `register_destructive_tools` is set. Every call of
-their tools then requires human approval in the workbench.
+Every deployed function is registered as a workbench tool. Every function changes
+resources, so every call of their tools requires human approval in the workbench.
 
 On AWS, the installation deploys `volume-delete`, `vm-delete` and `node-pool-resize`. On GCP,
 it deploys `volume-delete`. On Azure, every function gets its permissions only on the resource
@@ -55,6 +59,7 @@ function for each resource group it is given:
 |---|---|
 | `nodeResourceGroup` (required) | `volume-delete`, `lb-frontend-delete` in the AKS node resource group (`MC_...`) |
 | `clusterResourceGroup` | `node-pool-resize` for the AKS clusters in it |
+| `networkResourceGroup` | the resource group of a network the resources above use, such as a BYO or hub VNet, public IP prefixes or private DNS zones: `node-pool-resize`, `lb-frontend-delete` and `db-restore` only get join actions there (`network_scopes` in terraform) |
 | `vmResourceGroup` | `vm-delete` for the standalone VMs in it |
 | `databaseResourceGroup` | `db-restore` for the flexible servers in it |
 | `sshResourceGroup`, `sshBastionId` | `ssh-access` for the Linux VMs in it, optionally through that Bastion host |
@@ -107,9 +112,13 @@ refused. `node_pool_max_count` (default 100) caps the count.
 
 Takes `clusterId`, `nodePool`, `count`. AKS adds nodes, or cordons and drains the ones it
 removes, in the background. The pool must be idle and running. System pools keep at least one
-node. The update is sent with the pool's ETag. Only scale set pools are supported, not
-`VirtualMachines` pools. Permissions: read and write agent pools in
-`scopes["node-pool-resize"]`, the resource groups of the clusters.
+node. The update is sent with the pool's ETag, so a pool changed in the meantime isn't
+overwritten. Only scale set pools are supported, not `VirtualMachines` pools. Permissions:
+read and write agent pools in `scopes["node-pool-resize"]`, the resource groups of the
+clusters. The update resends the whole pool, so Azure also checks that the function may join
+the subnets and the public IP prefix the pool references: it gets those join actions there
+and in `network_scopes`, which needs the resource group of a cluster's own VNet when it is
+another one.
 
 #### AWS
 
@@ -135,6 +144,9 @@ the meantime is left alone. Once the result reports `deleteOptionsSet`, deleting
 any way also deletes its OS disk and network interfaces. Permissions in
 `scopes["vm-delete"]`: read, update and delete VMs, and read, update and delete disks and
 network interfaces. They cover every VM there, so scope it to the resource groups of such VMs.
+It deletes the network interfaces and OS disk, and updates the VM's references to its data
+disks, so a disk or network interface in another resource group needs that resource group in
+`scopes["vm-delete"]` too; `network_scopes` isn't enough.
 
 #### AWS
 
@@ -170,14 +182,16 @@ exist), frontends shared with other Services (rules named after another Service 
 frontends used by outbound or NAT rules. It also refuses the last frontend of a load
 balancer that still has backends: removing it would need taking the nodes out of the
 backend pools first, which is the cloud provider's job, so such a load balancer has to be
-cleaned up by hand. Public IPs AKS didn't create for the frontend are kept. Permissions in `scopes["lb-frontend-delete"]`, the node resource group: read, update
-and delete load balancers, read and delete public IPs, read backend health, and join public
-IPs and subnets, which updating a load balancer requires for its remaining frontends.
-Resources the load balancer references in other resource groups, such as a custom virtual
-network, outbound public IPs or public IP prefixes, need those resource groups in the scopes
-too; otherwise Azure refuses the update. The same applies to vm-delete (disks and network
-interfaces in another resource group) and db-restore (a private DNS zone in a shared
-resource group).
+cleaned up by hand. Public IPs AKS didn't create for the frontend are kept. Permissions in
+`scopes["lb-frontend-delete"]`, the node resource group: read, update and delete load
+balancers, read and delete public IPs, read backend health, and join public IPs, public IP
+prefixes, subnets and virtual networks, which updating a load balancer requires for its
+remaining frontends and IP-based backend pools. It gets the same join actions in
+`network_scopes`, which needs the resource group of a custom virtual network, outbound
+public IPs or public IP prefixes the load balancer references; otherwise Azure refuses the
+update. The backend health check is a long-running action whose result Azure serves at
+subscription scope, so the function can also read Network operation results in the
+subscription.
 
 ### db-restore (Azure)
 
@@ -186,15 +200,18 @@ Restores a PostgreSQL or MySQL flexible server (`serverId`) to a point in time
 server (`targetServerName`) in the same resource group. The source server is never changed:
 restoring over it or into an existing server is refused, so applications only move to the
 restored data when they are pointed at the new server. The new server gets the source's
-network settings (subnet and private DNS zone, or public access) and admin login; Azure
-doesn't copy firewall rules or private endpoints. `execute` submits the restore, which takes
+network settings (subnet and private DNS zone, or public access), availability zone, admin
+login, and, for a server encrypted with a customer managed key, its key and the
+user-assigned identities that read it; Azure doesn't copy firewall rules or private
+endpoints. `execute` submits the restore, which takes
 a while; calling again with the same parameters reports the new server's state and hostname.
 The new server is tagged with its source and restore point, and is only ever created: a
 server that appears under the target name in the meantime is left alone. Permissions in
 `scopes["db-restore"]`: read and write flexible servers, and join subnets and private DNS
-zones for servers in a virtual network. Writing servers also allows changing existing ones;
-only the function's checks prevent that. Servers encrypted with customer managed keys aren't
-supported.
+zones for servers in a virtual network, which it can also join in `network_scopes`, e.g. a
+private DNS zone in a hub resource group, and assign user-assigned identities, so identities
+in another resource group need it in the scopes too. Writing servers also allows changing
+existing ones; only the function's checks prevent that.
 
 ### ssh-access (Azure)
 
@@ -219,15 +236,12 @@ Its permission to manage role assignments on `scopes["ssh-access"]` carries a ro
 assignment condition that only allows the two VM login roles and users, so it can't grant
 anything else.
 
-Only registered functions can be invoked by the cloud connection (the AWS invoke policy, the
-GCP `roles/run.invoker` grants and the Azure `invoke_scopes`).
-
 ## After the stack is applied
 
 1. Grant the cloud connection permission to invoke the functions:
    - AWS: attach the `invoke_policy_arn` output to the IAM principal of the cloud connection.
    - Azure: assign the `invoke_role_definition_id` output to the service principal of the
-     cloud connection on each of the `invoke_scopes` (the function apps of registered tools).
+     cloud connection on each of the `invoke_scopes` (the function apps).
    - GCP: set the invoker service account when installing, or grant the cloud connection
      service account `roles/run.invoker` on the Cloud Run services behind the functions.
 2. Add the tools from the `workbench_tool_ids` output to a workbench.
@@ -241,8 +255,10 @@ submit the change and report the resource state without waiting for it to comple
 ## Customizations
 
 Terraform variables not set by the stack, such as `functions`, `log_retention_days` (AWS),
-`node_pool_max_count` (AWS, Azure), `scopes`, `ssh_access_max_minutes`, `ssh_bastion_id`,
-`resource_group_name` and `instance_memory_in_mb` (Azure), `max_instance_count` (GCP) or
+`node_pool_max_count` (AWS, Azure), `scopes`, `network_scopes`, `ssh_access_max_minutes`,
+`ssh_bastion_id`, `resource_group_name` and `instance_memory_in_mb` (Azure),
+`max_instance_count` and `release_retention_days` (GCP, how long the source and images of
+earlier releases are kept) or
 `tags`, can be added to `variables` in the stack.
 
 ## Contributing
