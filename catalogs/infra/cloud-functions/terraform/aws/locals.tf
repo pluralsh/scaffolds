@@ -62,6 +62,27 @@ locals {
       ]
       schema = jsonencode(jsondecode(file("${path.module}/schemas/vm-delete.json")))
     }
+    node-pool-resize = {
+      binary      = "node-pool-resize-aws"
+      description = "Sets the desired size of an EKS managed node group (clusterName + nodegroupName) or an Auto Scaling group (autoScalingGroupName). Groups scaled by the cluster autoscaler are refused. Use action plan first to see the current size and the checks, then execute."
+      memory      = 128
+      timeout     = 30
+      destructive = true
+      environment = { MAX_NODE_COUNT = tostring(var.node_pool_max_count) }
+      statements = [
+        {
+          actions = [
+            "eks:DescribeNodegroup",
+            "eks:UpdateNodegroupConfig",
+            "autoscaling:DescribeAutoScalingGroups",
+            "autoscaling:UpdateAutoScalingGroup",
+          ]
+          resources  = ["*"]
+          conditions = []
+        },
+      ]
+      schema = jsonencode(jsondecode(file("${path.module}/schemas/node-pool-resize.json")))
+    }
   }
 
   functions      = { for key, fn in local.catalog : key => fn if contains(var.functions, key) }

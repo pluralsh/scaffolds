@@ -25,6 +25,7 @@ spec:
     functions:
       - volume-delete
       - vm-delete
+      - node-pool-resize
     
   # The init container downloads the release's function packages for this cloud (function zips
   # for AWS and Azure, the source zip of all functions for GCP), verified against SHA256SUMS,

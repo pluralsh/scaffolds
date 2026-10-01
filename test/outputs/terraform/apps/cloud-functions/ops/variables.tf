@@ -21,7 +21,7 @@ variable "cloud_connection" {
 variable "functions" {
   type        = list(string)
   description = "Functions to deploy, by key of local.catalog."
-  default     = ["volume-delete", "vm-delete"]
+  default     = ["volume-delete", "vm-delete", "node-pool-resize"]
 
   validation {
     condition     = length(var.functions) > 0
@@ -39,6 +39,17 @@ variable "allow_skip_snapshot" {
   type        = bool
   description = "Let callers skip the snapshot taken before a volume is deleted. When false, volume-delete always snapshots first and its tool schema has no snapshot input."
   default     = false
+}
+
+variable "node_pool_max_count" {
+  type        = number
+  description = "Largest desired size callers may set with node-pool-resize."
+  default     = 100
+
+  validation {
+    condition     = var.node_pool_max_count >= 0 && var.node_pool_max_count <= 1000
+    error_message = "node_pool_max_count must be between 0 and 1000."
+  }
 }
 
 variable "artifact_version" {

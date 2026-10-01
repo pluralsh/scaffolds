@@ -36,7 +36,7 @@ enables.
 | Function | Clouds | Description |
 |---|---|---|
 | `volume-delete` | AWS, Azure, GCP | Deletes an orphaned volume (EBS volume, managed disk, zonal persistent disk) that Kubernetes created for a PersistentVolumeClaim, after snapshotting it. |
-| `node-pool-resize` | Azure | Sets the node count of a manually scaled AKS node pool. |
+| `node-pool-resize` | AWS, Azure | Sets the desired size of a manually scaled node group (EKS managed node group / ASG, or AKS node pool). |
 | `vm-delete` | AWS, Azure | Deletes a standalone VM/instance with its OS disk/volume and network interfaces, keeping its data disks/volumes. |
 | `lb-frontend-delete` | Azure | Removes what a deleted Kubernetes `LoadBalancer` Service left on an AKS load balancer. |
 | `db-restore` | Azure | Restores a PostgreSQL or MySQL flexible server to a point in time, as a new server. |
@@ -46,10 +46,10 @@ Every function changes resources, so none is registered as a workbench tool, or 
 invoked by the cloud connection, unless `register_destructive_tools` is set. Every call of
 their tools then requires human approval in the workbench.
 
-On AWS, the installation deploys `volume-delete` and `vm-delete`. On GCP, it deploys
-`volume-delete`. On Azure, every function gets its permissions only on the resource groups it
-may act on (`scopes` in terraform, by function key), and the installation deploys a function
-for each resource group it is given:
+On AWS, the installation deploys `volume-delete`, `vm-delete` and `node-pool-resize`. On GCP,
+it deploys `volume-delete`. On Azure, every function gets its permissions only on the resource
+groups it may act on (`scopes` in terraform, by function key), and the installation deploys a
+function for each resource group it is given:
 
 | Installation field | Functions |
 |---|---|
@@ -98,16 +98,27 @@ The function's own permissions are limited as well:
 
 The pre-deletion snapshots are kept; delete them once they are no longer needed.
 
-### node-pool-resize (Azure)
+### node-pool-resize
 
-Sets the node count of an AKS node pool (`clusterId`, `nodePool`, `count`). AKS adds nodes,
-or cordons and drains the ones it removes, in the background. The pool must be idle and
-running, and pools scaled by the cluster autoscaler are refused, since the autoscaler owns
-their count. System pools keep at least one node, and `node_pool_max_count` (default 100)
-caps the count. The update is sent with the pool's ETag, so a pool changed in the meantime
-isn't overwritten. Only scale set pools are supported, not `VirtualMachines` pools.
-Permissions: read and write agent pools in `scopes["node-pool-resize"]`, the resource groups
-of the clusters.
+Sets the node count of a manually scaled node pool / node group. Autoscaler-owned groups are
+refused. `node_pool_max_count` (default 100) caps the count.
+
+#### Azure
+
+Takes `clusterId`, `nodePool`, `count`. AKS adds nodes, or cordons and drains the ones it
+removes, in the background. The pool must be idle and running. System pools keep at least one
+node. The update is sent with the pool's ETag. Only scale set pools are supported, not
+`VirtualMachines` pools. Permissions: read and write agent pools in
+`scopes["node-pool-resize"]`, the resource groups of the clusters.
+
+#### AWS
+
+Takes either `clusterName` + `nodegroupName` (EKS managed node group) or
+`autoScalingGroupName` (ASG directly), plus `count`. Groups tagged
+`k8s.io/cluster-autoscaler/enabled=true` are refused. EKS node groups must be `ACTIVE`.
+`execute` submits the new desired size (raising `max` when needed) and returns without waiting
+for instances. Permissions: describe and update EKS node groups and Auto Scaling groups in the
+region.
 
 ### vm-delete
 
@@ -230,7 +241,7 @@ submit the change and report the resource state without waiting for it to comple
 ## Customizations
 
 Terraform variables not set by the stack, such as `functions`, `log_retention_days` (AWS),
-`scopes`, `node_pool_max_count`, `ssh_access_max_minutes`, `ssh_bastion_id`,
+`node_pool_max_count` (AWS, Azure), `scopes`, `ssh_access_max_minutes`, `ssh_bastion_id`,
 `resource_group_name` and `instance_memory_in_mb` (Azure), `max_instance_count` (GCP) or
 `tags`, can be added to `variables` in the stack.
 
