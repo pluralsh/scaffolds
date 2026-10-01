@@ -38,9 +38,9 @@ build-aws:
 build-azure:
     cargo lambda build --release --target {{musl_target}} $(printf -- '--bin %s ' {{azure_bins}})
 
-# This is the layout published on releases. Azure zips hold host.json, the bin's
-# azure/<function>/function.json folders and the handler binary; GCP tarballs hold the binary
-# as ./function, which Cloud Run runs on its OS-only base image.
+# This is the layout published on releases. AWS zips hold the bootstrap binary; Azure zips hold
+# host.json, the bin's azure/<function>/function.json folders and the handler binary; the GCP
+# zip holds the Go source of every function, which Cloud Functions builds.
 #
 # Package functions into dist/<bin>.zip (AWS, Azure) and dist/functions-gcp.zip (GCP) with a SHA256SUMS file.
 package: build
