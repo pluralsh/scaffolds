@@ -92,14 +92,14 @@ spec:
         value: 'azure'
       validation:
         regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
-    - name: clusterNetworkResourceGroup
+    - name: networkResourceGroup
       type: STRING
-      documentation: Resource group ID of the VNet of AKS clusters with their own VNet (or public IP prefix), when it is outside clusterResourceGroup. node-pool-resize only gets the subnet and public IP prefix join actions there, which resizing such pools needs.
+      documentation: Resource group ID of the network the AKS clusters and databases use outside the resource groups above, such as a BYO or hub VNet, public IP prefixes or private DNS zones. node-pool-resize, lb-frontend-delete and db-restore only get the join actions there, which changing resources that reference them needs.
       optional: true
       condition:
-        field: clusterResourceGroup
-        operation: PREFIX
-        value: '/subscriptions/'
+        field: cloud
+        operation: EQ
+        value: 'azure'
       validation:
         regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
     - name: vmResourceGroup

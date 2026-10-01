@@ -10,7 +10,7 @@ locals {
   # folder holding its function.json in the package), `actions` is the minimal set of ARM
   # actions the function needs, which its managed identity gets on the resource groups in
   # var.scopes, and `condition` an optional condition on those role assignments.
-  # `network_actions` are the join actions it also gets on the resource groups in
+  # `network_actions` are the join actions it also gets on the network resource groups in
   # var.network_scopes, and `subscription_actions` the reads it gets on the subscription.
   # Every function is registered as a workbench tool, and every call of the tools of
   # `destructive` functions, which change or delete resources, requires human approval.
@@ -46,9 +46,7 @@ locals {
         "Microsoft.ContainerService/managedClusters/agentPools/read",
         "Microsoft.ContainerService/managedClusters/agentPools/write",
       ], local.node_pool_join_actions)
-      condition = null
-      # A BYO VNet outside the cluster's resource group needs its resource group in
-      # network_scopes.
+      condition            = null
       network_actions      = local.node_pool_join_actions
       subscription_actions = []
       schema               = jsonencode(jsondecode(file("${path.module}/schemas/node-pool-resize.json")))
@@ -89,14 +87,22 @@ locals {
         "Microsoft.Network/loadBalancers/delete",
         "Microsoft.Network/publicIPAddresses/read",
         "Microsoft.Network/publicIPAddresses/delete",
-        # Updating the load balancer references the public IPs and subnets of its other frontends.
+        # Updating the load balancer references the public IPs, prefixes and subnets of its other
+        # frontends, and the virtual networks of IP-based backend pools.
         "Microsoft.Network/publicIPAddresses/join/action",
+        "Microsoft.Network/publicIPPrefixes/join/action",
         "Microsoft.Network/virtualNetworks/subnets/join/action",
+        "Microsoft.Network/virtualNetworks/joinLoadBalancer/action",
         # Backend health of the frontend's rules, checked before removing it.
         "Microsoft.Network/loadBalancers/loadBalancingRules/health/action",
       ]
-      condition       = null
-      network_actions = []
+      condition = null
+      network_actions = [
+        "Microsoft.Network/publicIPAddresses/join/action",
+        "Microsoft.Network/publicIPPrefixes/join/action",
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+        "Microsoft.Network/virtualNetworks/joinLoadBalancer/action",
+      ]
       # The backend health action is long-running, and ARM serves its result at subscription
       # scope.
       subscription_actions = [
@@ -120,8 +126,11 @@ locals {
         "Microsoft.Network/virtualNetworks/subnets/join/action",
         "Microsoft.Network/privateDnsZones/join/action",
       ]
-      condition            = null
-      network_actions      = []
+      condition = null
+      network_actions = [
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+        "Microsoft.Network/privateDnsZones/join/action",
+      ]
       subscription_actions = []
       schema               = jsonencode(jsondecode(file("${path.module}/schemas/db-restore.json")))
     }
@@ -172,10 +181,10 @@ locals {
   functions = {
     for key, fn in local.catalog : key => merge(fn, {
       scopes         = lookup(var.scopes, key, [])
-      network_scopes = lookup(var.network_scopes, key, [])
+      network_scopes = length(fn.network_actions) > 0 ? var.network_scopes : []
     }) if contains(var.functions, key)
   }
-  unknown         = setsubtract(concat(var.functions, keys(var.scopes), keys(var.network_scopes)), keys(local.catalog))
+  unknown         = setsubtract(concat(var.functions, keys(var.scopes)), keys(local.catalog))
   subscription_id = "/subscriptions/${local.identity_context["subscription_id"]}"
   # The version is part of the path, so a new release changes zip_deploy_file and redeploys.
   artifacts = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }

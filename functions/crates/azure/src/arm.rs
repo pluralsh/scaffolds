@@ -19,6 +19,14 @@ const ENDPOINT: &str = "https://management.azure.com";
 /// Longest wait between two polls of a long-running operation.
 const POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
 
+/// Attempts of a request ARM throttled or failed to serve.
+const ATTEMPTS: u32 = 3;
+/// Wait before the first retry when ARM doesn't say how long to wait; it doubles every retry.
+const RETRY_BACKOFF: std::time::Duration = std::time::Duration::from_secs(1);
+/// Longest wait before a retry, whatever ARM's Retry-After says, so that retries fit in the
+/// time a caller waits for the function.
+const MAX_RETRY_WAIT: std::time::Duration = std::time::Duration::from_secs(4);
+
 /// API version of Microsoft.Compute disks and snapshots.
 pub const COMPUTE_API_VERSION: &str = "2024-03-02";
 
@@ -515,12 +523,70 @@ impl Arm {
             .query(&[("api-version", api_version)])
     }
 
+    /// Sends the request, retrying it if ARM throttled it or failed to serve it. Requests that
+    /// time out aren't retried, so retries only add their waits to the time a call takes.
     async fn send(&self, req: reqwest::RequestBuilder) -> Result<reqwest::Response, Error> {
-        req.bearer_auth(&self.token)
-            .send()
-            .await
-            .map_err(|err| Error::provider(format!("ARM: {err}")))
+        let mut req = req
+            .bearer_auth(&self.token)
+            .build()
+            .map_err(|err| Error::provider(format!("ARM: {err}")))?;
+        let mut attempt = 1;
+        loop {
+            // Bodies are JSON bytes, so requests can always be cloned.
+            let retry = if attempt < ATTEMPTS {
+                req.try_clone()
+            } else {
+                None
+            };
+            let resp = self
+                .client
+                .execute(req)
+                .await
+                .map_err(|err| Error::provider(format!("ARM: {err}")))?;
+            match retry {
+                Some(next) if retryable(next.method(), resp.status()) => {
+                    let wait = retry_wait(resp.headers(), attempt);
+                    tracing::warn!(
+                        status = resp.status().as_u16(),
+                        attempt,
+                        wait_ms = wait.as_millis() as u64,
+                        "retrying ARM request"
+                    );
+                    tokio::time::sleep(wait).await;
+                    req = next;
+                    attempt += 1;
+                }
+                _ => return Ok(resp),
+            }
+        }
     }
+}
+
+/// Whether a request that got `status` can be sent again. Throttled and unavailable requests
+/// weren't processed, so any of them can. Other server errors may have been processed, so
+/// only reads are retried; a write is left to the caller, who plans again first.
+fn retryable(method: &Method, status: reqwest::StatusCode) -> bool {
+    use reqwest::StatusCode;
+    match status {
+        StatusCode::TOO_MANY_REQUESTS | StatusCode::SERVICE_UNAVAILABLE => true,
+        StatusCode::INTERNAL_SERVER_ERROR
+        | StatusCode::BAD_GATEWAY
+        | StatusCode::GATEWAY_TIMEOUT => method == Method::GET,
+        _ => false,
+    }
+}
+
+/// How long to wait before retry `attempt`: the Retry-After seconds ARM asked for, or an
+/// exponential backoff, at most [`MAX_RETRY_WAIT`].
+fn retry_wait(headers: &reqwest::header::HeaderMap, attempt: u32) -> std::time::Duration {
+    headers
+        .get(reqwest::header::RETRY_AFTER)
+        .and_then(|v| v.to_str().ok()?.trim().parse().ok())
+        .map_or(
+            RETRY_BACKOFF * 2u32.pow(attempt - 1),
+            std::time::Duration::from_secs,
+        )
+        .min(MAX_RETRY_WAIT)
 }
 
 /// Whether `url` has the same scheme, host and port as `endpoint`.
@@ -740,5 +806,148 @@ mod tests {
             "OperationNotAllowed: Disk is attached"
         );
         assert_eq!(api_error(500, ""), "ARM returned HTTP 500");
+    }
+}
+
+#[cfg(test)]
+mod retry_tests {
+    use super::*;
+    use reqwest::StatusCode;
+    use reqwest::header::{HeaderMap, HeaderValue, RETRY_AFTER};
+
+    #[test]
+    fn retries_throttled_and_unavailable_requests_of_any_method() {
+        for method in [Method::GET, Method::PUT, Method::POST, Method::DELETE] {
+            assert!(
+                retryable(&method, StatusCode::TOO_MANY_REQUESTS),
+                "{method}"
+            );
+            assert!(
+                retryable(&method, StatusCode::SERVICE_UNAVAILABLE),
+                "{method}"
+            );
+        }
+    }
+
+    #[test]
+    fn retries_other_server_errors_of_reads_only() {
+        for status in [
+            StatusCode::INTERNAL_SERVER_ERROR,
+            StatusCode::BAD_GATEWAY,
+            StatusCode::GATEWAY_TIMEOUT,
+        ] {
+            assert!(retryable(&Method::GET, status), "{status}");
+            for method in [Method::PUT, Method::PATCH, Method::POST, Method::DELETE] {
+                assert!(!retryable(&method, status), "{method} {status}");
+            }
+        }
+        for status in [
+            StatusCode::OK,
+            StatusCode::ACCEPTED,
+            StatusCode::NOT_FOUND,
+            StatusCode::CONFLICT,
+            StatusCode::PRECONDITION_FAILED,
+        ] {
+            assert!(!retryable(&Method::GET, status), "{status}");
+        }
+    }
+
+    #[test]
+    fn waits_as_asked_up_to_a_limit_or_backs_off() {
+        let after = |secs: &str| {
+            let mut headers = HeaderMap::new();
+            headers.insert(RETRY_AFTER, HeaderValue::from_str(secs).unwrap());
+            headers
+        };
+        let secs = std::time::Duration::from_secs;
+        assert_eq!(retry_wait(&after("3"), 1), secs(3));
+        assert_eq!(retry_wait(&after("0"), 2), secs(0));
+        assert_eq!(retry_wait(&after("120"), 1), MAX_RETRY_WAIT);
+        assert_eq!(retry_wait(&HeaderMap::new(), 1), secs(1));
+        assert_eq!(retry_wait(&HeaderMap::new(), 2), secs(2));
+        // A date, which ARM doesn't send, falls back to the backoff.
+        assert_eq!(
+            retry_wait(&after("Wed, 21 Oct 2015 07:28:00 GMT"), 1),
+            secs(1)
+        );
+    }
+}
+
+#[cfg(all(test, feature = "mock"))]
+mod retry_mock_tests {
+    use serde_json::json;
+
+    use super::*;
+    use crate::mock::MockArm;
+
+    const PATH: &str = "/subscriptions/s/resourceGroups/rg/providers/Microsoft.Compute/disks/d";
+    const NOW: &[(&str, &str)] = &[("Retry-After", "0")];
+
+    #[tokio::test]
+    async fn retries_a_throttled_read_until_it_succeeds() {
+        let mock = MockArm::start().await;
+        mock.on_with_headers(Method::GET, PATH, 429, NOW, json!({}))
+            .on_with_headers(Method::GET, PATH, 500, NOW, json!({}))
+            .on(Method::GET, PATH, 200, json!({"name": "d"}));
+        let arm = mock.connector().connect().await.unwrap();
+
+        let disk: Option<Value> = arm.get(PATH, COMPUTE_API_VERSION).await.unwrap();
+
+        assert_eq!(disk.unwrap()["name"], "d");
+        assert_eq!(mock.requests().len(), 3);
+    }
+
+    #[tokio::test]
+    async fn gives_up_after_the_last_attempt() {
+        let mock = MockArm::start().await;
+        mock.on_with_headers(Method::GET, PATH, 503, NOW, json!({}));
+        let arm = mock.connector().connect().await.unwrap();
+
+        let err = arm
+            .get::<Value>(PATH, COMPUTE_API_VERSION)
+            .await
+            .unwrap_err();
+
+        assert!(err.to_string().contains("503"), "{err}");
+        assert_eq!(mock.requests().len(), ATTEMPTS as usize);
+    }
+
+    #[tokio::test]
+    async fn resends_a_throttled_write_with_its_body_and_precondition() {
+        let mock = MockArm::start().await;
+        mock.on_with_headers(Method::PUT, PATH, 429, NOW, json!({}))
+            .on(Method::PUT, PATH, 200, json!({}));
+        let arm = mock.connector().connect().await.unwrap();
+
+        arm.put(
+            PATH,
+            COMPUTE_API_VERSION,
+            &json!({"location": "eastus"}),
+            Precondition::IfMatch(Some("\"etag-1\"")),
+        )
+        .await
+        .unwrap();
+
+        let writes = mock.writes();
+        assert_eq!(writes.len(), 2);
+        for write in writes {
+            assert_eq!(write.body, json!({"location": "eastus"}));
+            assert_eq!(write.if_match.as_deref(), Some("\"etag-1\""));
+        }
+    }
+
+    #[tokio::test]
+    async fn does_not_resend_a_write_that_failed_on_the_server() {
+        let mock = MockArm::start().await;
+        mock.on_with_headers(Method::PUT, PATH, 500, NOW, json!({}))
+            .on(Method::PUT, PATH, 200, json!({}));
+        let arm = mock.connector().connect().await.unwrap();
+
+        let result = arm
+            .put(PATH, COMPUTE_API_VERSION, &json!({}), Precondition::Always)
+            .await;
+
+        assert!(result.is_err());
+        assert_eq!(mock.writes().len(), 1);
     }
 }

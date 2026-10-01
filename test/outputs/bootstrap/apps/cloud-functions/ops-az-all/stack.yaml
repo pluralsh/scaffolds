@@ -56,8 +56,7 @@ spec:
       ssh-access: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms"]
       
     
-    network_scopes:
-      node-pool-resize: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/network"]
+    network_scopes: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/network"]
     
     
     ssh_bastion_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/hub/providers/Microsoft.Network/bastionHosts/hub-bastion"

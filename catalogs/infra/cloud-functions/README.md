@@ -58,7 +58,7 @@ for each resource group it is given:
 |---|---|
 | `nodeResourceGroup` (required) | `volume-delete`, `lb-frontend-delete` in the AKS node resource group (`MC_...`) |
 | `clusterResourceGroup` | `node-pool-resize` for the AKS clusters in it |
-| `clusterNetworkResourceGroup` | the resource group of those clusters' own VNet (or public IP prefix), if it is another one: `node-pool-resize` only gets the join actions there |
+| `networkResourceGroup` | the resource group of a network the resources above use, such as a BYO or hub VNet, public IP prefixes or private DNS zones: `node-pool-resize`, `lb-frontend-delete` and `db-restore` only get join actions there (`network_scopes` in terraform) |
 | `vmResourceGroup` | `vm-delete` for the standalone VMs in it |
 | `databaseResourceGroup` | `db-restore` for the flexible servers in it |
 | `sshResourceGroup`, `sshBastionId` | `ssh-access` for the Linux VMs in it, optionally through that Bastion host |
@@ -113,8 +113,8 @@ isn't overwritten. Only scale set pools are supported, not `VirtualMachines` poo
 Permissions: read and write agent pools in `scopes["node-pool-resize"]`, the resource groups
 of the clusters. The update resends the whole pool, so Azure also checks that the function
 may join the subnets and the public IP prefix the pool references: it gets those join
-actions there and in `network_scopes["node-pool-resize"]`, which needs the resource group of a
-cluster's own VNet when it is another one.
+actions there and in `network_scopes`, which needs the resource group of a cluster's own VNet
+when it is another one.
 
 ### vm-delete
 
@@ -131,6 +131,9 @@ the meantime is left alone. Once the result reports `deleteOptionsSet`, deleting
 any way also deletes its OS disk and network interfaces. Permissions in
 `scopes["vm-delete"]`: read, update and delete VMs, and read, update and delete disks and
 network interfaces. They cover every VM there, so scope it to the resource groups of such VMs.
+It deletes the network interfaces and OS disk, and updates the VM's references to its data
+disks, so a disk or network interface in another resource group needs that resource group in
+`scopes["vm-delete"]` too; `network_scopes` isn't enough.
 
 #### AWS
 
@@ -166,16 +169,16 @@ exist), frontends shared with other Services (rules named after another Service 
 frontends used by outbound or NAT rules. It also refuses the last frontend of a load
 balancer that still has backends: removing it would need taking the nodes out of the
 backend pools first, which is the cloud provider's job, so such a load balancer has to be
-cleaned up by hand. Public IPs AKS didn't create for the frontend are kept. Permissions in `scopes["lb-frontend-delete"]`, the node resource group: read, update
-and delete load balancers, read and delete public IPs, read backend health, and join public
-IPs and subnets, which updating a load balancer requires for its remaining frontends.
-The backend health check is a long-running action whose result Azure serves at
+cleaned up by hand. Public IPs AKS didn't create for the frontend are kept. Permissions in
+`scopes["lb-frontend-delete"]`, the node resource group: read, update and delete load
+balancers, read and delete public IPs, read backend health, and join public IPs, public IP
+prefixes, subnets and virtual networks, which updating a load balancer requires for its
+remaining frontends and IP-based backend pools. It gets the same join actions in
+`network_scopes`, which needs the resource group of a custom virtual network, outbound
+public IPs or public IP prefixes the load balancer references; otherwise Azure refuses the
+update. The backend health check is a long-running action whose result Azure serves at
 subscription scope, so the function can also read Network operation results in the
-subscription. Resources the load balancer references in other resource groups, such as a
-custom virtual network, outbound public IPs or public IP prefixes, need those resource groups in the scopes
-too; otherwise Azure refuses the update. The same applies to vm-delete (disks and network
-interfaces in another resource group) and db-restore (a private DNS zone in a shared
-resource group).
+subscription.
 
 ### db-restore (Azure)
 
@@ -190,7 +193,8 @@ a while; calling again with the same parameters reports the new server's state a
 The new server is tagged with its source and restore point, and is only ever created: a
 server that appears under the target name in the meantime is left alone. Permissions in
 `scopes["db-restore"]`: read and write flexible servers, and join subnets and private DNS
-zones for servers in a virtual network. Writing servers also allows changing existing ones;
+zones for servers in a virtual network, which it can also join in `network_scopes`, e.g. a
+private DNS zone in a hub resource group. Writing servers also allows changing existing ones;
 only the function's checks prevent that. Servers encrypted with customer managed keys aren't
 supported.
 

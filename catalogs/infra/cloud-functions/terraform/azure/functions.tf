@@ -107,8 +107,8 @@ resource "azurerm_role_assignment" "function" {
   condition_version  = local.functions[each.value.key].condition == null ? null : "2.0"
 }
 
-# Join actions on the resource groups of networks the function's resources reference, without
-# its other actions there.
+# The join actions of the functions that reference networks, on the network resource groups,
+# without their other actions there.
 resource "azurerm_role_definition" "network" {
   for_each = { for key, fn in local.functions : key => fn if length(fn.network_scopes) > 0 }
 
@@ -119,13 +119,6 @@ resource "azurerm_role_definition" "network" {
 
   permissions {
     actions = each.value.network_actions
-  }
-
-  lifecycle {
-    precondition {
-      condition     = length(each.value.network_actions) > 0
-      error_message = "${each.key} joins no networks: remove network_scopes[\"${each.key}\"]."
-    }
   }
 }
 

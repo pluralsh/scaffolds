@@ -58,6 +58,10 @@ minutes on AWS and 30 seconds on GCP and Azure. `execute` therefore submits the 
 returns the resource state it observed (e.g. `deleting`) without waiting for completion.
 Completion can be confirmed with a read-only cloud query.
 
+On Azure, requests ARM throttles (429) or can't serve (503) are retried up to twice, as are
+reads that fail with another server error; each request times out after 8 seconds and isn't
+retried then, so a call stays within the 30 seconds.
+
 ## Development
 
 ```bash
