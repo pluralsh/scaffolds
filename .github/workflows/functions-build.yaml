@@ -38,6 +38,16 @@ jobs:
         with:
           just-version: 1.58.0
 
+      # The GCP functions are Go. The latest 1.27 patch, as on the go127 runtime they deploy to.
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27'
+          cache-dependency-path: functions/go/gcp/go.sum
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.14.0
+          install-only: true
+
       - run: just check
 
   package:
@@ -76,7 +86,7 @@ jobs:
       # Zig is pinned too, as cargo-lambda only sets a lower bound on it.
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
       - name: install cargo-lambda
         run: pip install cargo-lambda==1.9.2 ziglang==0.16.0
 

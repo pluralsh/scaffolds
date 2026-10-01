@@ -7,6 +7,7 @@ on:
     paths:
     - catalogs/infra/cloud-functions/terraform/**
     - functions/bins/**
+    - functions/go/gcp/**
     - .github/workflows/cloud-functions-terraform.yaml
 
 jobs:
@@ -42,20 +43,31 @@ jobs:
       - run: terraform init -backend=false -input=false
       - run: terraform validate
 
-      # The functions deploy the release packages named after these binaries, and the package
-      # format follows the bin's cloud suffix, so a typo or rename would only fail at deploy time.
-      - name: check function binaries
+      # AWS and Azure deploy the release packages named after their Rust binaries, whose package
+      # format follows the bin's cloud suffix. GCP deploys the Go source and calls the entry point
+      # registered with the Functions Framework. A typo or rename would only fail at deploy time.
+      - name: check function sources
         env:
           CLOUD: ${{ matrix.cloud }}
         run: |
-          bins=$(sed -n 's/^ *binary *= *"\(.*\)"$/\1/p' locals.tf)
-          if [[ -z "$bins" ]]; then echo "::error::no binary found in locals.tf"; exit 1; fi
           status=0
-          for bin in $bins; do
-            if [[ "$bin" != *-"$CLOUD" ]]; then
-              echo "::error::$bin does not end with -$CLOUD"; status=1
-            elif [[ ! -d "$GITHUB_WORKSPACE/functions/bins/$bin" ]]; then
-              echo "::error::$bin is not in functions/bins"; status=1
-            fi
-          done
+          if [[ "$CLOUD" == gcp ]]; then
+            names=$(sed -n 's/^ *entry_point *= *"\(.*\)"$/\1/p' locals.tf)
+            if [[ -z "$names" ]]; then echo "::error::no entry_point found in locals.tf"; exit 1; fi
+            for name in $names; do
+              if ! grep -qF "functions.HTTP(\"$name\"" "$GITHUB_WORKSPACE"/functions/go/gcp/*.go; then
+                echo "::error::$name is not registered in functions/go/gcp"; status=1
+              fi
+            done
+          else
+            bins=$(sed -n 's/^ *binary *= *"\(.*\)"$/\1/p' locals.tf)
+            if [[ -z "$bins" ]]; then echo "::error::no binary found in locals.tf"; exit 1; fi
+            for bin in $bins; do
+              if [[ "$bin" != *-"$CLOUD" ]]; then
+                echo "::error::$bin does not end with -$CLOUD"; status=1
+              elif [[ ! -d "$GITHUB_WORKSPACE/functions/bins/$bin" ]]; then
+                echo "::error::$bin is not in functions/bins"; status=1
+              fi
+            done
+          fi
           exit $status
