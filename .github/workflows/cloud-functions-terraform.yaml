@@ -10,6 +10,11 @@ on:
     - functions/go/gcp/**
     - .github/workflows/cloud-functions-terraform.yaml
 
+# A new push to a PR supersedes its running validation.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     name: validate ${{ matrix.cloud }}

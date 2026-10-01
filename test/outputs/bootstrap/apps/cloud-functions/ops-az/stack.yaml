@@ -23,6 +23,7 @@ spec:
     artifact_version: "v0.1.0-spike.1"
     
     
+    
     # Functions are deployed for the resource groups they may act on.
     functions:
       - volume-delete
