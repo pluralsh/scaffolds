@@ -12,6 +12,10 @@ import (
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
 
 	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/core"
+	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/dbrestore"
+	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/lbfrontenddelete"
+	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/nodepoolresize"
+	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/sshaccess"
 	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/vmdelete"
 	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/volumedelete"
 )
@@ -21,4 +25,8 @@ func init() {
 
 	functions.HTTP("VolumeDelete", core.NewServer(volumedelete.New()).ServeHTTP)
 	functions.HTTP("VMDelete", core.NewServer(vmdelete.New()).ServeHTTP)
+	functions.HTTP("NodePoolResize", core.NewServer(nodepoolresize.New()).ServeHTTP)
+	functions.HTTP("LBFrontendDelete", core.NewServer(lbfrontenddelete.New()).ServeHTTP)
+	functions.HTTP("DBRestore", core.NewServer(dbrestore.New()).ServeHTTP)
+	functions.HTTP("SSHAccess", core.NewServer(sshaccess.New()).ServeHTTP)
 }

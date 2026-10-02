@@ -21,7 +21,8 @@ and verifies it against its `SHA256SUMS`, so the mgmt cluster needs to reach `gi
 Docker Hub (`curlimages/curl`) while the stack runs. The package is the Go source of all
 functions (`functions-gcp.zip`), uploaded to a bucket of the installation, so the functions
 don't depend on the release afterwards. The project needs the Cloud Functions, Cloud Run,
-Cloud Build and Artifact Registry APIs, which the stack enables.
+Cloud Build and Artifact Registry APIs, and the APIs the functions call (Compute Engine, GKE,
+Cloud SQL Admin, IAP), which the stack enables.
 
 ## Available functions
 
@@ -29,11 +30,17 @@ Cloud Build and Artifact Registry APIs, which the stack enables.
 |---|---|
 | `volume-delete` | Deletes an orphaned zonal persistent disk that Kubernetes created for a PersistentVolumeClaim, after snapshotting it. |
 | `vm-delete` | Deletes a standalone Compute Engine instance with its boot disk, keeping its data disks. |
+| `node-pool-resize` | Sets the node count of a manually scaled GKE node pool. |
+| `lb-frontend-delete` | Removes what a deleted Kubernetes `LoadBalancer` Service left of its GKE load balancer. |
+| `db-restore` | Restores a Cloud SQL instance to a point in time, as a new instance. |
+| `ssh-access` | Grants a Google user short-lived SSH access to an instance through OS Login and IAP. |
 
 Every deployed function is registered as a workbench tool. Every function changes
 resources, so every call of their tools requires human approval in the workbench.
 
-The installation deploys all of them.
+The installation deploys all of them. Every function acts in the project of the mgmt cluster,
+with a project custom role holding only the permissions it needs; GCP IAM can't narrow most of
+them to particular resources, so the functions' checks do that.
 
 All functions share the same safety model: `plan` never changes anything and reports the
 checks; `execute` checks again and only acts when every check passes. Functions that need
@@ -83,6 +90,86 @@ instances and set their disks' auto-delete flag (`compute.instances.get`, `.dele
 covers every instance in the project; managed instance group and GKE membership are only
 enforced by the function.
 
+### node-pool-resize
+
+Sets the node count of a manually scaled node pool / node group. Autoscaler-owned groups are
+refused. `node_pool_max_count` (default 100) caps the count.
+
+Takes `location` (the cluster's region or zone), `cluster`, `nodePool` and `count`. GKE counts
+nodes per zone, so the pool gets `count` nodes in each of its zones, and the cap applies to the
+total. GKE adds nodes, or drains and removes the ones it takes away, in the background. The
+cluster and the pool must be running and idle, Autopilot clusters are refused, and the
+cluster's only node pool keeps at least one node per zone. The current size comes from the
+pool's managed instance groups. Permissions: `container.clusters.get` and
+`container.clusters.update`, which setting a pool's size requires and which also allows other
+cluster changes, and `compute.instanceGroupManagers.get`. They cover every cluster in the
+project.
+
+### lb-frontend-delete
+
+For a `LoadBalancer` Service, the GKE cloud provider creates a regional forwarding rule named
+after the Service UID (`a` and its first 31 hex digits), a target pool (external) or backend
+service (internal) of that name, for `externalTrafficPolicy: Local` a health check of that
+name, firewall rules `k8s-fw-<name>` and `k8s-<name>-http-hc`, and possibly a static address
+of that name, each described as created for the Service (`kubernetes.io/service-name`). When
+the cloud provider fails to clean them up, e.g. because the cluster was deleted first, the
+caller names the region, the forwarding rule and the deleted Service (`namespace/name`) and
+confirms in the cluster that no Service has that UID. Each `execute` then deletes what nothing
+uses any more:
+
+1. the forwarding rule;
+2. the target pool or backend service, the firewall rules and the address;
+3. the health check.
+
+It refuses forwarding rules described as another Service's, rules that don't forward to a
+target pool or backend service, and load balancers with a healthy backend (the Service may
+still exist, or the nodes still answer the cluster's shared health check). Resources described
+as another Service's, targets other forwarding rules use and addresses in use elsewhere are
+kept; the cluster's shared node health check and its firewall rule are never touched. Load
+balancers of GKE's L4 controller (`k8s2-` names, with GKE subsetting or backend service based
+external load balancers) aren't supported. Permissions: read and delete forwarding rules,
+target pools, regional backend services, health checks (both kinds), firewall rules and
+addresses, read the backend health of target pools and backend services, and list forwarding
+rules. They cover every such resource in the project. In a Shared VPC, the firewall rules are
+in the host project, where the function can't delete them.
+
+### db-restore
+
+Restores a Cloud SQL instance (`instance`) to a point in time (`restorePointInTime`, between
+the earliest and latest restore points `plan` reports) as a new instance (`targetInstance`),
+a point-in-time clone. The source is never changed, and restoring over it or into an existing
+instance is refused, so applications only move to the restored data when they are pointed at
+the new instance. The clone gets the source's settings, such as its tier, network, database
+flags and labels. The source must be a running primary with point-in-time recovery (or, for
+MySQL, binary logging) enabled. `execute` submits the restore, which takes a while; `plan` with
+the same parameters then reports the new instance's state, connection name and addresses.
+Cloud SQL can't label a clone, and labelling it afterwards would need permission to change
+every instance, so the function can't tell its restore from another instance under that name:
+once the target exists it is reported and refused, never changed. Permissions:
+`cloudsql.instances.get` and `cloudsql.instances.clone`, for every instance in the project.
+
+### ssh-access
+
+Grants a Google user (`user`, an email) SSH login to a Compute Engine instance (`zone`,
+`instance`) for `durationMinutes` (default 60, at most `ssh_access_max_minutes`), using OS
+Login and an Identity-Aware Proxy TCP tunnel: no keys are pushed to the instance and no port is
+opened to the internet. The instance needs OS Login (`enable-oslogin=TRUE` in its or the
+project's metadata) and a firewall rule letting IAP (`35.235.240.0/20`) reach port 22.
+`execute` grants `roles/compute.osLogin` (or, with `role: admin`, `roles/compute.osAdminLogin`)
+on the instance and `roles/iap.tunnelResourceAccessor` on its tunnel, and returns the command
+to connect: `gcloud compute ssh <instance> --tunnel-through-iap`. Both bindings carry an IAM
+condition that ends them at the expiry, so the access ends without any cleanup job; every
+`execute` also removes the function's expired bindings on the instance. Granting again extends
+the access and never shortens it, and `revoke: true` removes it right away. SSH sessions opened
+before the expiry aren't closed. If the instance runs as a service account, OS Login also
+requires `roles/iam.serviceAccountUser` on it, which the function doesn't grant; the result
+names the account. Access the user has through other bindings on the instance is listed as
+`otherAccess` and is neither granted nor revoked. Only bindings whose condition has the
+function's title are changed; anyone who can set the policy could create such a binding, so
+treat the title as a label, not a proof. Permissions: read instances and project metadata, and
+read and set the IAM policies of instances and IAP tunnel instances. Setting a policy allows
+granting any role on that resource; only the function restricts it to these roles.
+
 ## After the stack is applied
 
 1. Set the invoker service account when installing, or grant the cloud connection service
@@ -97,7 +184,9 @@ submit the change and report the resource state without waiting for it to comple
 
 ## Customizations
 
-The installation can also set `allowSkipSnapshot` (`allow_skip_snapshot`, off by default).
+The installation can also set the functions' limits: `allowSkipSnapshot`
+(`allow_skip_snapshot`, off by default), `nodePoolMaxCount` (`node_pool_max_count`, default
+100) and `sshAccessMaxMinutes` (`ssh_access_max_minutes`, default 240).
 
 Other terraform variables, such as `functions`, `max_instance_count`, `release_retention_days`
 (how long the source and images of earlier releases are kept) or `labels`, can be added to

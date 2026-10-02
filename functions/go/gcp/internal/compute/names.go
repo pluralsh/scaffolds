@@ -46,3 +46,33 @@ func (n ResourceName) Valid() bool {
 func NameFromURL(url string) string {
 	return url[strings.LastIndexByte(url, '/')+1:]
 }
+
+// ZoneFromURL is the zone of a zonal resource URL, e.g. `us-central1-a` of
+// `https://www.googleapis.com/compute/v1/projects/p/zones/us-central1-a/instanceGroupManagers/g`,
+// or empty if the URL has none.
+func ZoneFromURL(url string) string {
+	_, rest, ok := strings.Cut(url, zonesPath)
+	if !ok {
+		return ""
+	}
+	zone, _, _ := strings.Cut(rest, "/")
+	return zone
+}
+
+// zonesPath is the collection of zones in a resource URL.
+const zonesPath = "/zones/"
+
+// RegionFromURL is the region of a regional resource URL, e.g. `us-central1` of
+// `https://www.googleapis.com/compute/v1/projects/p/regions/us-central1/targetPools/a`, or
+// empty if the URL has none.
+func RegionFromURL(url string) string {
+	_, rest, ok := strings.Cut(url, regionsPath)
+	if !ok {
+		return ""
+	}
+	region, _, _ := strings.Cut(rest, "/")
+	return region
+}
+
+// regionsPath is the collection of regions in a resource URL.
+const regionsPath = "/regions/"

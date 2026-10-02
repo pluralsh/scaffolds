@@ -30,6 +30,8 @@ variable "function" {
     permissions = list(string)
     # JSON schema of the tool input.
     schema = string
+    # Google APIs the function calls, enabled by the parent.
+    apis = list(string)
   })
   description = "What the function needs, as defined in its <function key>.tf file."
 

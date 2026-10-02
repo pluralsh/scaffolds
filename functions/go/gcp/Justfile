@@ -2,7 +2,8 @@
 #
 # Recipes are grouped: dev (build, test, serve), gcp (project and credentials) and one group per
 # function, named after its key in the terraform catalog. Function recipes are prefixed with
-# `volume-` or `vm-`. Recipes that act on a function take its key, e.g. `just serve vm-delete`.
+# `volume-`, `vm-`, `pool-`, `lb-`, `db-` or `ssh-`. Recipes that act on a function take its key,
+# e.g. `just serve vm-delete`.
 #
 # Every variable can be set from the environment or on the command line, e.g.
 # `ZONE=europe-central2-b just volume-fixtures` or `just zone=europe-central2-b volume-fixtures`.
@@ -25,11 +26,37 @@ volume_disks := "ok att det nok8s nopv skip other"
 # vm-delete fixtures: instances, a managed instance group and its template.
 vmd := prefix + "-vmd"
 
+# node-pool-resize fixtures: a zonal GKE cluster in the zone, and its location for the calls.
+gke_cluster := prefix + "-gke"
+location := env("LOCATION", zone)
+
+# lb-frontend-delete fixtures: what the GKE cloud provider leaves of a Service's load balancer,
+# named like it: `a` and 31 hex digits (here from the prefix, so it is stable per prefix).
+region := env("REGION", replace_regex(zone, '-[a-z]$', ''))
+lb := "a" + replace_regex(sha256(prefix), '^(.{31}).*$', '$1')
+lb_service := "e2e/web"
+
+# db-restore fixtures: a small PostgreSQL instance with point-in-time recovery.
+db := prefix + "-db"
+
+# ssh-access fixtures: an instance with OS Login, and the user to grant access to.
+ssh_vm := prefix + "-ssh"
+ssh_user := env("SSH_USER", `gcloud config get account 2>/dev/null`)
+
 # Like terraform, every function gets its own service account (`<prefix>-<function>`) and
 # custom role (`e2e_<function>`). Keep the permissions in sync with `permissions` in
 # catalogs/infra/cloud-functions-gcp/terraform/<function>.tf.
 volume_delete_permissions := "compute.disks.get,compute.disks.delete,compute.disks.createSnapshot,compute.snapshots.create,compute.snapshots.list,compute.snapshots.setLabels"
 vm_delete_permissions := "compute.instances.get,compute.instances.delete,compute.instances.setDiskAutoDelete,compute.disks.update"
+node_pool_resize_permissions := "container.clusters.get,container.clusters.update,compute.instanceGroupManagers.get"
+lb_frontend_delete_permissions := "compute.forwardingRules.get,compute.forwardingRules.list,compute.forwardingRules.delete,compute.targetPools.get,compute.targetPools.getHealth,compute.targetPools.delete,compute.regionBackendServices.get,compute.regionBackendServices.getHealth,compute.regionBackendServices.delete,compute.httpHealthChecks.get,compute.httpHealthChecks.delete,compute.healthChecks.get,compute.healthChecks.delete,compute.firewalls.get,compute.firewalls.delete,compute.addresses.get,compute.addresses.delete"
+db_restore_permissions := "cloudsql.instances.get,cloudsql.instances.clone"
+ssh_access_permissions := "compute.instances.get,compute.instances.getIamPolicy,compute.instances.setIamPolicy,compute.projects.get,iap.tunnelInstances.getIamPolicy,iap.tunnelInstances.setIamPolicy"
+node_pool_max_count := env("MAX_NODE_COUNT", "100")
+ssh_access_max_minutes := env("MAX_DURATION_MINUTES", "240")
+
+# The function keys, as in the terraform catalog.
+functions := "volume-delete vm-delete node-pool-resize lb-frontend-delete db-restore ssh-access"
 
 # List the recipes.
 default:
@@ -64,9 +91,22 @@ test *args="./...":
 # Serve a function locally on the port, acting in the project as the ADC identity.
 [group('dev')]
 serve fn="volume-delete":
-    FUNCTION_TARGET={{ quote(if fn == "volume-delete" { "VolumeDelete" } else if fn == "vm-delete" { "VMDelete" } else { error("unknown function " + fn + ", expected volume-delete or vm-delete") }) }} \
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case {{ quote(fn) }} in
+      volume-delete) target=VolumeDelete ;;
+      vm-delete) target=VMDelete ;;
+      node-pool-resize) target=NodePoolResize ;;
+      lb-frontend-delete) target=LBFrontendDelete ;;
+      db-restore) target=DBRestore ;;
+      ssh-access) target=SSHAccess ;;
+      *) echo "unknown function {{ fn }}, expected one of {{ functions }}" >&2; exit 1 ;;
+    esac
+    FUNCTION_TARGET="$target" \
     GOOGLE_CLOUD_PROJECT={{ quote(project) }} \
     ALLOW_SKIP_SNAPSHOT={{ quote(allow_skip_snapshot) }} \
+    MAX_NODE_COUNT={{ quote(node_pool_max_count) }} \
+    MAX_DURATION_MINUTES={{ quote(ssh_access_max_minutes) }} \
     PORT={{ quote(port) }} \
     go run ./cmd
 
@@ -86,7 +126,8 @@ invoke body:
 # Enable the APIs the functions and the e2e recipes use.
 [group('gcp')]
 apis:
-    gcloud services enable compute.googleapis.com iam.googleapis.com --project {{ quote(project) }}
+    gcloud services enable compute.googleapis.com iam.googleapis.com container.googleapis.com \
+      sqladmin.googleapis.com iap.googleapis.com --project {{ quote(project) }}
 
 # Use your own account as ADC. Restart `just serve` afterwards.
 [group('gcp')]
@@ -102,15 +143,27 @@ login-sa fn="volume-delete":
 # Create a function's service account with the same custom role terraform grants.
 [group('gcp')]
 sa-create fn="volume-delete":
-    @# Fails here, before anything is created, on an unknown function.
-    @: {{ quote(if fn == "volume-delete" { volume_delete_permissions } else if fn == "vm-delete" { vm_delete_permissions } else { error("unknown function " + fn + ", expected volume-delete or vm-delete") }) }}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Fails here, before anything is created, on an unknown function.
+    case {{ quote(fn) }} in
+      volume-delete) permissions={{ quote(volume_delete_permissions) }} ;;
+      vm-delete) permissions={{ quote(vm_delete_permissions) }} ;;
+      node-pool-resize) permissions={{ quote(node_pool_resize_permissions) }} ;;
+      lb-frontend-delete) permissions={{ quote(lb_frontend_delete_permissions) }} ;;
+      db-restore) permissions={{ quote(db_restore_permissions) }} ;;
+      ssh-access) permissions={{ quote(ssh_access_permissions) }} ;;
+      *) echo "unknown function {{ fn }}, expected one of {{ functions }}" >&2; exit 1 ;;
+    esac
+    account={{ quote(prefix + "-" + fn + "@" + project + ".iam.gserviceaccount.com") }}
+    role={{ quote("e2e_" + replace(fn, "-", "_")) }}
     gcloud iam service-accounts create {{ quote(prefix + "-" + fn) }} --project {{ quote(project) }} \
       --display-name "{{ fn }} local e2e"
-    gcloud iam roles create {{ quote("e2e_" + replace(fn, "-", "_")) }} --project {{ quote(project) }} --stage GA \
-      --title "{{ fn }} local e2e" --permissions {{ quote(if fn == "volume-delete" { volume_delete_permissions } else if fn == "vm-delete" { vm_delete_permissions } else { error("unknown function " + fn) }) }}
+    gcloud iam roles create "$role" --project {{ quote(project) }} --stage GA \
+      --title "{{ fn }} local e2e" --permissions "$permissions"
     gcloud projects add-iam-policy-binding {{ quote(project) }} --condition None \
-      --member "serviceAccount:{{ prefix + "-" + fn + "@" + project + ".iam.gserviceaccount.com" }}" --role "projects/{{ project }}/roles/{{ "e2e_" + replace(fn, "-", "_") }}"
-    gcloud iam service-accounts add-iam-policy-binding {{ quote(prefix + "-" + fn + "@" + project + ".iam.gserviceaccount.com") }} --project {{ quote(project) }} \
+      --member "serviceAccount:$account" --role "projects/{{ project }}/roles/$role"
+    gcloud iam service-accounts add-iam-policy-binding "$account" --project {{ quote(project) }} \
       --member "user:$(gcloud config get account)" --role roles/iam.serviceAccountTokenCreator
 
 # Remove a permission from a function's custom role, for the permission test cases.
@@ -138,6 +191,9 @@ resources:
     gcloud compute snapshots list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,status,sourceDisk.basename(),creationTimestamp)'
     gcloud compute instances list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,zone.basename(),status)'
     gcloud compute instance-groups managed list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,zone.basename(),targetSize)'
+    gcloud container clusters list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,location,status,currentNodeCount)'
+    gcloud compute forwarding-rules list --project {{ quote(project) }} --filter "name={{ lb }}" --format 'table(name,region.basename(),IPAddress,target.basename())'
+    gcloud sql instances list --project {{ quote(project) }} --filter "name~^{{ prefix }}-" --format 'table(name,databaseVersion,state)'
 
 # --- volume-delete ---
 
@@ -290,3 +346,205 @@ vm-cleanup:
       | xargs -r gcloud compute instances delete --project {{ quote(project) }} --zone {{ quote(zone) }} --quiet
     gcloud compute disks list --project {{ quote(project) }} --filter "name~^{{ vmd }}-" --format 'value(name)' \
       | xargs -r gcloud compute disks delete --project {{ quote(project) }} --zone {{ quote(zone) }} --quiet
+
+# --- node-pool-resize ---
+
+# Plan a NodePoolResize of a pool of the cluster in the location to count nodes per zone.
+[group('node-pool-resize')]
+pool-plan pool count cluster=gke_cluster: (_node-pool-resize "plan" cluster pool count)
+
+# Execute a NodePoolResize of a pool of the cluster in the location to count nodes per zone.
+[group('node-pool-resize')]
+pool-execute pool count cluster=gke_cluster: (_node-pool-resize "execute" cluster pool count)
+
+_node-pool-resize action cluster pool count:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    body="$(jq -cn --arg action {{ quote(action) }} --arg location {{ quote(location) }} --arg cluster {{ quote(cluster) }} \
+      --arg pool {{ quote(pool) }} --argjson count {{ quote(count) }} \
+      '{action: $action, location: $location, cluster: $cluster, nodePool: $pool, count: $count}')"
+    echo "> $body"
+    just port={{ quote(port) }} invoke "$body"
+
+# The default pool and `apps` are manually scaled, `auto` is autoscaled.
+
+# Create a zonal GKE Standard cluster with pools default, apps and auto, one node each (~10 min).
+[group('node-pool-resize')]
+pool-fixtures:
+    gcloud container clusters create {{ quote(gke_cluster) }} --project {{ quote(project) }} --zone {{ quote(zone) }} \
+      --num-nodes 1 --machine-type e2-small --disk-size 20 --quiet
+    gcloud container node-pools create apps --cluster {{ quote(gke_cluster) }} --project {{ quote(project) }} --zone {{ quote(zone) }} \
+      --num-nodes 1 --machine-type e2-small --disk-size 20 --quiet
+    gcloud container node-pools create auto --cluster {{ quote(gke_cluster) }} --project {{ quote(project) }} --zone {{ quote(zone) }} \
+      --num-nodes 1 --machine-type e2-small --disk-size 20 --enable-autoscaling --min-nodes 0 --max-nodes 2 --quiet
+
+# Show the cluster's node pools with their status, autoscaling and instance groups' sizes.
+[group('node-pool-resize')]
+pool-show cluster=gke_cluster:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    gcloud container node-pools list --cluster {{ quote(cluster) }} --project {{ quote(project) }} --location {{ quote(location) }} \
+      --format 'table(name,status,autoscaling.enabled,locations.list())'
+    gcloud compute instance-groups managed list --project {{ quote(project) }} --filter "name~^gke-{{ cluster }}-" \
+      --format 'table(name,zone.basename(),targetSize)'
+
+# Delete the test cluster.
+[group('node-pool-resize')]
+pool-cleanup:
+    gcloud container clusters delete {{ quote(gke_cluster) }} --project {{ quote(project) }} --zone {{ quote(zone) }} --quiet
+
+# --- lb-frontend-delete ---
+
+# Plan an LBFrontendDelete of the fixture load balancer, or another one.
+[group('lb-frontend-delete')]
+lb-plan name=lb service=lb_service: (_lb-frontend-delete "plan" name service)
+
+# Execute an LBFrontendDelete of the fixture load balancer, or another one.
+[group('lb-frontend-delete')]
+lb-execute name=lb service=lb_service: (_lb-frontend-delete "execute" name service)
+
+_lb-frontend-delete action name service:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    body="$(jq -cn --arg action {{ quote(action) }} --arg region {{ quote(region) }} --arg name {{ quote(name) }} \
+      --arg service {{ quote(service) }} '{action: $action, region: $region, forwardingRule: $name, serviceName: $service}')"
+    echo "> $body"
+    just port={{ quote(port) }} invoke "$body"
+
+# Like the GKE cloud provider for a Service with externalTrafficPolicy Local: address, legacy
+# health check, target pool, forwarding rule and two firewall rules, named after the load
+# balancer and described as created for the Service.
+
+# Create the leftovers of an external Service load balancer, without a cluster.
+[group('lb-frontend-delete')]
+lb-fixtures:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    desc="$(jq -cn --arg s {{ quote(lb_service) }} '{"kubernetes.io/service-name": $s}')"
+    p=(--project {{ quote(project) }})
+    gcloud compute addresses create {{ quote(lb) }} "${p[@]}" --region {{ quote(region) }} --description "$desc"
+    ip="$(gcloud compute addresses describe {{ quote(lb) }} "${p[@]}" --region {{ quote(region) }} --format 'value(address)')"
+    gcloud compute http-health-checks create {{ quote(lb) }} "${p[@]}" --port 31000 --request-path /healthz --description "$desc"
+    gcloud compute target-pools create {{ quote(lb) }} "${p[@]}" --region {{ quote(region) }} \
+      --http-health-check {{ quote(lb) }} --description "$desc"
+    gcloud compute forwarding-rules create {{ quote(lb) }} "${p[@]}" --region {{ quote(region) }} \
+      --target-pool {{ quote(lb) }} --address "$ip" --ports 80 --description "$desc"
+    fwdesc="$(jq -cn --arg s {{ quote(lb_service) }} --arg ip "$ip" '{"kubernetes.io/service-name": $s, "kubernetes.io/service-ip": $ip}')"
+    gcloud compute firewall-rules create "k8s-fw-{{ lb }}" "${p[@]}" --allow tcp:80 --target-tags {{ quote(prefix + "-lb") }} --description "$fwdesc"
+    gcloud compute firewall-rules create "k8s-{{ lb }}-http-hc" "${p[@]}" --allow tcp:31000 \
+      --source-ranges 130.211.0.0/22,35.191.0.0/16,209.85.152.0/22,209.85.204.0/22 --target-tags {{ quote(prefix + "-lb") }} --description "$desc"
+
+# Show what is left of the fixture load balancer.
+[group('lb-frontend-delete')]
+lb-show:
+    -gcloud compute forwarding-rules describe {{ quote(lb) }} --project {{ quote(project) }} --region {{ quote(region) }} --format 'yaml(name,IPAddress,target,description)'
+    -gcloud compute target-pools describe {{ quote(lb) }} --project {{ quote(project) }} --region {{ quote(region) }} --format 'yaml(name,instances,healthChecks,description)'
+    -gcloud compute http-health-checks describe {{ quote(lb) }} --project {{ quote(project) }} --format 'yaml(name,description)'
+    -gcloud compute firewall-rules list --project {{ quote(project) }} --filter "name~{{ lb }}" --format 'table(name,description)'
+    -gcloud compute addresses describe {{ quote(lb) }} --project {{ quote(project) }} --region {{ quote(region) }} --format 'yaml(name,address,status,users,description)'
+
+# Delete whatever is left of the fixture load balancer, in dependency order.
+[group('lb-frontend-delete')]
+lb-cleanup:
+    -gcloud compute forwarding-rules delete {{ quote(lb) }} --project {{ quote(project) }} --region {{ quote(region) }} --quiet
+    -gcloud compute target-pools delete {{ quote(lb) }} --project {{ quote(project) }} --region {{ quote(region) }} --quiet
+    -gcloud compute http-health-checks delete {{ quote(lb) }} --project {{ quote(project) }} --quiet
+    -gcloud compute firewall-rules delete "k8s-fw-{{ lb }}" "k8s-{{ lb }}-http-hc" --project {{ quote(project) }} --quiet
+    -gcloud compute addresses delete {{ quote(lb) }} --project {{ quote(project) }} --region {{ quote(region) }} --quiet
+
+# --- db-restore ---
+
+# Plan a DBRestore of the fixture instance (or another) into target, to an RFC 3339 point in time.
+[group('db-restore')]
+db-plan target point instance=db: (_db-restore "plan" instance target point)
+
+# Execute a DBRestore of the fixture instance (or another) into target, to an RFC 3339 point in time.
+[group('db-restore')]
+db-execute target point instance=db: (_db-restore "execute" instance target point)
+
+_db-restore action instance target point:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    body="$(jq -cn --arg action {{ quote(action) }} --arg instance {{ quote(instance) }} --arg target {{ quote(target) }} \
+      --arg point {{ quote(point) }} '{action: $action, instance: $instance, targetInstance: $target, restorePointInTime: $point}')"
+    echo "> $body"
+    just port={{ quote(port) }} invoke "$body"
+
+# Restores can only go back to after the instance was created.
+
+# Create a small PostgreSQL instance with point-in-time recovery and a read replica (~15 min).
+[group('db-restore')]
+db-fixtures:
+    gcloud sql instances create {{ quote(db) }} --project {{ quote(project) }} --region {{ quote(region) }} \
+      --database-version POSTGRES_17 --edition ENTERPRISE --tier db-f1-micro --storage-size 10 \
+      --backup --enable-point-in-time-recovery --no-deletion-protection --quiet
+    gcloud sql instances create {{ quote(db + "-replica") }} --project {{ quote(project) }} --master-instance-name {{ quote(db) }} \
+      --tier db-f1-micro --quiet
+
+# Show an instance's state, recovery settings and addresses.
+[group('db-restore')]
+db-show instance=db:
+    gcloud sql instances describe {{ quote(instance) }} --project {{ quote(project) }} \
+      --format 'yaml(name,state,instanceType,databaseVersion,createTime,ipAddresses,settings.backupConfiguration)'
+
+# A point in time minutes ago, in RFC 3339, e.g. `just db-plan e2e-vd-db-r1 "$(just db-point 5)"`.
+[group('db-restore')]
+db-point minutes="5":
+    @date -u -d "-{{ minutes }} minutes" +%Y-%m-%dT%H:%M:%SZ
+
+# Delete the fixture instances and every restore of them (instances starting with the prefix).
+[group('db-restore')]
+db-cleanup:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    gcloud sql instances delete {{ quote(db + "-replica") }} --project {{ quote(project) }} --quiet
+    gcloud sql instances list --project {{ quote(project) }} --filter "name~^{{ db }}" --format 'value(name)' \
+      | xargs -r -n1 gcloud sql instances delete --project {{ quote(project) }} --quiet
+
+# --- ssh-access ---
+
+# Plan an SSHAccess grant (role user or admin) to the user on the fixture instance.
+[group('ssh-access')]
+ssh-plan role="user" minutes="60" user=ssh_user instance=ssh_vm: (_ssh-access "plan" instance user role minutes "false")
+
+# Grant the user SSH access (role user or admin) to the fixture instance.
+[group('ssh-access')]
+ssh-execute role="user" minutes="60" user=ssh_user instance=ssh_vm: (_ssh-access "execute" instance user role minutes "false")
+
+# Revoke the user's SSH access to the fixture instance.
+[group('ssh-access')]
+ssh-revoke user=ssh_user instance=ssh_vm: (_ssh-access "execute" instance user "user" "60" "true")
+
+_ssh-access action instance user role minutes revoke:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    body="$(jq -cn --arg action {{ quote(action) }} --arg zone {{ quote(zone) }} --arg instance {{ quote(instance) }} \
+      --arg user {{ quote(user) }} --arg role {{ quote(role) }} --argjson minutes {{ quote(minutes) }} --argjson revoke {{ quote(revoke) }} \
+      '{action: $action, zone: $zone, instance: $instance, user: $user, role: $role, durationMinutes: $minutes, revoke: $revoke}')"
+    echo "> $body"
+    just port={{ quote(port) }} invoke "$body"
+
+# Create instances with and without OS Login, and a firewall rule letting IAP reach port 22.
+[group('ssh-access')]
+ssh-fixtures:
+    gcloud compute instances create {{ quote(ssh_vm) }} --project {{ quote(project) }} --zone {{ quote(zone) }} \
+      --machine-type e2-micro --image-family debian-12 --image-project debian-cloud \
+      --metadata enable-oslogin=TRUE --tags {{ quote(prefix + "-ssh") }} --quiet
+    gcloud compute instances create {{ quote(ssh_vm + "-nologin") }} --project {{ quote(project) }} --zone {{ quote(zone) }} \
+      --machine-type e2-micro --image-family debian-12 --image-project debian-cloud \
+      --metadata enable-oslogin=FALSE --quiet
+    gcloud compute firewall-rules create {{ quote(prefix + "-ssh-iap") }} --project {{ quote(project) }} \
+      --allow tcp:22 --source-ranges 35.235.240.0/20 --target-tags {{ quote(prefix + "-ssh") }}
+
+# Show the OS Login and IAP tunnel bindings on an instance.
+[group('ssh-access')]
+ssh-policy instance=ssh_vm:
+    gcloud compute instances get-iam-policy {{ quote(instance) }} --project {{ quote(project) }} --zone {{ quote(zone) }} --format json
+    gcloud iap tcp tunnel-instances get-iam-policy --project {{ quote(project) }} --zone {{ quote(zone) }} --instance {{ quote(instance) }} --format json 2>/dev/null \
+      || gcloud beta iap tcp tunnel-instances get-iam-policy --project {{ quote(project) }} --zone {{ quote(zone) }} --instance {{ quote(instance) }} --format json
+
+# Delete the test instances and the IAP firewall rule.
+[group('ssh-access')]
+ssh-cleanup:
+    -gcloud compute instances delete {{ quote(ssh_vm) }} {{ quote(ssh_vm + "-nologin") }} --project {{ quote(project) }} --zone {{ quote(zone) }} --quiet
+    -gcloud compute firewall-rules delete {{ quote(prefix + "-ssh-iap") }} --project {{ quote(project) }} --quiet

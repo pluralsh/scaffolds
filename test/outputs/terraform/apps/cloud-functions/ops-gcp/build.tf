@@ -3,12 +3,13 @@
 # into an Artifact Registry image and runs it on Cloud Run.
 
 locals {
-  apis = toset([
+  # The build pipeline's APIs and the ones the deployed functions call.
+  apis = setunion([
     "cloudfunctions.googleapis.com",
     "run.googleapis.com",
     "cloudbuild.googleapis.com",
     "artifactregistry.googleapis.com",
-  ])
+  ], flatten([for fn in values(local.functions) : fn.apis]))
 
   # Every function is an entry point of the same Go source package.
   artifact = "${var.artifact_dir}/${var.artifact_version}/functions-gcp.zip"

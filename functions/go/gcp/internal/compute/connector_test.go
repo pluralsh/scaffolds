@@ -1,10 +1,14 @@
 package compute
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/gcp"
+)
 
 func TestConnectNeedsAProject(t *testing.T) {
 	for _, value := range []string{"", "  "} {
-		t.Setenv(ProjectVar, value)
+		t.Setenv(gcp.ProjectVar, value)
 
 		_, err := NewEnvConnector().Connect(t.Context())
 

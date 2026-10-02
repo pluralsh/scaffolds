@@ -8,6 +8,7 @@ locals {
     memory      = "512Mi"
     timeout     = 30
     destructive = true
+    apis        = ["compute.googleapis.com"]
     environment = {}
     # Every instance in the project; IAM can't express the managed instance group and GKE
     # refusals, so the function checks them itself. Changing a disk's auto-delete flag needs

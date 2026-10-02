@@ -4,3 +4,5 @@ cloudConnection: gcp-workbench
 invokerServiceAccount: plural-workbench@my-project.iam.gserviceaccount.com
 version: v0.1.0-spike.1
 allowSkipSnapshot: false
+nodePoolMaxCount: 50
+sshAccessMaxMinutes: 120

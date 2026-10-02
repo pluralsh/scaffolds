@@ -20,7 +20,7 @@ func newTestClient(t *testing.T, handler http.HandlerFunc) *sdkClient {
 	srv := httptest.NewServer(handler)
 	t.Cleanup(srv.Close)
 
-	c, err := newSDKClient(t.Context(), "test-project", option.WithEndpoint(srv.URL), option.WithoutAuthentication())
+	c, err := newSDKClient(t.Context(), "test-project", srv.URL, option.WithoutAuthentication())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,5 +241,64 @@ func TestDeleteInstanceStartsAnOperation(t *testing.T) {
 
 	if err != nil || op != "operation-4" {
 		t.Errorf("got %q, %v", op, err)
+	}
+}
+
+func TestInstanceGroupManagerReturnsTheGroup(t *testing.T) {
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/compute/v1/projects/test-project/zones/us-central1-a/instanceGroupManagers/gke-c-pool-grp" {
+			t.Errorf("unexpected request %s %s", r.Method, r.URL)
+		}
+		writeJSON(w, http.StatusOK, `{"name":"gke-c-pool-grp","targetSize":3}`)
+	})
+
+	group, err := c.InstanceGroupManager(t.Context(), "us-central1-a", "gke-c-pool-grp")
+
+	if err != nil || group.GetName() != "gke-c-pool-grp" || group.GetTargetSize() != 3 {
+		t.Errorf("got %v, %v", group, err)
+	}
+}
+
+func TestProjectMetadata(t *testing.T) {
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/compute/v1/projects/test-project" {
+			t.Errorf("unexpected request %s %s", r.Method, r.URL)
+		}
+		writeJSON(w, http.StatusOK, `{"name":"test-project","commonInstanceMetadata":{"items":[{"key":"enable-oslogin","value":"TRUE"}]}}`)
+	})
+
+	metadata, err := c.ProjectMetadata(t.Context())
+
+	if err != nil || metadata["enable-oslogin"] != "TRUE" {
+		t.Errorf("got %v, %v", metadata, err)
+	}
+}
+
+func TestInstancePolicyRoundTrip(t *testing.T) {
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/compute/v1/projects/test-project/zones/us-central1-a/instances/vm-1/getIamPolicy":
+			if r.URL.Query().Get("optionsRequestedPolicyVersion") != "3" {
+				t.Errorf("policy version not requested: %s", r.URL)
+			}
+			writeJSON(w, http.StatusOK, `{"etag":"BwY=","version":3,"bindings":[{"role":"roles/compute.osLogin","members":["user:a@example.com"],`+
+				`"condition":{"title":"t","description":"d","expression":"e"}}]}`)
+		case "/compute/v1/projects/test-project/zones/us-central1-a/instances/vm-1/setIamPolicy":
+			body, _ := io.ReadAll(r.Body)
+			if !strings.Contains(string(body), `"etag":"BwY="`) || !strings.Contains(string(body), `"version":3`) || !strings.Contains(string(body), `"title":"t"`) {
+				t.Errorf("body = %s", body)
+			}
+			writeJSON(w, http.StatusOK, `{}`)
+		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL)
+		}
+	})
+
+	policy, err := c.InstancePolicy(t.Context(), "us-central1-a", "vm-1")
+	if err != nil || policy.Etag != "BwY=" || policy.Bindings[0].Condition.Description != "d" {
+		t.Fatalf("got %+v, %v", policy, err)
+	}
+	if err := c.SetInstancePolicy(t.Context(), "us-central1-a", "vm-1", policy); err != nil {
+		t.Error(err)
 	}
 }

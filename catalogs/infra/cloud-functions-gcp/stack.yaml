@@ -29,9 +29,19 @@ spec:
     {% if context.invokerServiceAccount %}
     invoker_service_account: "{{ context.invokerServiceAccount }}"
     {% endif %}
+    {% if context.nodePoolMaxCount %}
+    node_pool_max_count: {{ context.nodePoolMaxCount }}
+    {% endif %}
+    {% if context.sshAccessMaxMinutes %}
+    ssh_access_max_minutes: {{ context.sshAccessMaxMinutes }}
+    {% endif %}
     functions:
       - volume-delete
       - vm-delete
+      - node-pool-resize
+      - lb-frontend-delete
+      - db-restore
+      - ssh-access
   # Before terraform runs, the init container downloads the release's GCP package into
   # /artifacts/<version> and verifies it against SHA256SUMS. With raw, the operator ignores the
   # other jobSpec fields, and a stack's jobSpec replaces the default one from the deployment

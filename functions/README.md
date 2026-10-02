@@ -21,11 +21,20 @@ The Go module registers the entry points in `functions.go` and keeps everything 
 `internal/`:
 
 ```
-internal/core          request/response envelope, guards, errors and the HTTP server
-internal/compute       Compute Engine client (interface, SDK implementation, connector)
-internal/volume        cloud-agnostic volume deletion rules
-internal/volumedelete  the VolumeDelete function
-internal/vmdelete      the VMDelete function
+internal/core              request/response envelope, guards, errors and the HTTP server
+internal/gcp               project, endpoint overrides and lazily created clients, for every client
+internal/compute           Compute Engine client (interface, SDK implementation, connector)
+internal/gke               GKE client
+internal/cloudsql          Cloud SQL Admin client
+internal/iap               IAP client
+internal/iam               IAM policies as the functions edit them
+internal/volume            cloud-agnostic volume deletion rules
+internal/volumedelete      the VolumeDelete function
+internal/vmdelete          the VMDelete function
+internal/nodepoolresize    the NodePoolResize function
+internal/lbfrontenddelete  the LBFrontendDelete function
+internal/dbrestore         the DBRestore function
+internal/sshaccess         the SSHAccess function
 ```
 
 `just check` needs `golangci-lint` v2, configured by `go/gcp/.golangci.yml`.

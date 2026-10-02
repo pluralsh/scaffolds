@@ -21,6 +21,7 @@ locals {
     memory      = "512Mi"
     timeout     = 30
     destructive = true
+    apis        = ["compute.googleapis.com"]
     environment = {
       ALLOW_SKIP_SNAPSHOT = tostring(var.allow_skip_snapshot)
     }

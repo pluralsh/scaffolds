@@ -40,3 +40,15 @@ func TestNameFromURL(t *testing.T) {
 		}
 	}
 }
+
+func TestZoneFromURL(t *testing.T) {
+	for url, want := range map[string]string{
+		"https://www.googleapis.com/compute/v1/projects/p/zones/us-central1-a/instanceGroupManagers/g": "us-central1-a",
+		"projects/p/zones/europe-central2-b/instances/vm":                                              "europe-central2-b",
+		"https://www.googleapis.com/compute/v1/projects/p/regions/us-central1/forwardingRules/a":       "",
+	} {
+		if got := ZoneFromURL(url); got != want {
+			t.Errorf("ZoneFromURL(%q) = %q, want %q", url, got, want)
+		}
+	}
+}

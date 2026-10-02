@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan evaluates the safety checks and reports the restore window without changing anything. execute starts restoring the source instance into a new instance; call plan again with the same parameters to see its state and addresses. The source instance is never changed."
+    },
+    "instance": {
+      "type": "string",
+      "pattern": "^[a-z]([-a-z0-9]{0,96}[a-z0-9])?$",
+      "description": "Name of the Cloud SQL instance to restore, in the project of the function."
+    },
+    "targetInstance": {
+      "type": "string",
+      "pattern": "^[a-z]([-a-z0-9]{0,96}[a-z0-9])?$",
+      "description": "Name of the new instance to restore into. It must not exist yet."
+    },
+    "restorePointInTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 time to restore to, between the earliest and latest restore points reported by plan."
+    }
+  },
+  "required": [
+    "action",
+    "instance",
+    "targetInstance",
+    "restorePointInTime"
+  ],
+  "additionalProperties": false
+}

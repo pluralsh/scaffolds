@@ -27,7 +27,7 @@ variable "invoker_service_account" {
 variable "functions" {
   type        = list(string)
   description = "Functions to deploy, by key of local.catalog in locals.tf."
-  default     = ["volume-delete", "vm-delete"]
+  default     = ["volume-delete", "vm-delete", "node-pool-resize", "lb-frontend-delete", "db-restore", "ssh-access"]
 
   validation {
     condition     = length(var.functions) > 0

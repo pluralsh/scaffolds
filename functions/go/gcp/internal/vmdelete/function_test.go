@@ -18,8 +18,11 @@ import (
 // fakeCompute is a Compute Engine that answers instance reads in order, repeating the last
 // one, and records what is asked of it.
 type fakeCompute struct {
-	// Disks aren't used by this function; calling them panics.
+	// Disks, groups, access and load balancers aren't used by this function; calling them panics.
 	compute.Disks
+	compute.Groups
+	compute.Access
+	compute.LoadBalancers
 
 	instances []*compute.Instance
 	err       error

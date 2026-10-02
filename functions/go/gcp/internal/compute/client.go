@@ -9,6 +9,8 @@ import (
 	"context"
 
 	"cloud.google.com/go/compute/apiv1/computepb"
+
+	"github.com/pluralsh/scaffolds/functions/go/gcp/internal/iam"
 )
 
 // The Compute Engine resources the functions read.
@@ -21,6 +23,8 @@ type (
 	Instance = computepb.Instance
 	// AttachedDisk is a disk as attached to an instance.
 	AttachedDisk = computepb.AttachedDisk
+	// InstanceGroupManager is a managed instance group.
+	InstanceGroupManager = computepb.InstanceGroupManager
 )
 
 // SnapshotRequest describes a snapshot to take of a disk.
@@ -36,6 +40,9 @@ type SnapshotRequest struct {
 type Client interface {
 	Disks
 	Instances
+	Groups
+	Access
+	LoadBalancers
 }
 
 // Disks are the disk and snapshot calls.
@@ -59,6 +66,38 @@ type Instances interface {
 	SetDiskAutoDelete(ctx context.Context, zone, instance, deviceName string, autoDelete bool) (string, error)
 	// DeleteInstance starts deleting the instance and returns the operation name.
 	DeleteInstance(ctx context.Context, zone, name string) (string, error)
+}
+
+// Groups are the managed instance group calls.
+type Groups interface {
+	// InstanceGroupManager returns the managed instance group, or nil if it doesn't exist.
+	InstanceGroupManager(ctx context.Context, zone, name string) (*InstanceGroupManager, error)
+}
+
+// Access are the calls that manage who may log in to instances.
+type Access interface {
+	// ProjectMetadata returns the project's metadata, which instances inherit.
+	ProjectMetadata(ctx context.Context) (map[string]string, error)
+	// InstancePolicy returns the IAM policy of the instance.
+	InstancePolicy(ctx context.Context, zone, name string) (*iam.Policy, error)
+	// SetInstancePolicy replaces the IAM policy of the instance, unless it changed since it was
+	// read.
+	SetInstancePolicy(ctx context.Context, zone, name string, policy *iam.Policy) error
+}
+
+// LoadBalancers are the calls on the resources of network load balancers.
+type LoadBalancers interface {
+	// LBResource returns the resource, or nil if it doesn't exist. region is ignored for global
+	// kinds.
+	LBResource(ctx context.Context, kind LBKind, region, name string) (*LBResource, error)
+	// ForwardingRules returns the forwarding rules of the region, across all pages.
+	ForwardingRules(ctx context.Context, region string) ([]*LBResource, error)
+	// Healthy reports whether the target pool or backend service reports the member, an
+	// instance or instance group URL, as healthy. A member that no longer exists isn't.
+	Healthy(ctx context.Context, target *LBResource, member string) (bool, error)
+	// DeleteLBResource starts deleting the resource and returns the operation name. If Compute
+	// Engine refuses because the resource is busy or in use, the error wraps [ErrBusy].
+	DeleteLBResource(ctx context.Context, kind LBKind, region, name string) (string, error)
 }
 
 // Connector provides the [Client] an invocation uses.

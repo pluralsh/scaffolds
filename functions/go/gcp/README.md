@@ -13,6 +13,10 @@ in `docs/`. The `Justfile` wraps every step; run `just` to list the recipes.
 |---|---|---|---|
 | `volume-delete` | `VolumeDelete` | `internal/volumedelete` | [docs/volume-delete.md](docs/volume-delete.md) |
 | `vm-delete` | `VMDelete` | `internal/vmdelete` | [docs/vm-delete.md](docs/vm-delete.md) |
+| `node-pool-resize` | `NodePoolResize` | `internal/nodepoolresize` | [docs/node-pool-resize.md](docs/node-pool-resize.md) |
+| `lb-frontend-delete` | `LBFrontendDelete` | `internal/lbfrontenddelete` | [docs/lb-frontend-delete.md](docs/lb-frontend-delete.md) |
+| `db-restore` | `DBRestore` | `internal/dbrestore` | [docs/db-restore.md](docs/db-restore.md) |
+| `ssh-access` | `SSHAccess` | `internal/sshaccess` | [docs/ssh-access.md](docs/ssh-access.md) |
 
 The function key is the one in the terraform catalog (`local.catalog` in
 `catalogs/infra/cloud-functions-gcp/terraform/locals.tf`), and the name of the file defining
@@ -34,7 +38,12 @@ it there, e.g. `vm-delete.tf`. Recipes that act on a function take it, e.g.
 functions.go           registers every entry point with the Functions Framework
 cmd/                   local server (`just serve`); Cloud Run builds from the module root instead
 internal/core          request/response envelope, guards, errors, the HTTP server and logging
+internal/gcp           what the API clients share: project, endpoint overrides, lazily created clients
 internal/compute       Compute Engine client: interfaces, SDK implementation, connector
+internal/gke           GKE client (clusters, node pool sizes)
+internal/cloudsql      Cloud SQL Admin client (instances, recovery window, clones)
+internal/iap           IAP client (IAM policies of TCP tunnel resources)
+internal/iam           IAM policies as the functions edit them, independent of the API serving them
 internal/volume        cloud-agnostic volume deletion rules, shared with the other clouds
 internal/<function>    one package per function
 docs/<function>.md     behaviour, fixtures and test matrix per function
@@ -52,7 +61,9 @@ Justfile               dev, gcp and per-function recipes
 | `golangci-lint` | v2 | `just check` only |
 
 You need a GCP project where you can create and delete disks, snapshots, instances and
-instance groups. Use a sandbox project. The functions delete real resources.
+instance groups, and, for the functions that need them, GKE clusters, load balancer resources,
+Cloud SQL instances and IAM policies. Use a sandbox project. The functions delete real
+resources, and the GKE and Cloud SQL fixtures cost money while they exist.
 
 ## Project setup
 
@@ -64,7 +75,7 @@ export ZONE=europe-central2-a       # Warsaw has zones a, b and c
 export P=e2e-vd                     # prefix of every test resource
 export PORT=8080                    # port of the local function
 
-just apis                           # enables compute and iam
+just apis                           # enables compute, iam, container, sqladmin and iap
 ```
 
 The recipes fall back to the values above when a variable is unset, but the test matrices also
@@ -99,11 +110,13 @@ just serve vm-delete    # serves one function on $PORT, in a terminal of its own
 | `FUNCTION_TARGET` | yes | Entry point to serve at `/`. Without it, each function is at `/<EntryPoint>`, for example `/VMDelete`. |
 | `GOOGLE_CLOUD_PROJECT` | yes | Project the function acts in. Terraform sets it to the installation's project. |
 | `ALLOW_SKIP_SNAPSHOT` | no | volume-delete only. `true` lets callers pass `snapshot: false`. Terraform sets it from `allow_skip_snapshot`, which defaults to `false`. |
+| `MAX_NODE_COUNT` | no | node-pool-resize only. Largest total node count it sets. Terraform sets it from `node_pool_max_count` (default 100); `just serve` passes 100 unless set. |
+| `MAX_DURATION_MINUTES` | no | ssh-access only. Longest access it grants. Terraform sets it from `ssh_access_max_minutes` (default 240); `just serve` passes 240 unless set. |
 | `PORT` | no | Listen port. Defaults to `8080`. |
-| `GCP_COMPUTE_ENDPOINT` | no | Overrides the Compute Engine API host, for example to point at a fake server. Leave it unset for real GCP. |
+| `GCP_COMPUTE_ENDPOINT`, `GCP_CONTAINER_ENDPOINT`, `GCP_SQLADMIN_ENDPOINT`, `GCP_IAP_ENDPOINT` | no | Override the Compute Engine, GKE, Cloud SQL Admin and IAP API hosts, for example to point at a fake server. Leave them unset for real GCP. |
 | `GOOGLE_APPLICATION_CREDENTIALS` | no | ADC file to use instead of the gcloud default. |
 
-A function creates its Compute Engine client on the first request and reuses it. **Restart
+A function creates its API clients on the first request and reuses them. **Restart
 the server after you change credentials or `GOOGLE_CLOUD_PROJECT`.**
 
 Logs go to stdout as JSON lines with `severity` and `message` fields, the format Cloud Logging
@@ -196,12 +209,14 @@ with `just sa-delete <function>`.
 
 1. Write the handler in `internal/<function>`, implementing `core.Handler`, with unit tests.
    Add the Compute Engine calls it needs to `internal/compute`, behind an interface of their
-   own.
+   own. Other APIs get a client package like `internal/gke`, built on the Google API client
+   with a connector from `internal/gcp`.
 2. Register the entry point in `functions.go`. CI checks that every `entry_point` in the
    terraform catalog is registered there.
 3. In `catalogs/infra/cloud-functions-gcp/terraform`:
    - add `<function>.tf` defining `local.<function>`: entry point, tool description, memory,
-     timeout, environment, minimal permissions and schema, plus any variables only it uses;
+     timeout, environment, minimal permissions, the APIs it calls and schema, plus any
+     variables only it uses;
    - add its tool schema to `schemas/<function>.json`;
    - register it in `local.catalog` in `locals.tf`, and add it to the `functions` default in
      `variables.tf` and to the GCP list in the catalog's `stack.yaml`.
@@ -211,9 +226,9 @@ with `just sa-delete <function>`.
    `build.tf` (APIs, Artifact Registry repository, source bucket) and `iam.tf` (the build
    service account and its grants). Then regenerate the contract outputs with
    `plural pr contracts --file test/contracts.yaml` from the repo root.
-4. In the `Justfile`: map the key to the entry point in `serve`, add `<function>_permissions`
-   and its case in `sa-create`, and add a group with plan, execute, fixtures and cleanup
-   recipes.
+4. In the `Justfile`: add the key to `functions`, map it to the entry point in `serve`, add
+   `<function>_permissions` and its case in `sa-create`, and add a group with plan, execute,
+   fixtures and cleanup recipes.
 5. Write `docs/<function>.md` with its input, behaviour, fixtures and test matrix, link it in
    the table above, and document it in the catalog README.
 
