@@ -41,7 +41,6 @@ struct DbInstance {
     identifier: String,
     arn: String,
     status: String,
-    engine: String,
     /// Set for Aurora instances, which this function refuses.
     cluster: Option<String>,
     earliest_restore: Option<i64>,
@@ -108,15 +107,10 @@ fn validate(params: &Params) -> Result<i64, Error> {
 /// trailing hyphen; no consecutive hyphens.
 fn is_db_identifier(name: &str) -> bool {
     (1..=63).contains(&name.len())
-        && name
-            .chars()
-            .next()
-            .is_some_and(|c| c.is_ascii_alphabetic())
+        && name.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
         && !name.ends_with('-')
         && !name.contains("--")
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '-')
+        && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
 }
 
 async fn handle(rds: &Client, req: Request<Params>) -> Result<Response<Output>, Error> {
@@ -124,9 +118,7 @@ async fn handle(rds: &Client, req: Request<Params>) -> Result<Response<Output>, 
     let point = validate(&params)?;
 
     let source = find_instance(rds, &params.db_instance_identifier).await?;
-    let target_instance = if params.target_db_instance_identifier
-        == params.db_instance_identifier
-    {
+    let target_instance = if params.target_db_instance_identifier == params.db_instance_identifier {
         None
     } else {
         find_instance(rds, &params.target_db_instance_identifier).await?
@@ -238,14 +230,18 @@ fn db_from(instance: &SdkDbInstance) -> DbInstance {
         _ => None,
     };
     DbInstance {
-        identifier: instance.db_instance_identifier().unwrap_or_default().to_owned(),
+        identifier: instance
+            .db_instance_identifier()
+            .unwrap_or_default()
+            .to_owned(),
         arn: instance.db_instance_arn().unwrap_or_default().to_owned(),
         status: instance.db_instance_status().unwrap_or_default().to_owned(),
-        engine: instance.engine().unwrap_or_default().to_owned(),
         cluster: instance.db_cluster_identifier().map(str::to_owned),
         earliest_restore,
         latest_restore,
-        endpoint: instance.endpoint().and_then(|e| e.address().map(str::to_owned)),
+        endpoint: instance
+            .endpoint()
+            .and_then(|e| e.address().map(str::to_owned)),
         tags: Tags::new(),
     }
 }
@@ -261,7 +257,10 @@ async fn tags_of(rds: &Client, arn: &str) -> Result<Tags, Error> {
         .tag_list()
         .iter()
         .filter_map(|tag| {
-            Some((tag.key()?.to_owned(), tag.value().unwrap_or_default().to_owned()))
+            Some((
+                tag.key()?.to_owned(),
+                tag.value().unwrap_or_default().to_owned(),
+            ))
         })
         .collect())
 }
@@ -296,9 +295,10 @@ fn evaluate(
                 s.cluster.as_deref().unwrap_or_default()
             ),
         ),
-        Some(s) if s.status == "available" => {
-            Guard::pass("source", format!("DB instance {} is available", s.identifier))
-        }
+        Some(s) if s.status == "available" => Guard::pass(
+            "source",
+            format!("DB instance {} is available", s.identifier),
+        ),
         Some(s) => Guard::fail(
             "source",
             format!(
@@ -342,7 +342,10 @@ fn evaluate(
             after_earliest && before_latest,
             format!(
                 "must be between the earliest restore point ({}) and the latest ({})",
-                earliest.and_then(format_timestamp).as_deref().unwrap_or("unknown"),
+                earliest
+                    .and_then(format_timestamp)
+                    .as_deref()
+                    .unwrap_or("unknown"),
                 format_timestamp(latest).unwrap_or_else(|| "unknown".into()),
             ),
         ));
@@ -393,7 +396,6 @@ mod tests {
             identifier: id.into(),
             arn: format!("arn:aws:rds:us-east-2:123456789012:db:{id}"),
             status: status.into(),
-            engine: "postgres".into(),
             cluster: None,
             earliest_restore: earliest,
             latest_restore: latest,
@@ -514,7 +516,15 @@ mod tests {
         for ok in ["app", "App-1", "a", &"a".repeat(63)] {
             assert!(is_db_identifier(ok), "{ok}");
         }
-        for bad in ["", "-app", "app-", "app--1", "app_1", "app.1", &"a".repeat(64)] {
+        for bad in [
+            "",
+            "-app",
+            "app-",
+            "app--1",
+            "app_1",
+            "app.1",
+            &"a".repeat(64),
+        ] {
             assert!(!is_db_identifier(bad), "{bad}");
         }
     }
@@ -557,7 +567,10 @@ mod handler_tests {
             let target_id = target
                 .as_ref()
                 .and_then(|(i, _)| i.db_instance_identifier().map(str::to_owned));
-            let target_tags = target.as_ref().map(|(_, tags)| tags.clone()).unwrap_or_default();
+            let target_tags = target
+                .as_ref()
+                .map(|(_, tags)| tags.clone())
+                .unwrap_or_default();
             let target_instance = target.map(|(i, _)| i);
 
             let describe = mock!(Client::describe_db_instances).then_compute_response(move |req| {
@@ -577,9 +590,7 @@ mod handler_tests {
                     );
                 }
                 MockResponse::Error(DescribeDBInstancesError::generic(
-                    ErrorMetadata::builder()
-                        .code("DBInstanceNotFound")
-                        .build(),
+                    ErrorMetadata::builder().code("DBInstanceNotFound").build(),
                 ))
             });
 
