@@ -9,6 +9,9 @@ locals {
   # ARN of a target group, which has no type in its path.
   target_group_arn = "arn:${data.aws_partition.current.partition}:elasticloadbalancing:${var.region}:${data.aws_caller_identity.current.account_id}:targetgroup/*/*"
   db_instance_arn  = "arn:${data.aws_partition.current.partition}:rds:${var.region}:${data.aws_caller_identity.current.account_id}:db:*"
+  iam_policy_arn   = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:policy/plural.sh/ssh-access/*"
+  iam_user_arn     = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:user/*"
+  iam_role_arn     = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role/*"
   # Tag the EBS CSI driver sets on volumes it creates for a PersistentVolumeClaim.
   pvc_tag_condition = { test = "Null", variable = "aws:ResourceTag/kubernetes.io/created-for/pvc/name", values = ["false"] }
   # Tags that mark load balancers and target groups created for Kubernetes: by the AWS Load
@@ -144,6 +147,47 @@ locals {
         },
       ]
       schema = jsonencode(jsondecode(file("${path.module}/schemas/db-restore.json")))
+    }
+    ssh-access = {
+      binary      = "ssh-access-aws"
+      description = "Grants an IAM user or role short-lived SSH access to a Linux EC2 instance through SSM Session Manager, by attaching a temporary customer-managed policy until it expires, and returns the aws ssm start-session command. revoke: true removes the access right away. Use action plan first to check the instance, then execute."
+      memory      = 128
+      timeout     = 30
+      destructive = true
+      environment = { MAX_DURATION_MINUTES = tostring(var.ssh_access_max_minutes) }
+      # CreatePolicy can't be limited to a path; deleting and tagging are limited to
+      # /plural.sh/ssh-access/. Attaching is limited to users and roles in the account.
+      # Describing instances and SSM registration, and listing policies, can't be limited to
+      # resources.
+      statements = [
+        { actions = ["ec2:DescribeInstances"], resources = ["*"], conditions = [] },
+        { actions = ["ssm:DescribeInstanceInformation"], resources = ["*"], conditions = [] },
+        { actions = ["iam:ListPolicies", "iam:CreatePolicy"], resources = ["*"], conditions = [] },
+        {
+          actions = [
+            "iam:DeletePolicy",
+            "iam:GetPolicy",
+            "iam:ListPolicyVersions",
+            "iam:DeletePolicyVersion",
+            "iam:TagPolicy",
+            "iam:ListPolicyTags",
+            "iam:ListEntitiesForPolicy",
+          ]
+          resources  = [local.iam_policy_arn]
+          conditions = []
+        },
+        {
+          actions    = ["iam:AttachUserPolicy", "iam:DetachUserPolicy"]
+          resources  = [local.iam_user_arn, local.iam_policy_arn]
+          conditions = []
+        },
+        {
+          actions    = ["iam:AttachRolePolicy", "iam:DetachRolePolicy"]
+          resources  = [local.iam_role_arn, local.iam_policy_arn]
+          conditions = []
+        },
+      ]
+      schema = jsonencode(jsondecode(file("${path.module}/schemas/ssh-access.json")))
     }
   }
 

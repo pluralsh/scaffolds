@@ -26,6 +26,7 @@ into Lambda, so the functions don't depend on the release afterwards.
 | `vm-delete` | Deletes a standalone EC2 instance with its root volume and network interfaces, keeping its data volumes. |
 | `lb-delete` | Deletes an orphaned Application or Network Load Balancer that Kubernetes created for a Service or Ingress, and the target groups it left behind. |
 | `db-restore` | Restores an RDS DB instance to a point in time, as a new instance. |
+| `ssh-access` | Grants an IAM user or role short-lived SSH access to a Linux EC2 instance through SSM Session Manager. |
 
 Every deployed function is registered as a workbench tool. Every function changes
 resources, so every call of their tools requires human approval in the workbench.
@@ -162,6 +163,25 @@ Restoring and tagging are limited to DB instances in the function's region and a
 Writing existing instances isn't needed; only the function's checks prevent restoring over
 the source.
 
+### ssh-access
+
+Grants an IAM user or role (`principalArn`) SSH access to a Linux EC2 instance
+(`instanceId`) for `durationMinutes` (default 60, at most `ssh_access_max_minutes`),
+through AWS Systems Manager Session Manager: no keys are pushed to the instance and no port
+is opened. The instance must be running, not Windows, and online in SSM. `execute` attaches a
+customer-managed IAM policy under `/plural.sh/ssh-access/` that allows the principal to start
+a session on the instance and returns `aws ssm start-session --target <id>`. Granting again
+extends the access and never shortens it, and `revoke: true` removes it right away.
+
+IAM policies don't expire, so the expiry is recorded in the policy's
+`plural.sh/ssh-access-expires` tag (and once in its description at create). EventBridge
+invokes the function every 5 minutes to remove expired policies; so does every `execute` for
+the principal. Access can therefore last up to 5 minutes longer, and sessions opened before
+the expiry aren't closed. Only policies under the function's path are removed; anyone who can
+create IAM policies could create such a policy, so treat the path and tag as a label, not a
+proof. Its permission to manage policies is limited to that path, and attaching is limited to
+users and roles in the account.
+
 ## After the stack is applied
 
 1. Attach the `invoke_policy_arn` output to the IAM principal of the cloud connection, so it
@@ -177,8 +197,8 @@ submit the change and report the resource state without waiting for it to comple
 ## Customizations
 
 The installation can also set the functions' limits: `allowSkipSnapshot`
-(`allow_skip_snapshot`, off by default) and `nodePoolMaxCount` (`node_pool_max_count`, default
-100).
+(`allow_skip_snapshot`, off by default), `nodePoolMaxCount` (`node_pool_max_count`, default
+100) and `sshAccessMaxMinutes` (`ssh_access_max_minutes`, default 240).
 
 Other terraform variables, such as `functions`, `log_retention_days` or `tags`, can be added to
 `variables` in the stack.
