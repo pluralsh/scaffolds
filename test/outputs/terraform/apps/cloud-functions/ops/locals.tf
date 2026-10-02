@@ -5,8 +5,16 @@ locals {
   eni_arn       = "arn:${data.aws_partition.current.partition}:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:network-interface/*"
   nodegroup_arn = "arn:${data.aws_partition.current.partition}:eks:${var.region}:${data.aws_caller_identity.current.account_id}:nodegroup/*/*/*"
   asg_arn       = "arn:${data.aws_partition.current.partition}:autoscaling:${var.region}:${data.aws_caller_identity.current.account_id}:autoScalingGroup:*:autoScalingGroupName/*"
+  lb_arn        = "arn:${data.aws_partition.current.partition}:elasticloadbalancing:${var.region}:${data.aws_caller_identity.current.account_id}:loadbalancer/*/*/*"
+  # ARN of a target group, which has no type in its path.
+  target_group_arn = "arn:${data.aws_partition.current.partition}:elasticloadbalancing:${var.region}:${data.aws_caller_identity.current.account_id}:targetgroup/*/*"
   # Tag the EBS CSI driver sets on volumes it creates for a PersistentVolumeClaim.
   pvc_tag_condition = { test = "Null", variable = "aws:ResourceTag/kubernetes.io/created-for/pvc/name", values = ["false"] }
+  # Tags that mark load balancers and target groups created for Kubernetes: by the AWS Load
+  # Balancer Controller, which tags the cluster, and by the Kubernetes cloud provider, which
+  # tags the Service. Separate statements allow either.
+  controller_tag_condition   = { test = "Null", variable = "aws:ResourceTag/elbv2.k8s.aws/cluster", values = ["false"] }
+  service_name_tag_condition = { test = "Null", variable = "aws:ResourceTag/kubernetes.io/service-name", values = ["false"] }
 
   # Without allow_skip_snapshot, the `snapshot` input is dropped from the tool schema and the
   # function also rejects `snapshot: false`.
@@ -79,6 +87,36 @@ locals {
         { actions = ["autoscaling:UpdateAutoScalingGroup"], resources = [local.asg_arn], conditions = [] },
       ]
       schema = jsonencode(jsondecode(file("${path.module}/schemas/node-pool-resize.json")))
+    }
+    lb-delete = {
+      binary      = "lb-delete-aws"
+      description = "Deletes an orphaned Application or Network Load Balancer that Kubernetes created for a Service or Ingress, and then the target groups it left behind. Before calling it, confirm in the cluster that the Service or Ingress no longer exists, and pass the cluster and the Service as clusterName and serviceName (namespace/name). Load balancers with healthy targets, deletion protection or another owner are refused. Use action plan first; each execute makes one change, so execute again while the result reports remaining: true."
+      memory      = 128
+      timeout     = 60
+      destructive = true
+      environment = {}
+      # Deleting is limited to load balancers and target groups created for Kubernetes, by the
+      # AWS Load Balancer Controller or the Kubernetes cloud provider, in the function's region.
+      # The function checks that they were created for the Service it is given. Describing can't
+      # be limited to resources.
+      statements = [
+        {
+          actions = [
+            "elasticloadbalancing:DescribeLoadBalancers",
+            "elasticloadbalancing:DescribeLoadBalancerAttributes",
+            "elasticloadbalancing:DescribeTargetGroups",
+            "elasticloadbalancing:DescribeTargetHealth",
+            "elasticloadbalancing:DescribeTags",
+          ]
+          resources  = ["*"]
+          conditions = []
+        },
+        { actions = ["elasticloadbalancing:DeleteLoadBalancer"], resources = [local.lb_arn], conditions = [local.controller_tag_condition] },
+        { actions = ["elasticloadbalancing:DeleteLoadBalancer"], resources = [local.lb_arn], conditions = [local.service_name_tag_condition] },
+        { actions = ["elasticloadbalancing:DeleteTargetGroup"], resources = [local.target_group_arn], conditions = [local.controller_tag_condition] },
+        { actions = ["elasticloadbalancing:DeleteTargetGroup"], resources = [local.target_group_arn], conditions = [local.service_name_tag_condition] },
+      ]
+      schema = jsonencode(jsondecode(file("${path.module}/schemas/lb-delete.json")))
     }
   }
 

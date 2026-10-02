@@ -30,6 +30,7 @@ spec:
       - volume-delete
       - vm-delete
       - node-pool-resize
+      - lb-delete
     {% if context.nodePoolMaxCount %}
     node_pool_max_count: {{ context.nodePoolMaxCount }}
     {% endif %}
