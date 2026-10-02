@@ -284,7 +284,9 @@ async fn handle(connector: &Connector, req: Request<Params>) -> Result<Response<
         vm: vm_id.id(),
         principal_id: principal.clone(),
         role: params.role,
-        expires_at: (!params.revoke).then(|| format_time(expires)),
+        // When access would be granted until; not when it can't be.
+        expires_at: (!params.revoke && guards.iter().all(|g| g.passed))
+            .then(|| format_time(expires)),
         command: if params.revoke {
             None
         } else {
@@ -905,6 +907,24 @@ mod handler_tests {
             format!("az ssh vm --ids {}", vm())
         );
         assert!(mock.writes().is_empty());
+    }
+
+    #[tokio::test]
+    async fn reports_no_expiry_when_access_would_be_refused() {
+        let mock = MockArm::start().await;
+        script_vm(&mock, vec![], true);
+
+        let refused = call(
+            &mock,
+            json!({"vmId": vm(), "principalId": USER, "durationMinutes": 100_000}),
+        )
+        .await;
+        let planned = call(&mock, json!({"vmId": vm(), "principalId": USER})).await;
+
+        assert_eq!(refused["outcome"], "refused", "{refused}");
+        assert!(refused["result"].get("expiresAt").is_none(), "{refused}");
+        assert_eq!(planned["outcome"], "planned", "{planned}");
+        assert!(planned["result"]["expiresAt"].is_string(), "{planned}");
     }
 
     #[tokio::test]

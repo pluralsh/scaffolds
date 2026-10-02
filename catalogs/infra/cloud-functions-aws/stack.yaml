@@ -30,8 +30,14 @@ spec:
       - volume-delete
       - vm-delete
       - node-pool-resize
+      - lb-delete
+      - db-restore
+      - ssh-access
     {% if context.nodePoolMaxCount %}
     node_pool_max_count: {{ context.nodePoolMaxCount }}
+    {% endif %}
+    {% if context.sshAccessMaxMinutes %}
+    ssh_access_max_minutes: {{ context.sshAccessMaxMinutes }}
     {% endif %}
   # Before terraform runs, the init container downloads the release's AWS packages into
   # /artifacts/<version> and verifies them against SHA256SUMS.

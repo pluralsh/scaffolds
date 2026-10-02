@@ -7,7 +7,7 @@
         "plan",
         "execute"
       ],
-      "description": "plan evaluates the safety checks without changing anything. execute starts restoring the source server to a new server; call again with the same parameters to see its state and hostname. The source server is never changed."
+      "description": "plan evaluates the safety checks without changing anything. execute starts restoring the source server to a new server, once; check its progress with a read-only query of the new server. The source server is never changed."
     },
     "serverId": {
       "type": "string",

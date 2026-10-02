@@ -22,6 +22,11 @@ const POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
 /// load balancer rule health says 10 seconds), but such results are usually ready in about 2.
 const ACTION_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_secs(1);
 
+/// Timeout of writes; reads keep the HTTPS client's 8 seconds. ARM answers some writes slowly,
+/// e.g. agent pool, role assignment and snapshot PUTs took 5 to 7 seconds, and an execute makes
+/// at most two writes, so a call still fits in the 30 seconds callers wait.
+const WRITE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(12);
+
 /// Maximum attempts for a request that ARM throttles or fails to serve.
 const ATTEMPTS: u32 = 3;
 /// Wait before the first retry when ARM doesn't say how long to wait; it doubles every retry.
@@ -533,6 +538,9 @@ impl Arm {
             .bearer_auth(&self.token)
             .build()
             .map_err(transport_error)?;
+        if req.method() != Method::GET {
+            *req.timeout_mut() = Some(WRITE_TIMEOUT);
+        }
         let mut attempt = 1;
         loop {
             // Bodies are JSON bytes, so requests can always be cloned.

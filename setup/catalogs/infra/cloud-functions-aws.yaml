@@ -7,11 +7,12 @@ spec:
   icon: https://docs.plural.sh/favicon-128.png
   identifier: mgmt
   documentation: |
-    Deploys the operational AWS functions (volume-delete, vm-delete and node-pool-resize)
+    Deploys the operational AWS functions (volume-delete, vm-delete, node-pool-resize, lb-delete, db-restore and ssh-access)
     and registers them as Plural workbench tools.
   creates:
     git:
-      ref: main
+      # TODO: back to main before merging; the branch lets the automation be tested first.
+      ref: marcin/prod-5251-generate-repo-of-common-operationally-useful-cloud-functions
       folder: catalogs/infra/cloud-functions-aws
     templates:
       - source: stack.yaml
@@ -33,7 +34,7 @@ spec:
   message: |
     Set up AWS cloud functions {{ context.name }} ({{ context.region }})
 
-    Will deploy volume-delete, vm-delete and node-pool-resize from release {{ context.version }} and register each as a
+    Will deploy volume-delete, vm-delete, node-pool-resize, lb-delete, db-restore and ssh-access from release {{ context.version }} and register each as a
     workbench tool. Every call of a function requires human approval.
 
     Plural Service: mgmt/apps
@@ -61,6 +62,10 @@ spec:
       type: INT
       optional: true
       documentation: Largest desired size node-pool-resize may set. Defaults to 100; at most 1000.
+    - name: sshAccessMaxMinutes
+      type: INT
+      optional: true
+      documentation: Longest access ssh-access may grant, in minutes. Defaults to 240; at most 1440 (a day).
     - name: allowSkipSnapshot
       type: BOOL
       optional: true

@@ -137,7 +137,7 @@ just run-azure db-restore "{\"serverId\":\"$PG_SERVER\",\"targetServerName\":\"$
 - [ ] a point in the future, or before the earliest → refused: `restore-point`
 - [ ] target `Bad_Name` → exit 2 (invalid input)
 - [ ] execute → `submitted: true`, and the target server appears. **Watch:** ARM must accept the PUT with `If-None-Match: *`.
-- [ ] execute again → `done`, `submitted: false`
+- [ ] execute again → refused: `new-server` (Azure drops the restore's tags, so a restore is submitted once)
 - [ ] the same target with another point → refused: `new-server`
 - [ ] the restored server becomes Ready (10-30 min)
 - [ ] the same with `$MY_SERVER`, if created

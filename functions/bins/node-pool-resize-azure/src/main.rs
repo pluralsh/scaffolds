@@ -222,7 +222,11 @@ fn evaluate(pool: Option<&AgentPool>, count: i64, max: i64) -> Vec<Guard> {
         Guard::check(
             "count-allowed",
             (min..=max).contains(&count),
-            format!("{count} nodes; {} pools allow {min} to {max}", props.mode),
+            format!(
+                "{count} {}; {} pools allow {min} to {max}",
+                if count == 1 { "node" } else { "nodes" },
+                props.mode
+            ),
         ),
     ]
 }

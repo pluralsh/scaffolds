@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan evaluates the safety checks and lists what is deleted without changing anything. Each execute makes one change: it deletes the load balancer, then, in a later execute, the target groups it left behind. Execute again while the result reports remaining: true."
+    },
+    "loadBalancerArn": {
+      "type": "string",
+      "pattern": "^arn:aws[a-z-]*:elasticloadbalancing:[a-z0-9-]+:[0-9]{12}:loadbalancer/(app|net)/[A-Za-z0-9-]{1,32}/[0-9a-f]{16}$",
+      "description": "ARN of the Application or Network Load Balancer, in the region of the function. Once it is deleted, pass the same ARN again to delete its leftover target groups."
+    },
+    "clusterName": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$",
+      "description": "Name of the EKS cluster the load balancer was created for. It must match the cluster in the load balancer's tags."
+    },
+    "serviceName": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)?$",
+      "description": "namespace/name of the Service or Ingress the load balancer was created for (the name of the group for an Ingress group). Confirm in the cluster that it no longer exists first. It must match the load balancer's tags."
+    }
+  },
+  "required": [
+    "action",
+    "loadBalancerArn",
+    "clusterName",
+    "serviceName"
+  ],
+  "additionalProperties": false
+}

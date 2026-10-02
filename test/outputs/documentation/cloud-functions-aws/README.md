@@ -24,6 +24,9 @@ into Lambda, so the functions don't depend on the release afterwards.
 | `volume-delete` | Deletes an orphaned EBS volume that Kubernetes created for a PersistentVolumeClaim, after snapshotting it. |
 | `node-pool-resize` | Sets the desired size of a manually scaled EKS managed node group or Auto Scaling group. |
 | `vm-delete` | Deletes a standalone EC2 instance with its root volume and network interfaces, keeping its data volumes. |
+| `lb-delete` | Deletes an orphaned Application or Network Load Balancer that Kubernetes created for a Service or Ingress, and the target groups it left behind. |
+| `db-restore` | Restores an RDS DB instance to a point in time, as a new instance. |
+| `ssh-access` | Grants an IAM user or role short-lived SSH access to a Linux EC2 instance through SSM Session Manager. |
 
 Every deployed function is registered as a workbench tool. Every function changes
 resources, so every call of their tools requires human approval in the workbench.
@@ -108,6 +111,77 @@ Permissions: describing instances, their attributes and network interfaces; modi
 terminating instances, and modifying network interfaces, in the function's region and account.
 IAM can't express the Auto Scaling and EKS refusals, so only the function enforces them.
 
+### lb-delete
+
+Deletes a load balancer that the AWS Load Balancer Controller or the Kubernetes cloud provider
+created for a Service or Ingress and left behind when it was deleted, and then its target
+groups. Only Application and Network Load Balancers are supported: Classic Load Balancers have
+no target groups and another API.
+
+The caller names the load balancer (`loadBalancerArn`), the EKS cluster (`clusterName`) and the
+Service or Ingress it was created for (`serviceName`, `namespace/name`, or the name of an
+Ingress group). The function can't see the cluster, so the caller has to confirm that the
+Service or Ingress no longer exists first. The load balancer is only deleted when:
+
+- its tags say it was created for that cluster and Service: `elbv2.k8s.aws/cluster` with
+  `service.k8s.aws/stack` or `ingress.k8s.aws/stack` for the controller, or
+  `kubernetes.io/cluster/<cluster>=owned` with `kubernetes.io/service-name` for the cloud
+  provider;
+- deletion protection is off (the function never turns it off) and it is not provisioning;
+- none of its target groups has a healthy target or one that is still registering, which would
+  mean traffic still reaches it.
+
+Each `execute` makes one change, because a target group can only be deleted once the load
+balancer using it is gone. The first deletes the load balancer, with its listeners, and reports
+`remaining: true` if it had target groups. Call it again with the same input: the load balancer
+is then gone, and the function finds the target groups left for that cluster and Service by
+their tags and deletes those that no load balancer uses and that have no healthy or registering
+targets. If any of them fails a check, none is deleted. `plan` lists the target groups with their
+targets.
+
+Permissions: describing load balancers and target groups can't be limited to resources.
+Deleting is limited to load balancers and target groups in the function's region that carry
+the tags above, the same condition the AWS Load Balancer Controller's own policy uses. The
+function runs with a 60 second timeout, since finding the leftover target groups lists every
+target group of the region.
+
+### db-restore
+
+Restores an RDS DB instance (`dbInstanceIdentifier`) to a point in time
+(`restorePointInTime`, between the earliest and latest restorable times `plan` reports) as a
+new instance (`targetDbInstanceIdentifier`) in the same region and account. The source
+instance is never changed: restoring over it or into an existing instance is refused, so
+applications only move to the restored data when they are pointed at the new instance. Aurora
+DB instances aren't supported (`RestoreDBInstanceToPointInTime` doesn't apply to them). RDS
+copies the source's configuration onto the new instance. `execute` submits the restore, which
+takes a while; calling again with the same parameters reports the new instance's state and
+endpoint. The new instance is tagged with its source and restore point, and is only ever
+created: an instance that appears under the target name in the meantime is left alone.
+
+Permissions: describing DB instances and listing tags can't be limited to resources.
+Restoring and tagging are limited to DB instances in the function's region and account.
+Writing existing instances isn't needed; only the function's checks prevent restoring over
+the source.
+
+### ssh-access
+
+Grants an IAM user or role (`principalArn`) SSH access to a Linux EC2 instance
+(`instanceId`) for `durationMinutes` (default 60, at most `ssh_access_max_minutes`),
+through AWS Systems Manager Session Manager: no keys are pushed to the instance and no port
+is opened. The instance must be running, not Windows, and online in SSM. `execute` attaches a
+customer-managed IAM policy under `/plural.sh/ssh-access/` that allows the principal to start
+a session on the instance and returns `aws ssm start-session --target <id>`. Granting again
+extends the access and never shortens it, and `revoke: true` removes it right away.
+
+IAM policies don't expire, so the expiry is recorded in the policy's
+`plural.sh/ssh-access-expires` tag (and once in its description at create). EventBridge
+invokes the function every 5 minutes to remove expired policies; so does every `execute` for
+the principal. Access can therefore last up to 5 minutes longer, and sessions opened before
+the expiry aren't closed. Only policies under the function's path are removed; anyone who can
+create IAM policies could create such a policy, so treat the path and tag as a label, not a
+proof. Its permission to manage policies is limited to that path, and attaching is limited to
+users and roles in the account.
+
 ## After the stack is applied
 
 1. Attach the `invoke_policy_arn` output to the IAM principal of the cloud connection, so it
@@ -123,8 +197,8 @@ submit the change and report the resource state without waiting for it to comple
 ## Customizations
 
 The installation can also set the functions' limits: `allowSkipSnapshot`
-(`allow_skip_snapshot`, off by default) and `nodePoolMaxCount` (`node_pool_max_count`, default
-100).
+(`allow_skip_snapshot`, off by default), `nodePoolMaxCount` (`node_pool_max_count`, default
+100) and `sshAccessMaxMinutes` (`ssh_access_max_minutes`, default 240).
 
 Other terraform variables, such as `functions`, `log_retention_days` or `tags`, can be added to
 `variables` in the stack.

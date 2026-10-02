@@ -21,7 +21,7 @@ variable "cloud_connection" {
 variable "functions" {
   type        = list(string)
   description = "Functions to deploy, by key of local.catalog."
-  default     = ["volume-delete", "vm-delete", "node-pool-resize"]
+  default     = ["volume-delete", "vm-delete", "node-pool-resize", "lb-delete", "db-restore", "ssh-access"]
 
   validation {
     condition     = length(var.functions) > 0
@@ -43,6 +43,17 @@ variable "node_pool_max_count" {
   validation {
     condition     = var.node_pool_max_count >= 0 && var.node_pool_max_count <= 1000
     error_message = "node_pool_max_count must be between 0 and 1000."
+  }
+}
+
+variable "ssh_access_max_minutes" {
+  type        = number
+  description = "Longest access ssh-access may grant, in minutes."
+  default     = 240
+
+  validation {
+    condition     = var.ssh_access_max_minutes >= 1 && var.ssh_access_max_minutes <= 1440
+    error_message = "ssh_access_max_minutes must be between 1 and 1440 (a day)."
   }
 }
 
