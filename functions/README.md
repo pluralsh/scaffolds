@@ -60,8 +60,9 @@ returns the resource state it observed (e.g. `deleting`) without waiting for com
 Completion can be confirmed with a read-only cloud query.
 
 On Azure, requests ARM throttles (429) or can't serve (503) are retried up to twice, as are
-reads that fail with another server error; each request times out after 8 seconds and isn't
-retried then, so a call stays within the 30 seconds.
+reads that fail with another server error. Reads time out after 8 seconds and writes, which ARM
+answers more slowly, after 12; a timed-out request isn't retried, so a call stays within the 30
+seconds.
 
 ## Development
 

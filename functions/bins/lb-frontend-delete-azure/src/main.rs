@@ -419,13 +419,28 @@ fn evaluate(
                     lb.name, lb.properties.provisioning_state
                 ),
             ));
-            guards.push(Guard::check(
-                "inbound-only",
-                props.outbound_rules.is_empty()
-                    && props.inbound_nat_rules.is_empty()
-                    && props.inbound_nat_pools.is_empty(),
-                "the frontend must not be used by outbound or NAT rules",
-            ));
+            let users: Vec<String> = [
+                ("outbound rule", &props.outbound_rules),
+                ("inbound NAT rule", &props.inbound_nat_rules),
+                ("inbound NAT pool", &props.inbound_nat_pools),
+            ]
+            .into_iter()
+            .flat_map(|(kind, refs)| {
+                refs.iter()
+                    .map(move |r| format!("{kind} {}", r.id.rsplit('/').next().unwrap_or(&r.id)))
+            })
+            .collect();
+            guards.push(if users.is_empty() {
+                Guard::pass("inbound-only", "not used by outbound or NAT rules")
+            } else {
+                Guard::fail(
+                    "inbound-only",
+                    format!(
+                        "used by {}; removing the frontend would break them",
+                        users.join(", ")
+                    ),
+                )
+            });
             guards.push(health_guard(health));
             // Services sharing an IP share one frontend, named after the first of them. Each
             // Service's rules are named after that Service.
@@ -917,9 +932,13 @@ mod tests {
         raw["properties"]["frontendIPConfigurations"][0]["properties"]["outboundRules"] =
             json!([{"id": "/x/outboundRules/aksOutboundRule"}]);
 
-        assert_eq!(
-            failed(&plan(Some(&lb(&raw)), Some(&pip(Some(SERVICE), true))).guards),
-            ["idle", "inbound-only"]
+        let guards = plan(Some(&lb(&raw)), Some(&pip(Some(SERVICE), true))).guards;
+        assert_eq!(failed(&guards), ["idle", "inbound-only"]);
+        let inbound = guards.iter().find(|g| g.name == "inbound-only").unwrap();
+        assert!(
+            inbound.detail.contains("outbound rule aksOutboundRule"),
+            "{}",
+            inbound.detail
         );
     }
 

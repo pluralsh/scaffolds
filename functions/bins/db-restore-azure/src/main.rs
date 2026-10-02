@@ -293,18 +293,24 @@ fn evaluate(
     // An existing restore stays valid even after its point leaves the backup window.
     if *target != Target::Restore {
         let earliest = source.and_then(earliest_restore);
-        let after_earliest = earliest
-            .as_deref()
-            .and_then(parse_timestamp)
-            .is_some_and(|e| point >= e);
-        guards.push(Guard::check(
-            "restore-point",
-            after_earliest && point <= now,
-            format!(
-                "must be between the earliest restore point ({}) and now",
-                earliest.as_deref().unwrap_or("unknown")
+        guards.push(match earliest.as_deref().map(|e| (e, parse_timestamp(e))) {
+            None | Some((_, None)) => Guard::fail(
+                "restore-point",
+                "the source doesn't report its earliest restore point",
             ),
-        ));
+            Some((e, Some(at))) if point < at => Guard::fail(
+                "restore-point",
+                format!("before the earliest restore point, {e}"),
+            ),
+            Some((e, _)) if point > now => Guard::fail(
+                "restore-point",
+                format!("in the future; restore points go from {e} to now"),
+            ),
+            Some((e, _)) => Guard::pass(
+                "restore-point",
+                format!("between the earliest restore point, {e}, and now"),
+            ),
+        });
     }
     guards
 }
@@ -458,14 +464,18 @@ mod tests {
     #[test]
     fn restores_within_the_backup_window_to_a_new_server() {
         assert!(failed(&check(None, "app-restored", POINT)).is_empty());
-        assert_eq!(
-            failed(&check(None, "app-restored", "2026-09-20T08:00:00Z")),
-            ["restore-point"]
+        let detail = |point| {
+            let guards = check(None, "app-restored", point);
+            assert_eq!(failed(&guards), ["restore-point"]);
+            guards.into_iter().find(|g| !g.passed).unwrap().detail
+        };
+        let early = detail("2026-09-20T08:00:00Z");
+        assert!(
+            early.starts_with("before the earliest restore point"),
+            "{early}"
         );
-        assert_eq!(
-            failed(&check(None, "app-restored", "2026-10-01T08:00:00Z")),
-            ["restore-point"]
-        );
+        let future = detail("2026-10-01T08:00:00Z");
+        assert!(future.starts_with("in the future"), "{future}");
     }
 
     #[test]
