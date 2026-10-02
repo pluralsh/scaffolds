@@ -11,7 +11,8 @@ spec:
     and registers them as Plural workbench tools.
   creates:
     git:
-      ref: main
+      # TODO: back to main before merging; the branch lets the automation be tested first.
+      ref: marcin/prod-5251-generate-repo-of-common-operationally-useful-cloud-functions
       folder: catalogs/infra/cloud-functions-aws
     templates:
       - source: stack.yaml
