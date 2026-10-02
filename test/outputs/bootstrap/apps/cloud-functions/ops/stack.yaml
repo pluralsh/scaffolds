@@ -27,6 +27,7 @@ spec:
       - vm-delete
       - node-pool-resize
       - lb-delete
+      - db-restore
     
     node_pool_max_count: 50
     

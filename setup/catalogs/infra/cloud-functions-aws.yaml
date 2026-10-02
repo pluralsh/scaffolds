@@ -7,7 +7,7 @@ spec:
   icon: https://docs.plural.sh/favicon-128.png
   identifier: mgmt
   documentation: |
-    Deploys the operational AWS functions (volume-delete, vm-delete, node-pool-resize and lb-delete)
+    Deploys the operational AWS functions (volume-delete, vm-delete, node-pool-resize, lb-delete and db-restore)
     and registers them as Plural workbench tools.
   creates:
     git:
@@ -33,7 +33,7 @@ spec:
   message: |
     Set up AWS cloud functions {{ context.name }} ({{ context.region }})
 
-    Will deploy volume-delete, vm-delete, node-pool-resize and lb-delete from release {{ context.version }} and register each as a
+    Will deploy volume-delete, vm-delete, node-pool-resize, lb-delete and db-restore from release {{ context.version }} and register each as a
     workbench tool. Every call of a function requires human approval.
 
     Plural Service: mgmt/apps

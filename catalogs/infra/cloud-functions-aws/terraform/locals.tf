@@ -8,6 +8,7 @@ locals {
   lb_arn        = "arn:${data.aws_partition.current.partition}:elasticloadbalancing:${var.region}:${data.aws_caller_identity.current.account_id}:loadbalancer/*/*/*"
   # ARN of a target group, which has no type in its path.
   target_group_arn = "arn:${data.aws_partition.current.partition}:elasticloadbalancing:${var.region}:${data.aws_caller_identity.current.account_id}:targetgroup/*/*"
+  db_instance_arn  = "arn:${data.aws_partition.current.partition}:rds:${var.region}:${data.aws_caller_identity.current.account_id}:db:*"
   # Tag the EBS CSI driver sets on volumes it creates for a PersistentVolumeClaim.
   pvc_tag_condition = { test = "Null", variable = "aws:ResourceTag/kubernetes.io/created-for/pvc/name", values = ["false"] }
   # Tags that mark load balancers and target groups created for Kubernetes: by the AWS Load
@@ -117,6 +118,32 @@ locals {
         { actions = ["elasticloadbalancing:DeleteTargetGroup"], resources = [local.target_group_arn], conditions = [local.service_name_tag_condition] },
       ]
       schema = jsonencode(jsondecode(file("${path.module}/schemas/lb-delete.json")))
+    }
+    db-restore = {
+      binary      = "db-restore-aws"
+      description = "Restores an RDS DB instance to a point in time as a new instance. The source is never changed. Use action plan first to see the earliest and latest restorable times and the checks, then execute; call again with the same parameters to see the new instance's state and endpoint. Aurora isn't supported."
+      memory      = 128
+      timeout     = 30
+      destructive = true
+      environment = {}
+      # Describing and listing tags can't be limited to resources. Restoring creates a new
+      # instance in the function's region and account; writing existing instances isn't needed.
+      statements = [
+        {
+          actions = [
+            "rds:DescribeDBInstances",
+            "rds:ListTagsForResource",
+          ]
+          resources  = ["*"]
+          conditions = []
+        },
+        {
+          actions    = ["rds:RestoreDBInstanceToPointInTime", "rds:AddTagsToResource"]
+          resources  = [local.db_instance_arn]
+          conditions = []
+        },
+      ]
+      schema = jsonencode(jsondecode(file("${path.module}/schemas/db-restore.json")))
     }
   }
 

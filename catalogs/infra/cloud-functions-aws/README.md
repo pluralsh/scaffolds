@@ -25,6 +25,7 @@ into Lambda, so the functions don't depend on the release afterwards.
 | `node-pool-resize` | Sets the desired size of a manually scaled EKS managed node group or Auto Scaling group. |
 | `vm-delete` | Deletes a standalone EC2 instance with its root volume and network interfaces, keeping its data volumes. |
 | `lb-delete` | Deletes an orphaned Application or Network Load Balancer that Kubernetes created for a Service or Ingress, and the target groups it left behind. |
+| `db-restore` | Restores an RDS DB instance to a point in time, as a new instance. |
 
 Every deployed function is registered as a workbench tool. Every function changes
 resources, so every call of their tools requires human approval in the workbench.
@@ -142,6 +143,24 @@ Deleting is limited to load balancers and target groups in the function's region
 the tags above, the same condition the AWS Load Balancer Controller's own policy uses. The
 function runs with a 60 second timeout, since finding the leftover target groups lists every
 target group of the region.
+
+### db-restore
+
+Restores an RDS DB instance (`dbInstanceIdentifier`) to a point in time
+(`restorePointInTime`, between the earliest and latest restorable times `plan` reports) as a
+new instance (`targetDbInstanceIdentifier`) in the same region and account. The source
+instance is never changed: restoring over it or into an existing instance is refused, so
+applications only move to the restored data when they are pointed at the new instance. Aurora
+DB instances aren't supported (`RestoreDBInstanceToPointInTime` doesn't apply to them). RDS
+copies the source's configuration onto the new instance. `execute` submits the restore, which
+takes a while; calling again with the same parameters reports the new instance's state and
+endpoint. The new instance is tagged with its source and restore point, and is only ever
+created: an instance that appears under the target name in the meantime is left alone.
+
+Permissions: describing DB instances and listing tags can't be limited to resources.
+Restoring and tagging are limited to DB instances in the function's region and account.
+Writing existing instances isn't needed; only the function's checks prevent restoring over
+the source.
 
 ## After the stack is applied
 

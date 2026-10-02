@@ -31,6 +31,7 @@ spec:
       - vm-delete
       - node-pool-resize
       - lb-delete
+      - db-restore
     {% if context.nodePoolMaxCount %}
     node_pool_max_count: {{ context.nodePoolMaxCount }}
     {% endif %}
