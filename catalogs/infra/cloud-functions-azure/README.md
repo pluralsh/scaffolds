@@ -32,8 +32,8 @@ into the function apps, so the functions don't depend on the release afterwards.
 | `node-pool-resize` | Sets the node count of a manually scaled AKS node pool. |
 | `vm-delete` | Deletes a standalone VM with its OS disk and network interfaces, keeping its data disks. |
 | `lb-frontend-delete` | Removes what a deleted Kubernetes `LoadBalancer` Service left on an AKS load balancer. |
-| `db-restore` | Restores a PostgreSQL or MySQL flexible server to a point in time, as a new server. |
-| `ssh-access` | Grants an Entra ID user short-lived SSH login to a Linux VM. |
+| `db-restore` | Restores a PostgreSQL or MySQL flexible server to a point in time, as a new server. | | `ssh-
+access` | Grants an Entra ID user short-lived SSH login to a Linux VM. |
 
 Every deployed function is registered as a workbench tool. Every function changes
 resources, so every call of their tools requires human approval in the workbench.
@@ -156,10 +156,7 @@ restored data when they are pointed at the new server. The new server gets the s
 network settings (subnet and private DNS zone, or public access), availability zone, admin
 login, and, for a server encrypted with a customer managed key, its key and the
 user-assigned identities that read it; Azure doesn't copy firewall rules or private
-endpoints. `execute` submits the restore, which takes
-a while; calling again with the same parameters reports the new server's state and hostname.
-The new server is tagged with its source and restore point, and is only ever created: a
-server that appears under the target name in the meantime is left alone. Permissions in
+endpoints. `execute` submits the restore, which takes a while, and reports the new server as `Provisioning`; check its progress with a read-only query of the new server. A restore is submitted once: Azure drops the tags the function sends to mark it, so calling again finds an existing server it can't tell from any other and refuses. The new server is only ever created: a server that appears under the target name in the meantime is left alone. Permissions in
 `scopes["db-restore"]`: read and write flexible servers, and join subnets and private DNS
 zones for servers in a virtual network, which it can also join in `network_scopes`, e.g. a
 private DNS zone in a hub resource group, and assign user-assigned identities, so identities

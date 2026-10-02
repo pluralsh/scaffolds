@@ -112,7 +112,7 @@ locals {
     db-restore = {
       binary      = "db-restore-azure"
       function    = "db-restore"
-      description = "Restores a PostgreSQL or MySQL flexible server to a point in time as a new server in the same resource group; the source server is never changed. Use action plan first to see the earliest restore point, then execute, and call again with the same parameters to see the new server's state and hostname."
+      description = "Restores a PostgreSQL or MySQL flexible server to a point in time as a new server in the same resource group; the source server is never changed. Use action plan first to see the earliest restore point, then execute once: the restore runs in the background, and calling again is refused because the new server already exists. Check its progress with a read-only query of the new server."
       destructive = true
       environment = {}
       actions = [

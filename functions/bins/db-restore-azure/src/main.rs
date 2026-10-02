@@ -284,7 +284,7 @@ fn evaluate(
             Target::Other => Guard::fail(
                 "new-server",
                 format!(
-                    "a server named {} already exists and isn't this restore; pick another name",
+                    "a server named {} already exists. A restore started earlier also counts: Azure doesn't keep the tags that mark it, so a restore is submitted once; check its progress with a read-only query. Otherwise pick another name",
                     target_id.name
                 ),
             ),
