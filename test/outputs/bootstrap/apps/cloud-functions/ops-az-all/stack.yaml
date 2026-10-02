@@ -46,6 +46,9 @@ spec:
     ssh_bastion_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/hub/providers/Microsoft.Network/bastionHosts/hub-bastion"
     
     
+    invoker_principal_id: "11111111-2222-3333-4444-555555555555"
+    
+    
     node_pool_max_count: 20
     
     

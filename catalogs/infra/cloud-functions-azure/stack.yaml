@@ -47,6 +47,9 @@ spec:
     {% if context.sshBastionId %}
     ssh_bastion_id: "{{ context.sshBastionId }}"
     {% endif %}
+    {% if context.invokerPrincipalId %}
+    invoker_principal_id: "{{ context.invokerPrincipalId }}"
+    {% endif %}
     {% if context.nodePoolMaxCount %}
     node_pool_max_count: {{ context.nodePoolMaxCount }}
     {% endif %}

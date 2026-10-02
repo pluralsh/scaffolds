@@ -11,3 +11,4 @@ sshBastionId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups
 allowSkipSnapshot: true
 nodePoolMaxCount: 20
 sshAccessMaxMinutes: 120
+invokerPrincipalId: 11111111-2222-3333-4444-555555555555

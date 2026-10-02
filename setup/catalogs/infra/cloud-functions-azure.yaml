@@ -44,8 +44,8 @@ spec:
       permission to invoke them. Every function is registered as a workbench tool, and every
       call of a function requires human approval.
     checklist:
-      - label: "I will assign the invoke_role_definition_id output to the cloud connection's service principal on each of invoke_scopes."
-      - label: "The cloud connection is in the same Azure subscription as the functions."
+      - label: "The stack identity can assign roles in the subscription (see the README)."
+      - label: "The cloud connection is in the same subscription, and I set invokerPrincipalId or will assign the invoke role myself."
   configuration:
     - name: name
       type: STRING
@@ -90,6 +90,12 @@ spec:
       documentation: Resource ID of the Azure Bastion host (Standard SKU or higher, native client support) users connect through; ssh-access returns the az network bastion ssh command for it. Leave empty for a direct az ssh vm command.
       validation:
         regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/Microsoft\\.Network/bastionHosts/[^/]+$"
+    - name: invokerPrincipalId
+      type: STRING
+      optional: true
+      documentation: Object ID of the cloud connection's service principal (Microsoft Entra ID → Enterprise applications). When set, it gets the role that lets workbenches invoke the functions; otherwise assign the stack's invoke_role_definition_id output yourself.
+      validation:
+        regex: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
     - name: nodePoolMaxCount
       type: INT
       optional: true

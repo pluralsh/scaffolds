@@ -41,6 +41,7 @@ spec:
     
     
     
+    
   # Before terraform runs, the init container downloads the release's Azure packages into
   # /artifacts/<version> and verifies them against SHA256SUMS. With raw, the operator ignores the
   # other jobSpec fields, and a stack's jobSpec replaces the default one from the deployment

@@ -19,7 +19,7 @@ output "application_insights_id" {
 }
 
 output "invoke_role_definition_id" {
-  description = "Role to assign to the cloud connection service principal on each of invoke_scopes so workbenches can invoke the functions."
+  description = "Role the cloud connection service principal needs on each of invoke_scopes so workbenches can invoke the functions. Assigned already when invoker_principal_id is set."
   value       = azurerm_role_definition.invoke.role_definition_resource_id
 }
 

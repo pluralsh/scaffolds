@@ -96,6 +96,17 @@ variable "ssh_bastion_id" {
   }
 }
 
+variable "invoker_principal_id" {
+  type        = string
+  description = "Object ID of the workbench cloud connection's service principal. When set, it gets the invoke role on each function app; otherwise assign invoke_role_definition_id on invoke_scopes yourself."
+  default     = null
+
+  validation {
+    condition     = var.invoker_principal_id == null || can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.invoker_principal_id))
+    error_message = "invoker_principal_id must be an object ID (a GUID)."
+  }
+}
+
 variable "artifact_version" {
   type        = string
   description = "Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds)."
