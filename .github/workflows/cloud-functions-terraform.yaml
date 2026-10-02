@@ -1,0 +1,115 @@
+name: Cloud Functions Terraform
+
+# Runs on every PR so `cloud functions terraform` can be a required check. Validation only runs
+# when the terraform or the functions it deploys changed.
+on:
+  pull_request:
+    branches:
+    - main
+
+# A new push to a PR supersedes its running validation.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      terraform: ${{ steps.filter.outputs.terraform }}
+    steps:
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            terraform:
+              - catalogs/infra/cloud-functions-*/terraform/**
+              - functions/bins/**
+              - functions/go/gcp/functions.go
+              - .github/workflows/cloud-functions-terraform.yaml
+
+  validate:
+    name: validate ${{ matrix.cloud }}
+    needs: changes
+    if: needs.changes.outputs.terraform == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud:
+        - aws
+        - azure
+        - gcp
+    defaults:
+      run:
+        working-directory: catalogs/infra/cloud-functions-${{ matrix.cloud }}/terraform
+    steps:
+      - uses: actions/checkout@v7
+        name: checkout repo
+        with:
+          persist-credentials: false
+
+      # The modules' minimum required_version, so use of newer features is caught.
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.5.7
+          terraform_wrapper: false
+
+      - run: terraform fmt -check -diff -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+
+      # AWS and Azure deploy release packages named after their Rust binaries. A typo or rename
+      # would only fail at deploy time.
+      - name: check function binaries
+        if: matrix.cloud != 'gcp'
+        env:
+          CLOUD: ${{ matrix.cloud }}
+        run: |
+          bins=$(sed -n 's/^ *binary *= *"\(.*\)"$/\1/p' locals.tf)
+          if [[ -z "$bins" ]]; then echo "::error::no binary found in locals.tf"; exit 1; fi
+          status=0
+          for bin in $bins; do
+            if [[ "$bin" != *-"$CLOUD" ]]; then
+              echo "::error::$bin does not end with -$CLOUD"; status=1
+            elif [[ ! -d "$GITHUB_WORKSPACE/functions/bins/$bin" ]]; then
+              echo "::error::$bin is not in functions/bins"; status=1
+            fi
+          done
+          exit $status
+
+      # GCP functions are Go entry points instead, registered with functions.HTTP in
+      # functions/go/gcp/functions.go. Each function sets its entry_point in its own <key>.tf.
+      - name: check function entry points
+        if: matrix.cloud == 'gcp'
+        run: |
+          entry_points=$(sed -n 's/^ *entry_point *= *"\(.*\)"$/\1/p' *.tf)
+          if [[ -z "$entry_points" ]]; then echo "::error::no entry_point found in *.tf"; exit 1; fi
+          status=0
+          for entry_point in $entry_points; do
+            if ! grep -q "functions.HTTP(\"$entry_point\"" "$GITHUB_WORKSPACE/functions/go/gcp/functions.go"; then
+              echo "::error::$entry_point is not registered in functions/go/gcp/functions.go"; status=1
+            fi
+          done
+          exit $status
+
+  # The check to require: it passes when every validation passed or none was needed.
+  result:
+    name: cloud functions terraform
+    needs: [changes, validate]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: check the jobs
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: jq -e 'all(. == "success" or . == "skipped")' <<<"$RESULTS"

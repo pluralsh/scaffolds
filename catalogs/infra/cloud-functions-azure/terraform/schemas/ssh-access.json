@@ -1,0 +1,50 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan checks the VM without changing anything. execute grants the access (or revokes it with revoke: true) and removes expired access to the VM."
+    },
+    "vmId": {
+      "type": "string",
+      "pattern": "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/Microsoft\\.Compute/virtualMachines/[^/]+$",
+      "description": "Resource ID of the Linux VM."
+    },
+    "principalId": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      "description": "Object ID of the Entra ID user who gets the access."
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "admin"
+      ],
+      "default": "user",
+      "description": "user logs in without sudo (Virtual Machine User Login), admin with sudo (Virtual Machine Administrator Login)."
+    },
+    "durationMinutes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1440,
+      "default": 60,
+      "description": "How long the access lasts, at most the installation's limit. Granting again extends it and never shortens it."
+    },
+    "revoke": {
+      "type": "boolean",
+      "default": false,
+      "description": "Remove the user's access to the VM instead of granting it."
+    }
+  },
+  "required": [
+    "action",
+    "vmId",
+    "principalId"
+  ],
+  "additionalProperties": false
+}

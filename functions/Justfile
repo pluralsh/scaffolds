@@ -1,0 +1,135 @@
+dist := "dist"
+musl_target := "x86_64-unknown-linux-musl"
+
+# Rust functions are grouped by cloud by their bin name suffix, e.g. volume-delete-aws.
+# GCP functions are Go, in go/gcp. Google builds them from source, so there is nothing to build here.
+aws_bins := `ls bins | grep -- '-aws$' | tr '\n' ' '`
+azure_bins := `ls bins | grep -- '-azure$' | tr '\n' ' '`
+
+# Format check, lint and unit tests for the Rust and Go functions.
+check: check-rust check-go
+
+check-rust:
+    cargo fmt --check
+    cargo clippy --all-targets -- -D warnings
+    cargo clippy -p functions-azure --features az-cli -- -D warnings
+    cargo test
+
+check-go:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd go/gcp
+    unformatted="$(gofmt -l .)"
+    if [ -n "$unformatted" ]; then echo "gofmt needed:"; echo "$unformatted"; exit 1; fi
+    go vet ./...
+    golangci-lint run ./...
+    go test -race ./...
+
+# Build every function that needs building (the GCP functions are built by Google).
+build: build-aws build-azure
+
+# Build AWS functions as arm64 Lambda zips under target/lambda/<bin>/bootstrap.zip.
+build-aws:
+    cargo lambda build --release --arm64 --output-format zip $(printf -- '--bin %s ' {{aws_bins}})
+
+# The binaries run in Azure Functions custom handlers. cargo-lambda is only used for its
+# zig-based cross-compilation here.
+#
+# Build Azure functions as static x86_64 Linux binaries under target/lambda/<bin>/bootstrap.
+build-azure:
+    cargo lambda build --release --target {{musl_target}} $(printf -- '--bin %s ' {{azure_bins}})
+
+# This is the layout published on releases. AWS zips hold the bootstrap binary. Azure zips hold
+# host.json, the bin's azure/<function>/function.json folders and the handler binary. The GCP
+# zip holds the Go source of every function, which Cloud Functions builds.
+#
+# Package functions into dist/<bin>.zip (AWS, Azure) and dist/functions-gcp.zip (GCP) with a SHA256SUMS file.
+package: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -rf {{dist}} && mkdir -p {{dist}}
+    for bin in {{aws_bins}}; do
+      cp "target/lambda/$bin/bootstrap.zip" "{{dist}}/$bin.zip"
+    done
+    for bin in {{azure_bins}}; do
+      stage="target/azure/$bin"
+      rm -rf "$stage" && mkdir -p "$stage"
+      cp azure/host.json "$stage/"
+      # One folder with a function.json per function of the app, e.g. an HTTP and a timer function.
+      cp -R "bins/$bin/azure/." "$stage/"
+      cp "target/lambda/$bin/bootstrap" "$stage/handler"
+      # Fixed timestamps keep the zip checksum reproducible.
+      find "$stage" -exec touch -t 202001010000 {} +
+      (cd "$stage" && zip -qrX "$OLDPWD/{{dist}}/$bin.zip" .)
+    done
+    # The Go module without its tests. Files read by go:embed are not included. Python's zipfile
+    # gives the same archive on every OS: sorted entries, fixed timestamps and permissions, and no
+    # compression (deflate output can differ between zlib versions).
+    python3 - go/gcp "{{dist}}/functions-gcp.zip" <<'PY'
+    import os, sys, zipfile
+    src, dst = sys.argv[1:]
+    names = []
+    for root, dirs, files in os.walk(src):
+        dirs[:] = [d for d in dirs if d != "testdata"]
+        for name in files:
+            rel = os.path.relpath(os.path.join(root, name), src).replace(os.sep, "/")
+            if rel in ("go.mod", "go.sum") or (rel.endswith(".go") and not rel.endswith("_test.go")):
+                names.append(rel)
+    if "go.mod" not in names:
+        sys.exit("no go.mod in " + src)
+    with zipfile.ZipFile(dst, "w", zipfile.ZIP_STORED) as zf:
+        for rel in sorted(names):
+            info = zipfile.ZipInfo(rel, date_time=(2020, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_STORED
+            info.create_system = 3
+            info.external_attr = 0o644 << 16
+            with open(os.path.join(src, rel), "rb") as f:
+                zf.writestr(info, f.read())
+    PY
+    cd {{dist}} && shasum -a 256 *.zip > SHA256SUMS
+
+# The Azure functions can also run locally against real Azure: e2e/azure/README.md has the
+# fixtures they are checked against and the checklist.
+
+# Create (up), show (status) or delete (down) the Azure test fixtures in their own resource groups.
+fixtures-azure action="status":
+    e2e/azure/fixtures.sh {{ action }}
+
+# The input can be - for stdin, and `just run-azure ssh-access-expire` runs ssh-access's expiry
+# sweep. The function gets the settings terraform gives it for the fixtures, unless they are set
+# already. It prints the answer, then its logs and duration; the exit code is 2 for an invalid
+# input, 1 for other errors.
+#
+# Run an Azure function once against real Azure as the az CLI's account, e.g. run-azure vm-delete '{"vmId":"…"}'.
+[positional-arguments]
+run-azure function input="":
+    #!/usr/bin/env bash
+    source e2e/azure/lib.sh
+    fn="$1"
+    input="$2"
+    bin="$fn-azure"
+    case "$fn" in
+      volume-delete) export ALLOW_SKIP_SNAPSHOT="${ALLOW_SKIP_SNAPSHOT:-false}" ;;
+      node-pool-resize) export MAX_NODE_COUNT="${MAX_NODE_COUNT:-3}" ;;
+      ssh-access | ssh-access-expire)
+        export MAX_DURATION_MINUTES="${MAX_DURATION_MINUTES:-60}"
+        export SCOPES="${SCOPES:-[\"$(rg_id "$RG_VMS")\"]}"
+        if [[ -n "${E2E_BASTION_ID:-}" ]]; then export BASTION_ID="$E2E_BASTION_ID"; fi
+        if [[ "$fn" == ssh-access-expire ]]; then bin=ssh-access-azure input="$fn"; fi
+        ;;
+      lb-frontend-delete | vm-delete | db-restore) ;;
+      *) die "unknown function $fn; one of: $(ls bins | grep -- '-azure$' | sed 's/-azure$//' | tr '\n' ' ')ssh-access-expire" ;;
+    esac
+    [[ -n "$input" ]] || die "the input JSON is missing"
+    export RUST_LOG="${RUST_LOG:-info}"
+    # Homebrew's rustup doesn't put cargo on the PATH. Don't let it install missing toolchains.
+    if ! command -v cargo >/dev/null && [[ -d /opt/homebrew/opt/rustup/bin ]]; then
+      export PATH="/opt/homebrew/opt/rustup/bin:$PATH" RUSTUP_AUTO_INSTALL=0
+    fi
+    # Built first, so the duration is the function's own.
+    cargo build -q -p "$bin" --features functions-azure/az-cli
+    start="$(python3 -c 'import time; print(time.time())')"
+    status=0
+    "target/debug/$bin" "$input" || status=$?
+    python3 -c 'import sys, time; print(f"took {time.time() - float(sys.argv[1]):.1f}s (workbenches wait 30s)", file=sys.stderr)' "$start"
+    exit "$status"

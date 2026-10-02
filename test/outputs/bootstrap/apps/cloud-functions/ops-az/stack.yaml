@@ -1,0 +1,88 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: cloud-functions-ops-az
+  namespace: apps
+spec:
+
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/cloud-functions/ops-az
+  repositoryRef:
+    name: infra
+    namespace: infra
+  variables:
+    name: "ops-az"
+    region: "eastus"
+    cloud_connection: "azure-workbench"
+    artifact_version: "v0.1.0-spike.1"
+    
+    functions:
+      - volume-delete
+      - lb-frontend-delete
+      - node-pool-resize
+      - vm-delete
+      - db-restore
+      - ssh-access
+    # Each function only gets permissions on these resource groups.
+    scopes:
+      volume-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
+      lb-frontend-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
+      node-pool-resize: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mgmt"]
+      vm-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms"]
+      db-restore: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/databases"]
+      ssh-access: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms"]
+    
+    
+    
+    
+    
+  # Before terraform runs, the init container downloads the release's Azure packages into
+  # /artifacts/<version> and verifies them against SHA256SUMS. With raw, the operator ignores the
+  # other jobSpec fields, and a stack's jobSpec replaces the default one from the deployment
+  # settings, so the stacks service account, which carries the Azure workload identity, is also
+  # set in raw.
+  jobSpec:
+    namespace: plrl-deploy-operator
+    raw:
+      template:
+        metadata:
+          namespace: plrl-deploy-operator
+          labels:
+            azure.workload.identity/use: "true"
+        spec:
+          serviceAccountName: stacks
+          initContainers:
+            - name: fetch-functions
+              image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+              command: ["/bin/sh", "-ec"]
+              args:
+                - |
+                  base=https://github.com/pluralsh/scaffolds/releases/download/functions/v0.1.0-spike.1
+                  mkdir -p /artifacts/v0.1.0-spike.1 && cd /artifacts/v0.1.0-spike.1
+                  curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS"
+                  grep -E -- '-azure\.(zip|tar\.gz)$' SHA256SUMS > packages.sums || { echo "no azure functions in v0.1.0-spike.1"; exit 1; }
+                  for zip in $(awk '{print $2}' packages.sums); do
+                    curl -fsSL --retry 3 -o "$zip" "$base/$zip"
+                  done
+                  sha256sum -c packages.sums
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+          containers:
+            - name: default
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+                  readOnly: true
+          volumes:
+            - name: artifacts
+              emptyDir: {}
+  clusterRef:
+    name: mgmt
+    namespace: infra

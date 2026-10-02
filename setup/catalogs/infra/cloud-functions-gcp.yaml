@@ -1,0 +1,82 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: cloud-functions-gcp
+spec:
+  name: cloud-functions-gcp
+  icon: https://docs.plural.sh/favicon-128.png
+  identifier: mgmt
+  documentation: |
+    Deploys the operational GCP functions (volume-delete, vm-delete, node-pool-resize,
+    lb-frontend-delete, db-restore and ssh-access) and registers them as Plural workbench tools.
+  creates:
+    git:
+      # TODO: back to main before merging; the branch lets the automation be tested first.
+      ref: marcin/prod-5251-generate-repo-of-common-operationally-useful-cloud-functions
+      folder: catalogs/infra/cloud-functions-gcp
+    templates:
+      - source: stack.yaml
+        destination: "bootstrap/apps/cloud-functions/{{ context.name }}/stack.yaml"
+        external: true
+      - source: terraform
+        destination: terraform/apps/cloud-functions/{{ context.name }}
+        external: true
+      - source: README.md
+        destination: documentation/cloud-functions-gcp/README.md
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: infra
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up GCP cloud functions {{ context.name }}"
+  message: |
+    Set up GCP cloud functions {{ context.name }} ({{ context.region }})
+
+    Will deploy volume-delete, vm-delete, node-pool-resize, lb-frontend-delete, db-restore and
+    ssh-access from release {{ context.version }} and register each as a workbench tool. Every call
+    of a function requires human approval.
+
+    Plural Service: mgmt/apps
+  confirmation:
+    text: |
+      The functions are invoked by workbenches through a cloud connection, which needs
+      permission to invoke them. Every function is registered as a workbench tool, and every
+      call of a function requires human approval.
+    checklist:
+      - label: "I will set the invoker service account, or grant the cloud connection's service account roles/run.invoker on the functions."
+      - label: "The cloud connection is in the same GCP project as the functions."
+  configuration:
+    - name: name
+      type: STRING
+      documentation: Name of this installation, used as a prefix for every function, role and workbench tool.
+      validation:
+        regex: "^[a-z][a-z0-9-]{0,39}$"
+    - name: region
+      type: STRING
+      documentation: GCP region to deploy the functions to.
+    - name: cloudConnection
+      type: STRING
+      documentation: Name of the Plural cloud connection workbenches use to invoke the functions. It must be for GCP.
+    - name: invokerServiceAccount
+      type: STRING
+      optional: true
+      documentation: Email of the cloud connection service account. When set, it is granted roles/run.invoker on the functions registered as workbench tools.
+    - name: nodePoolMaxCount
+      type: INT
+      optional: true
+      documentation: Largest total node count (across the pool's zones) node-pool-resize may set. Defaults to 100; at most 1000.
+    - name: sshAccessMaxMinutes
+      type: INT
+      optional: true
+      documentation: Longest access ssh-access may grant, in minutes. Defaults to 240; at most 1440 (a day).
+    - name: allowSkipSnapshot
+      type: BOOL
+      optional: true
+      documentation: Let volume-delete callers skip the snapshot it takes before deleting a volume. Off by default, so every deleted volume can be restored from its snapshot.
+    - name: version
+      type: STRING
+      documentation: Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds).
+      validation:
+        regex: "^v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.]+)?$"

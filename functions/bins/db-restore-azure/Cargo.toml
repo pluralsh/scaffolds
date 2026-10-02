@@ -1,0 +1,25 @@
+[package]
+name = "db-restore-azure"
+description = "Restores an Azure Database for PostgreSQL or MySQL flexible server to a point in time, as a new server."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+functions-azure.workspace = true
+functions-core.workspace = true
+functions-http.workspace = true
+
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+tracing.workspace = true
+
+[dev-dependencies]
+functions-azure = { workspace = true, features = ["mock"] }
+time.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }

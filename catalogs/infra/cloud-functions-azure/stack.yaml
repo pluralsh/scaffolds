@@ -1,0 +1,102 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: cloud-functions-{{ context.name }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/cloud-functions/{{ context.name }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  variables:
+    name: "{{ context.name }}"
+    region: "{{ context.region }}"
+    cloud_connection: "{{ context.cloudConnection }}"
+    artifact_version: "{{ context.version }}"
+    {% if context.allowSkipSnapshot == true or context.allowSkipSnapshot == "true" %}
+    allow_skip_snapshot: true
+    {% endif %}
+    functions:
+      - volume-delete
+      - lb-frontend-delete
+      - node-pool-resize
+      - vm-delete
+      - db-restore
+      - ssh-access
+    # Each function only gets permissions on these resource groups.
+    scopes:
+      volume-delete: ["{{ context.nodeResourceGroup }}"]
+      lb-frontend-delete: ["{{ context.nodeResourceGroup }}"]
+      node-pool-resize: ["{{ context.clusterResourceGroup }}"]
+      vm-delete: ["{{ context.vmResourceGroup }}"]
+      db-restore: ["{{ context.databaseResourceGroup }}"]
+      ssh-access: ["{{ context.vmResourceGroup }}"]
+    {% if context.networkResourceGroup %}
+    network_scopes: ["{{ context.networkResourceGroup }}"]
+    {% endif %}
+    {% if context.sshBastionId %}
+    ssh_bastion_id: "{{ context.sshBastionId }}"
+    {% endif %}
+    {% if context.invokerPrincipalId %}
+    invoker_principal_id: "{{ context.invokerPrincipalId }}"
+    {% endif %}
+    {% if context.nodePoolMaxCount %}
+    node_pool_max_count: {{ context.nodePoolMaxCount }}
+    {% endif %}
+    {% if context.sshAccessMaxMinutes %}
+    ssh_access_max_minutes: {{ context.sshAccessMaxMinutes }}
+    {% endif %}
+  # Before terraform runs, the init container downloads the release's Azure packages into
+  # /artifacts/<version> and verifies them against SHA256SUMS. With raw, the operator ignores the
+  # other jobSpec fields, and a stack's jobSpec replaces the default one from the deployment
+  # settings, so the stacks service account, which carries the Azure workload identity, is also
+  # set in raw.
+  jobSpec:
+    namespace: plrl-deploy-operator
+    raw:
+      template:
+        metadata:
+          namespace: plrl-deploy-operator
+          labels:
+            azure.workload.identity/use: "true"
+        spec:
+          serviceAccountName: stacks
+          initContainers:
+            - name: fetch-functions
+              image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+              command: ["/bin/sh", "-ec"]
+              args:
+                - |
+                  base=https://github.com/pluralsh/scaffolds/releases/download/functions/{{ context.version }}
+                  mkdir -p /artifacts/{{ context.version }} && cd /artifacts/{{ context.version }}
+                  curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS"
+                  grep -E -- '-azure\.(zip|tar\.gz)$' SHA256SUMS > packages.sums || { echo "no azure functions in {{ context.version }}"; exit 1; }
+                  for zip in $(awk '{print $2}' packages.sums); do
+                    curl -fsSL --retry 3 -o "$zip" "$base/$zip"
+                  done
+                  sha256sum -c packages.sums
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+          containers:
+            - name: default
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+                  readOnly: true
+          volumes:
+            - name: artifacts
+              emptyDir: {}
+  clusterRef:
+    name: mgmt
+    namespace: infra

@@ -10,3 +10,15 @@ spec:
   automations:
   - file: ../../setup/catalogs/data/airbyte.yaml
     context: ../contexts/airbyte.yaml
+  - file: ../../setup/catalogs/infra/cloud-functions-aws.yaml
+    context: ../contexts/cloud-functions-aws.yaml
+    externalDir: ../../catalogs/infra/cloud-functions-aws
+  - file: ../../setup/catalogs/infra/cloud-functions-azure.yaml
+    context: ../contexts/cloud-functions-azure.yaml
+    externalDir: ../../catalogs/infra/cloud-functions-azure
+  - file: ../../setup/catalogs/infra/cloud-functions-gcp.yaml
+    context: ../contexts/cloud-functions-gcp.yaml
+    externalDir: ../../catalogs/infra/cloud-functions-gcp
+  - file: ../../setup/catalogs/infra/cloud-functions-azure.yaml
+    context: ../contexts/cloud-functions-azure-all.yaml
+    externalDir: ../../catalogs/infra/cloud-functions-azure
