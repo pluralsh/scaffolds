@@ -145,10 +145,9 @@ fn parse_principal(arn: &str) -> Option<Principal> {
     }
     let (kind, rest) = if let Some(rest) = resource.strip_prefix("user/") {
         (PrincipalKind::User, rest)
-    } else if let Some(rest) = resource.strip_prefix("role/") {
-        (PrincipalKind::Role, rest)
     } else {
-        return None;
+        let rest = resource.strip_prefix("role/")?;
+        (PrincipalKind::Role, rest)
     };
     let name = rest.rsplit('/').next().filter(|n| !n.is_empty())?;
     if name.len() > 64
@@ -431,7 +430,7 @@ fn policy_document(aws: &Aws, instance: &InstanceView) -> Result<String, Error> 
             },
         ],
     }))
-    .map_err(|err| Error::provider(err))
+    .map_err(Error::provider)
 }
 
 async fn find_policy(aws: &Aws, name: &str) -> Result<Option<Policy>, Error> {
