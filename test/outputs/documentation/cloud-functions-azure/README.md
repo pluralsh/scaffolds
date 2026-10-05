@@ -16,8 +16,17 @@ tools. The function sources live in `functions/` of
   function's URL and its own key (not the app's host or master keys), and one `AZURE_FUNCTION`
   workbench tool per function. The functions' permissions are custom roles defined in the
   subscription and assigned on the resource groups they act on (and on the subscription for
-  reads Azure only serves there), so the stack's identity needs to manage role definitions and
-  assignments in the subscription, e.g. as Owner, or Contributor and User Access Administrator.
+  reads Azure only serves there), so the stack's identity needs to define and assign roles in
+  the subscription (see below).
+
+The stack runs as the bootstrap's stack identity, `<cluster>-plrl-stacks`, through the service account in `plrl-deploy-operator` its federated credential trusts: `stacks` by default, or `stacksServiceAccount`. The stack pod mounts that service account's token for Azure itself, so it doesn't need the Azure workload identity webhook and works on mgmt clusters outside AKS too. Besides Owner of the
+mgmt cluster's resource group, it needs User Access Administrator on the subscription, which
+newer bootstraps grant. For an installation bootstrapped before that, someone with Owner on the
+subscription grants it once:
+
+```bash
+az role assignment create --role "User Access Administrator" --assignee-principal-type ServicePrincipal --assignee-object-id "$(az identity show -g <mgmt resource group> -n <cluster>-plrl-stacks --query principalId -o tsv)" --scope "/subscriptions/<subscription ID>"
+```
 
 An init container of the stack run downloads the Azure function packages from the GitHub
 release and verifies them against its `SHA256SUMS`, so the mgmt cluster needs to reach
@@ -38,17 +47,22 @@ access` | Grants an Entra ID user short-lived SSH login to a Linux VM. |
 Every deployed function is registered as a workbench tool. Every function changes
 resources, so every call of their tools requires human approval in the workbench.
 
-The installation deploys all of them. Every function gets its permissions only on the
-resource groups it may act on (`scopes` in terraform, by function key):
+The installation deploys all of them for the AKS clusters in one resource group
+(`clusterResourceGroup`). Every function gets its permissions only on the resource groups it may
+act on, which terraform derives from that group and its clusters (`cluster_resource_group`;
+`scopes` in terraform overrides them per function key). All fields take resource group names:
 
-| Installation field | Functions |
+| Resource group | Functions |
 |---|---|
-| `nodeResourceGroup` | `volume-delete`, `lb-frontend-delete` in the AKS node resource group (`MC_...`) |
-| `clusterResourceGroup` | `node-pool-resize` for the AKS clusters in it |
-| `vmResourceGroup` | `vm-delete` and `ssh-access` for the standalone VMs in it |
-| `databaseResourceGroup` | `db-restore` for the flexible servers in it |
-| `networkResourceGroup` (optional) | the resource group of a network the resources above use, such as a BYO or hub VNet, public IP prefixes or private DNS zones: `node-pool-resize`, `lb-frontend-delete` and `db-restore` only get join actions there (`network_scopes` in terraform) |
-| `sshBastionId` (optional) | the Bastion host `ssh-access` users connect through |
+| the clusters' node resource groups (`MC_...`) | `volume-delete`, `lb-frontend-delete` |
+| `clusterResourceGroup` | `node-pool-resize` |
+| `vmResourceGroup`, by default `clusterResourceGroup` | `vm-delete`, `ssh-access` |
+| `databaseResourceGroup`, by default `clusterResourceGroup` (where bootstrap puts Console's database) | `db-restore` |
+| the node pools' networks (the node resource group for an AKS-managed VNet), and `networkResourceGroup` (optional) for others such as a hub VNet, public IP prefixes or private DNS zones | join actions only, for `node-pool-resize`, `lb-frontend-delete` and `db-restore` (`network_scopes` in terraform) |
+
+`sshBastionId` (optional) is the Bastion host `ssh-access` users connect through, and
+`functionsResourceGroup` (optional) the resource group for the function apps, by default the mgmt
+cluster's; set it when the mgmt cluster isn't on AKS.
 
 The stack's `scopes` variable can be edited later, e.g. to give a function more resource
 groups.
@@ -188,8 +202,10 @@ anything else.
 
 ## After the stack is applied
 
-1. Assign the `invoke_role_definition_id` output to the service principal of the cloud
-   connection on each of the `invoke_scopes` (the function apps), so it can invoke the functions.
+1. Unless the installation set `invokerPrincipalId` (the object ID of the cloud connection's
+   service principal, `invoker_principal_id` in terraform), which assigns it already: assign the
+   `invoke_role_definition_id` output to the cloud connection's service principal on each of the
+   `invoke_scopes` (the function apps), so it can invoke the functions.
 2. Add the tools from the `workbench_tool_ids` output to a workbench.
 
 ## Invocation contract

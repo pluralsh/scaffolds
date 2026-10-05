@@ -72,7 +72,12 @@ resource "aws_lambda_function" "function" {
   for_each = local.functions
 
   function_name = local.function_names[each.key]
-  description   = each.value.description
+  # Lambda caps Description at 256 characters; the workbench tool keeps the full text.
+  description = (
+    length(each.value.description) <= 256
+    ? each.value.description
+    : "${substr(each.value.description, 0, 253)}..."
+  )
   role          = aws_iam_role.function[each.key].arn
   runtime       = "provided.al2023"
   handler       = "bootstrap"

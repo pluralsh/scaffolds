@@ -2,7 +2,8 @@ name: ops-az
 region: eastus
 cloudConnection: azure-workbench
 version: v0.1.0-spike.1
-nodeResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus
-clusterResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mgmt
-vmResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms
-databaseResourceGroup: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/databases
+clusterResourceGroup: mgmt
+sshBastionId: ""
+networkResourceGroup: ""
+vmResourceGroup: ""
+nodePoolMaxCount: ""

@@ -20,7 +20,7 @@ variable "cloud_connection" {
 
 variable "resource_group_name" {
   type        = string
-  description = "Resource group for the function apps. Defaults to the resource group of the mgmt cluster."
+  description = "Resource group for the function apps. Defaults to the resource group of the mgmt cluster, which only AKS mgmt clusters record; set it for any other."
   default     = null
 }
 
@@ -63,6 +63,50 @@ variable "network_scopes" {
   }
 }
 
+variable "cluster_resource_group" {
+  type        = string
+  description = "Name of the resource group of the AKS clusters the functions work for. Their node resource groups (MC_...) and node pool networks are added to scopes and network_scopes; scopes entries replace them per function."
+  default     = null
+
+  validation {
+    condition     = var.cluster_resource_group == null || can(regex("^[-\\w._()]{1,90}$", var.cluster_resource_group))
+    error_message = "cluster_resource_group must be a resource group name."
+  }
+}
+
+variable "vm_resource_group" {
+  type        = string
+  description = "Name of the resource group of the standalone VMs vm-delete and ssh-access act on, with cluster_resource_group. Defaults to it."
+  default     = null
+
+  validation {
+    condition     = var.vm_resource_group == null || can(regex("^[-\\w._()]{1,90}$", var.vm_resource_group))
+    error_message = "vm_resource_group must be a resource group name."
+  }
+}
+
+variable "database_resource_group" {
+  type        = string
+  description = "Name of the resource group of the flexible servers db-restore acts on, with cluster_resource_group. Defaults to it, where bootstrap puts Console's database."
+  default     = null
+
+  validation {
+    condition     = var.database_resource_group == null || can(regex("^[-\\w._()]{1,90}$", var.database_resource_group))
+    error_message = "database_resource_group must be a resource group name."
+  }
+}
+
+variable "network_resource_groups" {
+  type        = list(string)
+  description = "Names of more resource groups to add to network_scopes, such as a hub VNet's."
+  default     = []
+
+  validation {
+    condition     = alltrue([for g in var.network_resource_groups : can(regex("^[-\\w._()]{1,90}$", g))])
+    error_message = "network_resource_groups must be resource group names."
+  }
+}
+
 variable "node_pool_max_count" {
   type        = number
   description = "Largest node count node-pool-resize may set."
@@ -93,6 +137,17 @@ variable "ssh_bastion_id" {
   validation {
     condition     = var.ssh_bastion_id == null || can(regex("^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/Microsoft\\.Network/bastionHosts/[^/]+$", var.ssh_bastion_id))
     error_message = "ssh_bastion_id must be a Bastion host resource ID."
+  }
+}
+
+variable "invoker_principal_id" {
+  type        = string
+  description = "Object ID of the workbench cloud connection's service principal. When set, it gets the invoke role on each function app; otherwise assign invoke_role_definition_id on invoke_scopes yourself."
+  default     = null
+
+  validation {
+    condition     = var.invoker_principal_id == null || can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.invoker_principal_id))
+    error_message = "invoker_principal_id must be an object ID (a GUID)."
   }
 }
 

@@ -31,19 +31,26 @@ spec:
       - vm-delete
       - db-restore
       - ssh-access
-    # Each function only gets permissions on these resource groups.
-    scopes:
-      volume-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
-      lb-frontend-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
-      node-pool-resize: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mgmt"]
-      vm-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms"]
-      db-restore: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/databases"]
-      ssh-access: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms"]
+    # Each function only gets permissions on the resource groups terraform derives from these
+    # (scopes in terraform overrides them per function).
+    cluster_resource_group: "mgmt"
     
-    network_scopes: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/network"]
+    vm_resource_group: "vms"
+    
+    
+    database_resource_group: "databases"
+    
+    
+    network_resource_groups: ["network"]
     
     
     ssh_bastion_id: "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/hub/providers/Microsoft.Network/bastionHosts/hub-bastion"
+    
+    
+    resource_group_name: "functions"
+    
+    
+    invoker_principal_id: "11111111-2222-3333-4444-555555555555"
     
     
     node_pool_max_count: 20
@@ -54,18 +61,19 @@ spec:
   # Before terraform runs, the init container downloads the release's Azure packages into
   # /artifacts/<version> and verifies them against SHA256SUMS. With raw, the operator ignores the
   # other jobSpec fields, and a stack's jobSpec replaces the default one from the deployment
-  # settings, so the stacks service account, which carries the Azure workload identity, is also
-  # set in raw.
+  # settings, so the service account the stack identity trusts is also set in raw.
+  #
+  # The pod mounts the service account token terraform exchanges for the stack identity's Azure
+  # token itself, instead of the Azure workload identity webhook, which only AKS mgmt clusters
+  # run; the provider gets the identity's client ID from plrl/azure/identity.
   jobSpec:
     namespace: plrl-deploy-operator
     raw:
       template:
         metadata:
           namespace: plrl-deploy-operator
-          labels:
-            azure.workload.identity/use: "true"
         spec:
-          serviceAccountName: stacks
+          serviceAccountName: azure-stacks
           initContainers:
             - name: fetch-functions
               image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
@@ -89,9 +97,19 @@ spec:
                 - name: artifacts
                   mountPath: /artifacts
                   readOnly: true
+                - name: azure-identity-token
+                  mountPath: /var/run/secrets/azure/tokens
+                  readOnly: true
           volumes:
             - name: artifacts
               emptyDir: {}
+            - name: azure-identity-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      audience: api://AzureADTokenExchange
+                      expirationSeconds: 3600
+                      path: azure-identity-token
   clusterRef:
     name: mgmt
     namespace: infra

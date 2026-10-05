@@ -27,13 +27,13 @@ spec:
     {% if context.allowSkipSnapshot == true or context.allowSkipSnapshot == "true" %}
     allow_skip_snapshot: true
     {% endif %}
-    {% if context.invokerServiceAccount %}
+    {% if context.invokerServiceAccount and context.invokerServiceAccount != "" %}
     invoker_service_account: "{{ context.invokerServiceAccount }}"
     {% endif %}
-    {% if context.nodePoolMaxCount %}
+    {% if context.nodePoolMaxCount and context.nodePoolMaxCount != "" %}
     node_pool_max_count: {{ context.nodePoolMaxCount }}
     {% endif %}
-    {% if context.sshAccessMaxMinutes %}
+    {% if context.sshAccessMaxMinutes and context.sshAccessMaxMinutes != "" %}
     ssh_access_max_minutes: {{ context.sshAccessMaxMinutes }}
     {% endif %}
     functions:
