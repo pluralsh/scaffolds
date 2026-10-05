@@ -58,6 +58,12 @@ spec:
     - name: cloudConnection
       type: STRING
       documentation: Name of the Plural cloud connection workbenches use to invoke the functions. It must be for Azure.
+    - name: stacksServiceAccount
+      type: STRING
+      optional: true
+      documentation: Service account in plrl-deploy-operator the stack identity trusts (its federated credential's subject). Defaults to stacks, which bootstrap creates; leave empty unless your mgmt cluster uses another.
+      validation:
+        regex: "^(|[a-z0-9]([-a-z0-9]*[a-z0-9])?)$"
     - name: functionsResourceGroup
       type: STRING
       optional: true

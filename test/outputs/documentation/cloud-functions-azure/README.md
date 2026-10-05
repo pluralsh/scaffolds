@@ -19,7 +19,7 @@ tools. The function sources live in `functions/` of
   reads Azure only serves there), so the stack's identity needs to define and assign roles in
   the subscription (see below).
 
-The stack runs as the bootstrap's stack identity, `<cluster>-plrl-stacks`. Besides Owner of the
+The stack runs as the bootstrap's stack identity, `<cluster>-plrl-stacks`, through the service account in `plrl-deploy-operator` its federated credential trusts: `stacks` by default, or `stacksServiceAccount`. The stack pod mounts that service account's token for Azure itself, so it doesn't need the Azure workload identity webhook and works on mgmt clusters outside AKS too. Besides Owner of the
 mgmt cluster's resource group, it needs User Access Administrator on the subscription, which
 newer bootstraps grant. For an installation bootstrapped before that, someone with Owner on the
 subscription grants it once:

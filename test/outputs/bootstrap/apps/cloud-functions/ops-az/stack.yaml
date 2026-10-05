@@ -43,16 +43,17 @@ spec:
   # Before terraform runs, the init container downloads the release's Azure packages into
   # /artifacts/<version> and verifies them against SHA256SUMS. With raw, the operator ignores the
   # other jobSpec fields, and a stack's jobSpec replaces the default one from the deployment
-  # settings, so the stacks service account, which carries the Azure workload identity, is also
-  # set in raw.
+  # settings, so the service account the stack identity trusts is also set in raw.
+  #
+  # The pod mounts the service account token terraform exchanges for the stack identity's Azure
+  # token itself, instead of the Azure workload identity webhook, which only AKS mgmt clusters
+  # run; the provider gets the identity's client ID from plrl/azure/identity.
   jobSpec:
     namespace: plrl-deploy-operator
     raw:
       template:
         metadata:
           namespace: plrl-deploy-operator
-          labels:
-            azure.workload.identity/use: "true"
         spec:
           serviceAccountName: stacks
           initContainers:
@@ -78,9 +79,19 @@ spec:
                 - name: artifacts
                   mountPath: /artifacts
                   readOnly: true
+                - name: azure-identity-token
+                  mountPath: /var/run/secrets/azure/tokens
+                  readOnly: true
           volumes:
             - name: artifacts
               emptyDir: {}
+            - name: azure-identity-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      audience: api://AzureADTokenExchange
+                      expirationSeconds: 3600
+                      path: azure-identity-token
   clusterRef:
     name: mgmt
     namespace: infra
