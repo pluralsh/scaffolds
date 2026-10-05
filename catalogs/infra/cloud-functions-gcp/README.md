@@ -7,9 +7,10 @@ tools. The function sources live in `functions/` of
 
 ## Components
 
-- `bootstrap/apps/cloud-functions/<name>/stack.yaml`: InfrastructureStack that deploys the functions.
+- `bootstrap/apps/cloud-functions/<name>/stack.yaml`: InfrastructureStack that deploys the
+  functions, see [Project and credentials](#project-and-credentials).
 - `terraform/apps/cloud-functions/<name>`: terraform for GCP: one Cloud Run function (2nd gen)
-  per function running as its own service account, in the project of the mgmt cluster,
+  per function running as its own service account, in the project of a GKE cluster,
   reachable only by identities granted `roles/run.invoker`, and one `CLOUD_RUN` workbench tool
   per function. The functions are written in Go. Terraform uploads their source to a private
   bucket and Cloud Build builds it as a dedicated service account into an Artifact Registry
@@ -17,7 +18,7 @@ tools. The function sources live in `functions/` of
   feature is involved.
 
 An init container of the stack run downloads the GCP function package from the GitHub release
-and verifies it against its `SHA256SUMS`, so the mgmt cluster needs to reach `github.com` and
+and verifies it against its `SHA256SUMS`, so the management cluster needs to reach `github.com` and
 Docker Hub (`curlimages/curl`) while the stack runs. The package is the Go source of all
 functions (`functions-gcp.zip`), uploaded to a bucket of the installation, so the functions
 don't depend on the release afterwards. The project needs the Cloud Functions, Cloud Run,
@@ -38,7 +39,7 @@ Cloud SQL Admin, IAP), which the stack enables.
 Every deployed function is registered as a workbench tool. Every function changes
 resources, so every call of their tools requires human approval in the workbench.
 
-The installation deploys all of them. Every function acts in the project of the mgmt cluster,
+The installation deploys all of them. Every function acts in the functions' project,
 with a project custom role holding only the permissions it needs; GCP IAM can't narrow most of
 them to particular resources, so the functions' checks do that.
 
@@ -170,10 +171,58 @@ treat the title as a label, not a proof. Permissions: read instances and project
 read and set the IAM policies of instances and IAP tunnel instances. Setting a policy allows
 granting any role on that resource; only the function restricts it to these roles.
 
+## Project and credentials
+
+The stack runs on the management cluster, as its `stacks` service account. The functions go
+to the project of the GKE cluster `cluster` (the `cluster` variable), read from the
+`plrl/clusters/<cluster>` service context the GCP bootstrap creates for each cluster:
+`plrl/clusters/mgmt` for a GKE management cluster (the default), `plrl/clusters/<handle>` for
+a GKE workload cluster, e.g. when the management cluster runs on another cloud.
+
+Terraform authenticates to GCP as one of:
+
+- the GKE workload identity of the `stacks` service account, on a GKE management cluster from
+  the GCP bootstrap. Nothing needs to be set up.
+- workload identity federation, when the management cluster runs on another cloud and stacks
+  already reach GCP that way, e.g. the stack of a GKE workload cluster: reuse its secret with
+  the federation config (`google-application-credentials.json`, whose credential source is the
+  file `/var/run/secrets/tokens/gcp-identity-token`), e.g. `gcp-wif-credentials`. Set
+  `credentialsSecret` to its name and `workloadIdentityAudience` to the provider's audience.
+  The stack mounts the config, sets `GOOGLE_APPLICATION_CREDENTIALS` and projects a `stacks`
+  token for that audience at that path.
+- a service account key, stored the same way as `google-application-credentials.json` in a
+  secret named by `credentialsSecret`, without `workloadIdentityAudience`.
+
+The controller reads `credentialsSecret` from the namespace of the stack object, `apps` on the
+management cluster, and stacks can't reference secrets in other namespaces, so a secret kept
+elsewhere has to be copied there (the stack's runs, like every stack's, run in
+`plrl-deploy-operator`):
+
+```bash
+# copy a workload cluster stack's federation config from infra to apps
+kubectl -n infra get secret gcp-wif-credentials -o json \
+  | jq '{apiVersion, kind, type, data, metadata: {name: .metadata.name, namespace: "apps"}}' | kubectl apply -f -
+# or store a service account key
+kubectl -n apps create secret generic gcp-functions-creds --from-file=google-application-credentials.json=key.json
+```
+
+Either identity needs to manage what the stack creates in the project: the APIs, the
+functions' and build service accounts with their custom roles and project bindings, the
+Artifact Registry repository, the source bucket, the Cloud Run functions and their invoker
+bindings, e.g. `roles/serviceusage.serviceUsageAdmin`, `roles/iam.serviceAccountAdmin`,
+`roles/iam.serviceAccountUser`, `roles/iam.roleAdmin`, `roles/resourcemanager.projectIamAdmin`,
+`roles/artifactregistry.admin`, `roles/storage.admin`, `roles/cloudfunctions.admin` and
+`roles/run.admin`. Managing project IAM bindings and custom roles makes it close to a project
+owner, and federated identities need `roles/iam.workloadIdentityUser` on it, or the roles
+granted to the federated principal. The stack's job spec replaces the one in the deployment
+settings (it adds an init container), so credentials configured only there don't reach this
+stack; use `credentialsSecret`.
+
 ## After the stack is applied
 
-1. Set the invoker service account when installing, or grant the cloud connection service
-   account `roles/run.invoker` on the Cloud Run services behind the functions.
+1. If the installation didn't set `invokerServiceAccount` (the cloud connection's service
+   account), grant that account `roles/run.invoker` on the Cloud Run services behind the
+   functions.
 2. Add the tools from the `workbench_tool_ids` output to a workbench.
 
 ## Invocation contract

@@ -21,6 +21,7 @@ spec:
   variables:
     name: "{{ context.name }}"
     region: "{{ context.region }}"
+    cluster: "{{ context.cluster }}"
     cloud_connection: "{{ context.cloudConnection }}"
     artifact_version: "{{ context.version }}"
     {% if context.allowSkipSnapshot == true or context.allowSkipSnapshot == "true" %}
@@ -45,8 +46,20 @@ spec:
   # Before terraform runs, the init container downloads the release's GCP package into
   # /artifacts/<version> and verifies it against SHA256SUMS. With raw, the operator ignores the
   # other jobSpec fields, and a stack's jobSpec replaces the default one from the deployment
-  # settings, so the stacks service account, which carries the GKE workload identity, is also
-  # set in raw.
+  # settings, so the stacks service account, which carries the workload identity, is also set in
+  # raw.
+{% if context.credentialsSecret %}
+  # GCP credentials from a secret of this stack's namespace instead of the stacks service account's GKE
+  # workload identity: a service account key, or a workload identity federation config that
+  # exchanges the stacks token projected below. The harness writes the secret's keys as files.
+  files:
+    - mountPath: /plural/gcp
+      secretRef:
+        name: {{ context.credentialsSecret }}
+  environment:
+    - name: GOOGLE_APPLICATION_CREDENTIALS
+      value: /plural/gcp/google-application-credentials.json
+{% endif %}
   jobSpec:
     namespace: plrl-deploy-operator
     raw:
@@ -76,9 +89,25 @@ spec:
                 - name: artifacts
                   mountPath: /artifacts
                   readOnly: true
+{% if context.workloadIdentityAudience %}
+                # The stacks token the workload identity federation config exchanges for GCP
+                # credentials; its credential_source file is /var/run/secrets/tokens/gcp-identity-token.
+                - name: gcp-wif-token
+                  mountPath: /var/run/secrets/tokens
+                  readOnly: true
+{% endif %}
           volumes:
             - name: artifacts
               emptyDir: {}
+{% if context.workloadIdentityAudience %}
+            - name: gcp-wif-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      audience: "{{ context.workloadIdentityAudience }}"
+                      expirationSeconds: 3600
+                      path: gcp-identity-token
+{% endif %}
   clusterRef:
     name: mgmt
     namespace: infra

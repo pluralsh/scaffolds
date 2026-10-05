@@ -5,6 +5,9 @@ variable "ssh_access_max_minutes" {
   type        = number
   description = "Longest access ssh-access may grant, in minutes."
   default     = 240
+  # The stack passes the installation field as is, which is null when it was left empty; null
+  # then means the default.
+  nullable = false
 
   validation {
     condition     = var.ssh_access_max_minutes >= 1 && var.ssh_access_max_minutes <= 1440

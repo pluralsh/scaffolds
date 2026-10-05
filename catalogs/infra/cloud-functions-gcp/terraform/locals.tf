@@ -14,8 +14,7 @@ locals {
   functions = { for key, fn in local.catalog : key => fn if contains(var.functions, key) }
   unknown   = setsubtract(var.functions, keys(local.catalog))
 
-  ctx_mgmt   = jsondecode(data.plural_service_context.mgmt.configuration)
-  project_id = local.ctx_mgmt.project_id
+  project_id = jsondecode(data.plural_service_context.cluster.configuration).project_id
 
   # Service account IDs are limited to 30 characters and custom role IDs to letters, digits,
   # underscores and dots, so both get a suffix hashed from the project and installation name.

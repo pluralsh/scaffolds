@@ -8,6 +8,12 @@ variable "name" {
   }
 }
 
+variable "cluster" {
+  type        = string
+  description = "Handle of the GKE cluster whose project the functions are deployed to and act in, read from its plrl/clusters/<handle> service context."
+  default     = "mgmt"
+}
+
 variable "region" {
   type        = string
   description = "GCP region to deploy the Cloud Run functions to."
@@ -20,7 +26,7 @@ variable "cloud_connection" {
 
 variable "invoker_service_account" {
   type        = string
-  description = "Email of the cloud connection service account. When set, it is granted roles/run.invoker on the functions registered as workbench tools."
+  description = "Email of the service account the cloud connection authenticates as. When set, it is granted roles/run.invoker on every function, so workbenches can call them. When null, grant that role yourself."
   default     = null
 }
 

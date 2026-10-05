@@ -5,6 +5,9 @@ variable "node_pool_max_count" {
   type        = number
   description = "Largest total node count (across the pool's zones) node-pool-resize may set."
   default     = 100
+  # The stack passes the installation field as is, which is null when it was left empty; null
+  # then means the default.
+  nullable = false
 
   validation {
     condition     = var.node_pool_max_count >= 1 && var.node_pool_max_count <= 1000
