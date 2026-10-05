@@ -39,6 +39,8 @@ variable "node_pool_max_count" {
   type        = number
   description = "Largest desired size callers may set with node-pool-resize."
   default     = 100
+  # Plural may pass null for optional stack variables left empty; use the default then.
+  nullable    = false
 
   validation {
     condition     = var.node_pool_max_count >= 0 && var.node_pool_max_count <= 1000
@@ -50,6 +52,8 @@ variable "ssh_access_max_minutes" {
   type        = number
   description = "Longest access ssh-access may grant, in minutes."
   default     = 240
+  # Plural may pass null for optional stack variables left empty; use the default then.
+  nullable    = false
 
   validation {
     condition     = var.ssh_access_max_minutes >= 1 && var.ssh_access_max_minutes <= 1440
