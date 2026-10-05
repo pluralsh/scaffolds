@@ -43,6 +43,27 @@ resource "azurerm_storage_container" "function" {
   container_access_type = "private"
 }
 
+# The app's package. Flex Consumption apps run the package in their deployment container, which
+# is how Azure's own deployments (One Deploy) publish them. azurerm's zip_deploy_file can't deploy
+# to Flex Consumption: it waits for a Kudu endpoint those apps don't have.
+resource "azurerm_storage_blob" "package" {
+  for_each = local.functions
+
+  name                 = "released-package.zip"
+  storage_container_id = azurerm_storage_container.function[each.key].id
+  type                 = "Block"
+  source               = local.artifacts[each.key]
+  content_md5          = filemd5(local.artifacts[each.key])
+  content_type         = "application/zip"
+
+  lifecycle {
+    precondition {
+      condition     = fileexists(local.artifacts[each.key])
+      error_message = "${local.artifacts[each.key]} not found. The stack's fetch-functions init container downloads it; check that it ran and that ${var.artifact_version} contains ${each.value.binary}.zip."
+    }
+  }
+}
+
 # Flex Consumption allows a single app per plan.
 resource "azurerm_service_plan" "function" {
   for_each = local.functions
@@ -56,7 +77,7 @@ resource "azurerm_service_plan" "function" {
 }
 
 # One app per function, so each runs as its own managed identity with only the actions it
-# needs. artifact_version is part of the package path, so changing it redeploys the code.
+# needs. A new package (see azurerm_storage_blob.package) restarts it.
 resource "azurerm_function_app_flex_consumption" "function" {
   for_each = local.functions
 
@@ -75,7 +96,6 @@ resource "azurerm_function_app_flex_consumption" "function" {
   instance_memory_in_mb  = var.instance_memory_in_mb
   maximum_instance_count = var.maximum_instance_count
   https_only             = true
-  zip_deploy_file        = local.artifacts[each.key]
 
   identity {
     type = "SystemAssigned"
@@ -85,16 +105,13 @@ resource "azurerm_function_app_flex_consumption" "function" {
     application_insights_connection_string = azurerm_application_insights.functions.connection_string
   }
 
-  app_settings = each.value.environment
+  # A changed package changes this setting, and changing settings restarts the app, which then
+  # loads the new package.
+  app_settings = merge(each.value.environment, {
+    PLURAL_PACKAGE_MD5 = azurerm_storage_blob.package[each.key].content_md5
+  })
 
   tags = var.tags
-
-  lifecycle {
-    precondition {
-      condition     = fileexists(local.artifacts[each.key])
-      error_message = "${local.artifacts[each.key]} not found. The stack's fetch-functions init container downloads it; check that it ran and that ${var.artifact_version} contains ${each.value.binary}.zip."
-    }
-  }
 }
 
 resource "azurerm_role_definition" "function" {

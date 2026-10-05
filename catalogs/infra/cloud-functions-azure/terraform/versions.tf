@@ -2,10 +2,11 @@ terraform {
   required_version = ">= 1.5"
 
   required_providers {
-    # 4.58 accepts maximum_instance_count below 40 on Flex Consumption apps.
+    # 4.58 accepts maximum_instance_count below 40 on Flex Consumption apps, and 4.77 takes
+    # storage_container_id on blobs.
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 4.58"
+      version = ">= 4.77"
     }
     plural = {
       source  = "pluralsh/plural"

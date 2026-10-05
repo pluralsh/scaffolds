@@ -188,7 +188,7 @@ locals {
   }
   unknown         = setsubtract(concat(var.functions, keys(var.scopes)), keys(local.catalog))
   subscription_id = "/subscriptions/${local.identity_context["subscription_id"]}"
-  # The version is part of the path, so a new release changes zip_deploy_file and redeploys.
+  # Package files as the stack's init container downloads them.
   artifacts = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }
 
   # Function app and storage account names are globally unique, so they get a suffix hashed
