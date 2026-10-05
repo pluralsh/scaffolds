@@ -1,7 +1,5 @@
-# Each app gets its own storage account for its package and the Functions host's state,
-# including its keys. The app uses the account key, so a shared account would let any app read
-# or replace the others' packages and keys. Identity-based access isn't used: the azurerm
-# provider doesn't configure it correctly for Flex Consumption apps yet.
+# One storage account per app: apps use its key, so a shared one would expose the others'
+# packages and keys. azurerm doesn't support identity access for Flex Consumption yet.
 resource "azurerm_storage_account" "function" {
   for_each = local.functions
 
@@ -15,8 +13,6 @@ resource "azurerm_storage_account" "function" {
   tags                            = var.tags
 }
 
-# The Functions host sends handler logs and invocations to Application Insights, which stores
-# them in this workspace.
 resource "azurerm_log_analytics_workspace" "functions" {
   name                = "${var.name}-functions-${substr(local.hash, 0, 6)}"
   resource_group_name = data.azurerm_resource_group.functions.name
@@ -43,9 +39,8 @@ resource "azurerm_storage_container" "function" {
   container_access_type = "private"
 }
 
-# The app's package. Flex Consumption apps run the package in their deployment container, which
-# is how Azure's own deployments (One Deploy) publish them. azurerm's zip_deploy_file can't deploy
-# to Flex Consumption: it waits for a Kudu endpoint those apps don't have.
+# Flex Consumption apps run the package in their deployment container. azurerm's
+# zip_deploy_file can't deploy to them.
 resource "azurerm_storage_blob" "package" {
   for_each = local.functions
 
@@ -76,8 +71,7 @@ resource "azurerm_service_plan" "function" {
   tags                = var.tags
 }
 
-# One app per function, so each runs as its own managed identity with only the actions it
-# needs. A new package (see azurerm_storage_blob.package) restarts it.
+# One app per function, each with its own identity and only the actions it needs.
 resource "azurerm_function_app_flex_consumption" "function" {
   for_each = local.functions
 
@@ -105,8 +99,7 @@ resource "azurerm_function_app_flex_consumption" "function" {
     application_insights_connection_string = azurerm_application_insights.functions.connection_string
   }
 
-  # A changed package changes this setting, and changing settings restarts the app, which then
-  # loads the new package.
+  # Restarts the app on a new package.
   app_settings = merge(each.value.environment, {
     PLURAL_PACKAGE_MD5 = azurerm_storage_blob.package[each.key].content_md5
   })
@@ -134,7 +127,6 @@ resource "azurerm_role_definition" "function" {
   }
 }
 
-# The function's managed identity gets its role on each of its scopes only.
 resource "azurerm_role_assignment" "function" {
   for_each = merge([
     for key, role in azurerm_role_definition.function : {
@@ -150,8 +142,7 @@ resource "azurerm_role_assignment" "function" {
   condition_version  = local.functions[each.value.key].condition == null ? null : "2.0"
 }
 
-# Join actions of functions that reference networks, granted on the network resource groups
-# without the functions' other actions.
+# Join actions only, on the network resource groups.
 resource "azurerm_role_definition" "network" {
   for_each = { for key, fn in local.functions : key => fn if length(fn.network_scopes) > 0 }
 
@@ -178,7 +169,7 @@ resource "azurerm_role_assignment" "network" {
   principal_type     = "ServicePrincipal"
 }
 
-# Reads ARM only serves at subscription scope, such as results of long-running actions.
+# Reads ARM only serves at subscription scope.
 resource "azurerm_role_definition" "subscription" {
   for_each = { for key, fn in local.functions : key => fn if length(fn.subscription_actions) > 0 }
 

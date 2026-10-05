@@ -1,18 +1,13 @@
 locals {
-  # Without allow_skip_snapshot, the `snapshot` input is dropped from the tool schema and the
-  # function also rejects `snapshot: false`.
+  # Without allow_skip_snapshot, the tool has no `snapshot` input.
   volume_delete_schema = jsondecode(file("${path.module}/schemas/volume-delete.json"))
   volume_delete_properties = {
     for key, prop in local.volume_delete_schema.properties : key => prop if key != "snapshot" || var.allow_skip_snapshot
   }
 
-  # Deployable functions. `function` is the HTTP function inside the app (the folder with its
-  # function.json in the package). `actions` is the minimal set of ARM actions each needs,
-  # granted to its managed identity on the resource groups in local.scopes; `condition` is an
-  # optional condition on those role assignments. `network_actions` are join actions also
-  # granted on local.network_scopes, and `subscription_actions` are reads granted on the
-  # subscription. All are registered as workbench tools; calls to `destructive` ones (which
-  # change or delete resources) need human approval.
+  # Deployable functions. `function` is the HTTP function in the package; `actions` are granted on
+  # local.scopes, `network_actions` on local.network_scopes and `subscription_actions` on the
+  # subscription. Calls to `destructive` tools need approval.
   catalog = {
     volume-delete = {
       binary      = "volume-delete-azure"
@@ -23,7 +18,7 @@ locals {
       actions = [
         "Microsoft.Compute/disks/read",
         "Microsoft.Compute/disks/delete",
-        # Creating a snapshot copies the source disk through a read access grant.
+        # Snapshots copy the disk through a read access grant.
         "Microsoft.Compute/disks/beginGetAccess/action",
         "Microsoft.Compute/snapshots/read",
         "Microsoft.Compute/snapshots/write",
@@ -39,8 +34,7 @@ locals {
       description = "Sets the node count of a manually scaled AKS node pool; AKS drains the nodes it removes. Pools scaled by the cluster autoscaler are refused. Use action plan first to see the current count and the checks, then execute."
       destructive = true
       environment = { MAX_NODE_COUNT = tostring(var.node_pool_max_count) }
-      # The update resends the whole pool, and ARM checks the caller may join the subnets and
-      # public IP prefix it references.
+      # The update resends the whole pool, including its subnets and public IP prefix.
       actions = concat([
         "Microsoft.ContainerService/managedClusters/agentPools/read",
         "Microsoft.ContainerService/managedClusters/agentPools/write",
@@ -60,8 +54,7 @@ locals {
         "Microsoft.Compute/virtualMachines/read",
         "Microsoft.Compute/virtualMachines/write",
         "Microsoft.Compute/virtualMachines/delete",
-        # The VM update references its disks and network interfaces, and deleting the VM
-        # deletes the OS disk and network interfaces with it.
+        # Deleting the VM deletes its OS disk and network interfaces.
         "Microsoft.Compute/disks/read",
         "Microsoft.Compute/disks/write",
         "Microsoft.Compute/disks/delete",
@@ -86,13 +79,11 @@ locals {
         "Microsoft.Network/loadBalancers/delete",
         "Microsoft.Network/publicIPAddresses/read",
         "Microsoft.Network/publicIPAddresses/delete",
-        # Updating the load balancer references the public IPs, prefixes and subnets of its other
-        # frontends, and the virtual networks of IP-based backend pools.
+        # The update resends the other frontends' public IPs, prefixes and subnets.
         "Microsoft.Network/publicIPAddresses/join/action",
         "Microsoft.Network/publicIPPrefixes/join/action",
         "Microsoft.Network/virtualNetworks/subnets/join/action",
         "Microsoft.Network/virtualNetworks/joinLoadBalancer/action",
-        # Backend health of the frontend's rules, checked before removing it.
         "Microsoft.Network/loadBalancers/loadBalancingRules/health/action",
       ]
       condition = null
@@ -102,7 +93,7 @@ locals {
         "Microsoft.Network/virtualNetworks/subnets/join/action",
         "Microsoft.Network/virtualNetworks/joinLoadBalancer/action",
       ]
-      # The backend health action is long-running; ARM serves its result at subscription scope.
+      # Backend health results are served at subscription scope.
       subscription_actions = [
         "Microsoft.Network/locations/operationResults/read",
         "Microsoft.Network/locations/operations/read",
@@ -120,11 +111,10 @@ locals {
         "Microsoft.DBforPostgreSQL/flexibleServers/write",
         "Microsoft.DBforMySQL/flexibleServers/read",
         "Microsoft.DBforMySQL/flexibleServers/write",
-        # Servers in a virtual network are restored into the source's subnet and private DNS zone.
+        # Restores join the source's subnet and private DNS zone.
         "Microsoft.Network/virtualNetworks/subnets/join/action",
         "Microsoft.Network/privateDnsZones/join/action",
-        # Servers encrypted with a customer managed key are restored with the source's
-        # user-assigned identities, which read the key.
+        # Restores of CMK-encrypted servers reuse the source's identities.
         "Microsoft.ManagedIdentity/userAssignedIdentities/assign/action",
       ]
       condition = null
@@ -143,7 +133,7 @@ locals {
       environment = merge(
         {
           MAX_DURATION_MINUTES = tostring(var.ssh_access_max_minutes)
-          # Resource groups the timer removes expired access in.
+          # Where the timer removes expired access.
           SCOPES = jsonencode(lookup(local.scopes, "ssh-access", []))
         },
         { for key, value in { BASTION_ID = var.ssh_bastion_id } : key => value if value != null },
@@ -162,8 +152,7 @@ locals {
     }
   }
 
-  # Limits the role assignments ssh-access may create and delete to VM login roles for users,
-  # so it can't grant anything else.
+  # ssh-access may only assign VM login roles, to users.
   vm_login_roles = "fb879df8-f326-4884-b1cf-06f3ad86be52, 1c0163c0-47e6-4577-8991-ea5c82e286e4"
   ssh_access_condition = join(" AND ", [
     for action, source in { write = "Request", delete = "Resource" } :
@@ -172,7 +161,7 @@ locals {
 
   identity_context = jsondecode(data.plural_service_context.identity.configuration)
   cluster_context  = jsondecode(data.plural_service_context.cluster.configuration)
-  # Only AKS mgmt clusters record their resource group; others need var.resource_group_name.
+  # Only AKS mgmt clusters record their resource group.
   resource_group_name = coalesce(var.resource_group_name, lookup(local.cluster_context, "resource_group_name", null))
 
   node_pool_join_actions = [
@@ -188,13 +177,9 @@ locals {
   }
   unknown         = setsubtract(concat(var.functions, keys(var.scopes)), keys(local.catalog))
   subscription_id = "/subscriptions/${local.identity_context["subscription_id"]}"
-  # Package files as the stack's init container downloads them.
-  artifacts = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }
+  artifacts       = { for key, fn in local.functions : key => "${var.artifact_dir}/${var.artifact_version}/${fn.binary}.zip" }
 
-  # Function app and storage account names are globally unique, so they get a suffix hashed
-  # from the subscription, resource group and installation name (plus the function, for storage
-  # accounts). App names are limited to 32 characters; storage account names to 24 lowercase
-  # letters and digits.
+  # Globally unique names: a hash suffix, within 32 (apps) and 24 (storage) characters.
   hash                  = sha1("${local.identity_context["subscription_id"]}/${local.resource_group_name}/${var.name}")
   app_names             = { for key, _ in local.functions : key => "${trim(substr("${var.name}-${key}", 0, 25), "-")}-${substr(local.hash, 0, 6)}" }
   storage_account_names = { for key, _ in local.functions : key => "plrlfn${substr(sha1("${local.hash}/${key}"), 0, 18)}" }
