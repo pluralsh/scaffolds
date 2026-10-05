@@ -9,6 +9,8 @@ resource "azurerm_role_definition" "invoke" {
     actions = [
       "Microsoft.Web/sites/functions/read",
       "Microsoft.Web/sites/functions/listsecrets/action",
+      # Flex Consumption apps only list keys.
+      "Microsoft.Web/sites/functions/listkeys/action",
     ]
   }
 }
