@@ -84,7 +84,8 @@ locals {
         "Microsoft.Network/publicIPPrefixes/join/action",
         "Microsoft.Network/virtualNetworks/subnets/join/action",
         "Microsoft.Network/virtualNetworks/joinLoadBalancer/action",
-        "Microsoft.Network/loadBalancers/loadBalancingRules/health/action",
+        # Azure lists only health/action, but checks health/read for the same call.
+        "Microsoft.Network/loadBalancers/loadBalancingRules/health/*",
       ]
       condition = null
       network_actions = [
