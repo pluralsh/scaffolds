@@ -61,7 +61,7 @@ spec:
       documentation: GCP region to deploy the functions to.
     - name: cluster
       type: CLUSTER
-      documentation: Handle of the GKE cluster, set up by the GCP bootstrap, whose project the functions are deployed to and act in, read from its plrl/clusters/<handle> service context. Defaults to the management cluster.
+      documentation: GKE cluster whose project the functions are deployed to.
       default: mgmt
     - name: credentialsSecret
       type: STRING

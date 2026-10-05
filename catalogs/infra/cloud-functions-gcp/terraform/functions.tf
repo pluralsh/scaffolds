@@ -17,10 +17,10 @@ module "function" {
 
   name     = "${var.name}-${each.key}"
   function = each.value
-  # Service account IDs are limited to 30 characters, custom role IDs to letters, digits,
-  # underscores and dots.
-  account_id = "${trim(substr("${var.name}-${each.key}", 0, 23), "-")}-${local.hash}"
-  role_id    = replace("${var.name}_${each.key}_${local.hash}", "-", "_")
+  # Service account IDs are limited to 30 characters, custom role IDs to 64 letters, digits,
+  # underscores and dots. Both are cut to fit, so the function's own hash keeps them unique.
+  account_id = "${trim(substr("${var.name}-${each.key}", 0, 23), "-")}-${local.function_hash[each.key]}"
+  role_id    = "${substr(replace("${var.name}_${each.key}", "-", "_"), 0, 57)}_${local.function_hash[each.key]}"
 
   project_id         = local.project_id
   region             = var.region

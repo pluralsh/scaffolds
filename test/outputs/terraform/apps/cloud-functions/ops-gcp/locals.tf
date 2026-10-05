@@ -16,7 +16,8 @@ locals {
 
   project_id = jsondecode(data.plural_service_context.cluster.configuration).project_id
 
-  # Service account IDs are limited to 30 characters and custom role IDs to letters, digits,
-  # underscores and dots, so both get a suffix hashed from the project and installation name.
-  hash = substr(sha1("${local.project_id}/${var.name}"), 0, 6)
+  # Service account and custom role IDs are limited in length and characters, so they get a
+  # suffix hashed from the project and installation name, and for a function's, its key.
+  hash          = substr(sha1("${local.project_id}/${var.name}"), 0, 6)
+  function_hash = { for key in keys(local.catalog) : key => substr(sha1("${local.project_id}/${var.name}/${key}"), 0, 6) }
 }
