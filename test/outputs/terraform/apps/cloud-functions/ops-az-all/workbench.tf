@@ -1,9 +1,4 @@
-# Allows only resolving a function's URL and its own key, which is how workbenches invoke
-# Azure functions. Host keys are left out on purpose: they include the app's master key, which
-# can call any function of the app (e.g. ssh-access's timer) and manage its keys. cloud-query
-# only falls back to them when a function has no key of its own. It's assigned to the workbench
-# cloud connection's service principal on each function app, so other apps in the resource group
-# stay uninvokable.
+# Function URLs and keys only. Host keys are left out: they include the master key.
 resource "azurerm_role_definition" "invoke" {
   name              = "${var.name}-invoke-${substr(local.hash, 0, 6)}"
   scope             = data.azurerm_resource_group.functions.id
@@ -14,6 +9,8 @@ resource "azurerm_role_definition" "invoke" {
     actions = [
       "Microsoft.Web/sites/functions/read",
       "Microsoft.Web/sites/functions/listsecrets/action",
+      # Flex Consumption apps only list keys.
+      "Microsoft.Web/sites/functions/listkeys/action",
     ]
   }
 }
@@ -38,7 +35,6 @@ data "plural_cloud_connection" "workbench" {
   }
 }
 
-# Every call to a tool of a function that changes resources needs human approval.
 resource "plural_workbench_tool" "function" {
   for_each = local.functions
 

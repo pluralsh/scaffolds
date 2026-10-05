@@ -129,8 +129,9 @@ locals {
       timeout     = 30
       destructive = true
       environment = {}
-      # Describing and listing tags can't be limited to resources. Restoring creates a new
-      # instance in the function's region and account; writing existing instances isn't needed.
+      # Describing and listing tags can't be limited to resources. Restore also checks the
+      # subnet group, parameter group and security groups it copies from the source, so
+      # RestoreDBInstanceToPointInTime can't be limited to db:* alone.
       statements = [
         {
           actions = [
@@ -141,7 +142,12 @@ locals {
           conditions = []
         },
         {
-          actions    = ["rds:RestoreDBInstanceToPointInTime", "rds:AddTagsToResource"]
+          actions    = ["rds:RestoreDBInstanceToPointInTime"]
+          resources  = ["*"]
+          conditions = []
+        },
+        {
+          actions    = ["rds:AddTagsToResource"]
           resources  = [local.db_instance_arn]
           conditions = []
         },

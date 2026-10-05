@@ -1,6 +1,4 @@
-# Scopes derived from cluster_resource_group: the functions act on the node pools of its AKS
-# clusters (the resource group), their disks and load balancers (their node resource groups,
-# MC_...), and join their node pools' subnets (the node resource group for an AKS-managed VNet).
+# Scopes derived from cluster_resource_group and its AKS clusters.
 data "azurerm_resources" "clusters" {
   count = var.cluster_resource_group == null ? 0 : 1
 
@@ -28,7 +26,7 @@ locals {
 
   cluster_group_id = var.cluster_resource_group == null ? null : "${local.group_prefix}${var.cluster_resource_group}"
   node_group_ids   = distinct([for c in local.clusters : "${local.group_prefix}${c.node_resource_group}"])
-  # Resource groups of BYO node pool subnets; an AKS-managed VNet is in the node resource group.
+  # BYO node pool subnets; a managed VNet is in the node resource group.
   subnet_group_ids = distinct(flatten([
     for c in local.clusters : [
       for pool in c.agent_pool_profile : regex("(?i)^(/subscriptions/[^/]+/resourceGroups/[^/]+)/", pool.vnet_subnet_id)[0]

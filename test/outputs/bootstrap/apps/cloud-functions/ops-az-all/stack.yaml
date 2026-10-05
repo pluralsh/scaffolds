@@ -31,8 +31,7 @@ spec:
       - vm-delete
       - db-restore
       - ssh-access
-    # Each function only gets permissions on the resource groups terraform derives from these
-    # (scopes in terraform overrides them per function).
+    # Terraform derives each function's resource groups from these.
     cluster_resource_group: "mgmt"
     
     vm_resource_group: "vms"
@@ -58,14 +57,8 @@ spec:
     
     ssh_access_max_minutes: 120
     
-  # Before terraform runs, the init container downloads the release's Azure packages into
-  # /artifacts/<version> and verifies them against SHA256SUMS. With raw, the operator ignores the
-  # other jobSpec fields, and a stack's jobSpec replaces the default one from the deployment
-  # settings, so the service account the stack identity trusts is also set in raw.
-  #
-  # The pod mounts the service account token terraform exchanges for the stack identity's Azure
-  # token itself, instead of the Azure workload identity webhook, which only AKS mgmt clusters
-  # run; the provider gets the identity's client ID from plrl/azure/identity.
+  # The init container downloads and verifies the release's Azure packages. The pod mounts its
+  # own Azure identity token, as only AKS runs the workload identity webhook.
   jobSpec:
     namespace: plrl-deploy-operator
     raw:
