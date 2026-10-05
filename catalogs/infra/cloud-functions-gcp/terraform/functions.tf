@@ -44,5 +44,6 @@ module "function" {
     google_project_iam_member.build_logs,
     google_artifact_registry_repository_iam_member.build,
     google_storage_bucket_iam_member.build,
+    google_project_iam_member.build_sources,
   ]
 }
