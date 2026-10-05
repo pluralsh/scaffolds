@@ -58,32 +58,35 @@ spec:
     - name: cloudConnection
       type: STRING
       documentation: Name of the Plural cloud connection workbenches use to invoke the functions. It must be for Azure.
-    - name: nodeResourceGroup
+    - name: functionsResourceGroup
       type: STRING
-      documentation: Resource group ID of the AKS node resource group (/subscriptions/<id>/resourceGroups/MC_...). volume-delete and lb-frontend-delete may only act on disks and load balancers there.
+      optional: true
+      documentation: Name of the resource group to create the function apps in. Defaults to the mgmt cluster's, which only an AKS mgmt cluster records; required with any other mgmt cluster.
       validation:
-        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+        regex: "^[-\\w._()]{1,90}$"
     - name: clusterResourceGroup
       type: STRING
-      documentation: Resource group ID of the AKS clusters whose node pools node-pool-resize may resize.
+      documentation: Name of the resource group of the AKS clusters to work for. volume-delete and lb-frontend-delete act on their node resource groups (MC_...), node-pool-resize on their node pools, and the functions may join their node pools' networks.
       validation:
-        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+        regex: "^[-\\w._()]{1,90}$"
     - name: vmResourceGroup
       type: STRING
-      documentation: Resource group ID of the standalone VMs vm-delete may delete and ssh-access may grant Entra ID login to.
+      optional: true
+      documentation: Name of the resource group of the standalone VMs vm-delete may delete and ssh-access may grant Entra ID login to. Defaults to the cluster resource group.
       validation:
-        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+        regex: "^[-\\w._()]{1,90}$"
     - name: databaseResourceGroup
       type: STRING
-      documentation: Resource group ID of the PostgreSQL and MySQL flexible servers db-restore may restore (into new servers in the same resource group).
+      optional: true
+      documentation: Name of the resource group of the PostgreSQL and MySQL flexible servers db-restore may restore (into new servers in the same resource group). Defaults to the cluster resource group, where bootstrap puts Console's database.
       validation:
-        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+        regex: "^[-\\w._()]{1,90}$"
     - name: networkResourceGroup
       type: STRING
       optional: true
-      documentation: Resource group ID of the network the clusters and databases use outside the resource groups above, such as a BYO or hub VNet, public IP prefixes or private DNS zones. node-pool-resize, lb-frontend-delete and db-restore only get the join actions there, which changing resources that reference them needs.
+      documentation: Name of the resource group of another network the clusters and databases use, such as a hub VNet, public IP prefixes or private DNS zones. The clusters' node pool networks are added already. node-pool-resize, lb-frontend-delete and db-restore only get the join actions there.
       validation:
-        regex: "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$"
+        regex: "^[-\\w._()]{1,90}$"
     - name: sshBastionId
       type: STRING
       optional: true

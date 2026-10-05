@@ -47,17 +47,22 @@ access` | Grants an Entra ID user short-lived SSH login to a Linux VM. |
 Every deployed function is registered as a workbench tool. Every function changes
 resources, so every call of their tools requires human approval in the workbench.
 
-The installation deploys all of them. Every function gets its permissions only on the
-resource groups it may act on (`scopes` in terraform, by function key):
+The installation deploys all of them for the AKS clusters in one resource group
+(`clusterResourceGroup`). Every function gets its permissions only on the resource groups it may
+act on, which terraform derives from that group and its clusters (`cluster_resource_group`;
+`scopes` in terraform overrides them per function key). All fields take resource group names:
 
-| Installation field | Functions |
+| Resource group | Functions |
 |---|---|
-| `nodeResourceGroup` | `volume-delete`, `lb-frontend-delete` in the AKS node resource group (`MC_...`) |
-| `clusterResourceGroup` | `node-pool-resize` for the AKS clusters in it |
-| `vmResourceGroup` | `vm-delete` and `ssh-access` for the standalone VMs in it |
-| `databaseResourceGroup` | `db-restore` for the flexible servers in it |
-| `networkResourceGroup` (optional) | the resource group of a network the resources above use, such as a BYO or hub VNet, public IP prefixes or private DNS zones: `node-pool-resize`, `lb-frontend-delete` and `db-restore` only get join actions there (`network_scopes` in terraform) |
-| `sshBastionId` (optional) | the Bastion host `ssh-access` users connect through |
+| the clusters' node resource groups (`MC_...`) | `volume-delete`, `lb-frontend-delete` |
+| `clusterResourceGroup` | `node-pool-resize` |
+| `vmResourceGroup`, by default `clusterResourceGroup` | `vm-delete`, `ssh-access` |
+| `databaseResourceGroup`, by default `clusterResourceGroup` (where bootstrap puts Console's database) | `db-restore` |
+| the node pools' networks (the node resource group for an AKS-managed VNet), and `networkResourceGroup` (optional) for others such as a hub VNet, public IP prefixes or private DNS zones | join actions only, for `node-pool-resize`, `lb-frontend-delete` and `db-restore` (`network_scopes` in terraform) |
+
+`sshBastionId` (optional) is the Bastion host `ssh-access` users connect through, and
+`functionsResourceGroup` (optional) the resource group for the function apps, by default the mgmt
+cluster's; set it when the mgmt cluster isn't on AKS.
 
 The stack's `scopes` variable can be edited later, e.g. to give a function more resource
 groups.

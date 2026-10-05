@@ -20,7 +20,7 @@ variable "cloud_connection" {
 
 variable "resource_group_name" {
   type        = string
-  description = "Resource group for the function apps. Defaults to the resource group of the mgmt cluster."
+  description = "Resource group for the function apps. Defaults to the resource group of the mgmt cluster, which only AKS mgmt clusters record; set it for any other."
   default     = null
 }
 
@@ -60,6 +60,50 @@ variable "network_scopes" {
   validation {
     condition     = alltrue([for s in var.network_scopes : can(regex("^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+$", s))])
     error_message = "network_scopes must be resource group IDs (/subscriptions/<id>/resourceGroups/<name>), not subscriptions or other resources."
+  }
+}
+
+variable "cluster_resource_group" {
+  type        = string
+  description = "Name of the resource group of the AKS clusters the functions work for. Their node resource groups (MC_...) and node pool networks are added to scopes and network_scopes; scopes entries replace them per function."
+  default     = null
+
+  validation {
+    condition     = var.cluster_resource_group == null || can(regex("^[-\\w._()]{1,90}$", var.cluster_resource_group))
+    error_message = "cluster_resource_group must be a resource group name."
+  }
+}
+
+variable "vm_resource_group" {
+  type        = string
+  description = "Name of the resource group of the standalone VMs vm-delete and ssh-access act on, with cluster_resource_group. Defaults to it."
+  default     = null
+
+  validation {
+    condition     = var.vm_resource_group == null || can(regex("^[-\\w._()]{1,90}$", var.vm_resource_group))
+    error_message = "vm_resource_group must be a resource group name."
+  }
+}
+
+variable "database_resource_group" {
+  type        = string
+  description = "Name of the resource group of the flexible servers db-restore acts on, with cluster_resource_group. Defaults to it, where bootstrap puts Console's database."
+  default     = null
+
+  validation {
+    condition     = var.database_resource_group == null || can(regex("^[-\\w._()]{1,90}$", var.database_resource_group))
+    error_message = "database_resource_group must be a resource group name."
+  }
+}
+
+variable "network_resource_groups" {
+  type        = list(string)
+  description = "Names of more resource groups to add to network_scopes, such as a hub VNet's."
+  default     = []
+
+  validation {
+    condition     = alltrue([for g in var.network_resource_groups : can(regex("^[-\\w._()]{1,90}$", g))])
+    error_message = "network_resource_groups must be resource group names."
   }
 }
 

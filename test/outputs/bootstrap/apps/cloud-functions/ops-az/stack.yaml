@@ -29,14 +29,12 @@ spec:
       - vm-delete
       - db-restore
       - ssh-access
-    # Each function only gets permissions on these resource groups.
-    scopes:
-      volume-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
-      lb-frontend-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/MC_mgmt_aks_eastus"]
-      node-pool-resize: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mgmt"]
-      vm-delete: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms"]
-      db-restore: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/databases"]
-      ssh-access: ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/vms"]
+    # Each function only gets permissions on the resource groups terraform derives from these
+    # (scopes in terraform overrides them per function).
+    cluster_resource_group: "mgmt"
+    
+    
+    
     
     
     

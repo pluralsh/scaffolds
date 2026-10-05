@@ -8,9 +8,9 @@ locals {
 
   # Deployable functions. `function` is the HTTP function inside the app (the folder with its
   # function.json in the package). `actions` is the minimal set of ARM actions each needs,
-  # granted to its managed identity on the resource groups in var.scopes; `condition` is an
+  # granted to its managed identity on the resource groups in local.scopes; `condition` is an
   # optional condition on those role assignments. `network_actions` are join actions also
-  # granted on var.network_scopes, and `subscription_actions` are reads granted on the
+  # granted on local.network_scopes, and `subscription_actions` are reads granted on the
   # subscription. All are registered as workbench tools; calls to `destructive` ones (which
   # change or delete resources) need human approval.
   catalog = {
@@ -144,7 +144,7 @@ locals {
         {
           MAX_DURATION_MINUTES = tostring(var.ssh_access_max_minutes)
           # Resource groups the timer removes expired access in.
-          SCOPES = jsonencode(lookup(var.scopes, "ssh-access", []))
+          SCOPES = jsonencode(lookup(local.scopes, "ssh-access", []))
         },
         { for key, value in { BASTION_ID = var.ssh_bastion_id } : key => value if value != null },
       )
@@ -170,9 +170,10 @@ locals {
     "((!(ActionMatches{'Microsoft.Authorization/roleAssignments/${action}'})) OR (@${source}[Microsoft.Authorization/roleAssignments:RoleDefinitionId] ForAnyOfAnyValues:GuidEquals {${local.vm_login_roles}} AND @${source}[Microsoft.Authorization/roleAssignments:PrincipalType] ForAnyOfAnyValues:StringEqualsIgnoreCase {'User'}))"
   ])
 
-  identity_context    = jsondecode(data.plural_service_context.identity.configuration)
-  cluster_context     = jsondecode(data.plural_service_context.cluster.configuration)
-  resource_group_name = coalesce(var.resource_group_name, local.cluster_context.resource_group_name)
+  identity_context = jsondecode(data.plural_service_context.identity.configuration)
+  cluster_context  = jsondecode(data.plural_service_context.cluster.configuration)
+  # Only AKS mgmt clusters record their resource group; others need var.resource_group_name.
+  resource_group_name = coalesce(var.resource_group_name, lookup(local.cluster_context, "resource_group_name", null))
 
   node_pool_join_actions = [
     "Microsoft.Network/virtualNetworks/subnets/join/action",
@@ -181,8 +182,8 @@ locals {
 
   functions = {
     for key, fn in local.catalog : key => merge(fn, {
-      scopes         = lookup(var.scopes, key, [])
-      network_scopes = length(fn.network_actions) > 0 ? var.network_scopes : []
+      scopes         = lookup(local.scopes, key, [])
+      network_scopes = length(fn.network_actions) > 0 ? local.network_scopes : []
     }) if contains(var.functions, key)
   }
   unknown         = setsubtract(concat(var.functions, keys(var.scopes)), keys(local.catalog))

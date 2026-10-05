@@ -33,19 +33,23 @@ spec:
       - vm-delete
       - db-restore
       - ssh-access
-    # Each function only gets permissions on these resource groups.
-    scopes:
-      volume-delete: ["{{ context.nodeResourceGroup }}"]
-      lb-frontend-delete: ["{{ context.nodeResourceGroup }}"]
-      node-pool-resize: ["{{ context.clusterResourceGroup }}"]
-      vm-delete: ["{{ context.vmResourceGroup }}"]
-      db-restore: ["{{ context.databaseResourceGroup }}"]
-      ssh-access: ["{{ context.vmResourceGroup }}"]
+    # Each function only gets permissions on the resource groups terraform derives from these
+    # (scopes in terraform overrides them per function).
+    cluster_resource_group: "{{ context.clusterResourceGroup }}"
+    {% if context.vmResourceGroup %}
+    vm_resource_group: "{{ context.vmResourceGroup }}"
+    {% endif %}
+    {% if context.databaseResourceGroup %}
+    database_resource_group: "{{ context.databaseResourceGroup }}"
+    {% endif %}
     {% if context.networkResourceGroup %}
-    network_scopes: ["{{ context.networkResourceGroup }}"]
+    network_resource_groups: ["{{ context.networkResourceGroup }}"]
     {% endif %}
     {% if context.sshBastionId %}
     ssh_bastion_id: "{{ context.sshBastionId }}"
+    {% endif %}
+    {% if context.functionsResourceGroup %}
+    resource_group_name: "{{ context.functionsResourceGroup }}"
     {% endif %}
     {% if context.invokerPrincipalId %}
     invoker_principal_id: "{{ context.invokerPrincipalId }}"
