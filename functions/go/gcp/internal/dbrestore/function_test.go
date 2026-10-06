@@ -113,10 +113,10 @@ func TestPlanDescribesTheRestore(t *testing.T) {
 	status, body := invoke(t, fake, request("plan", "db-restored", point))
 
 	want := `{"action":"plan","guards":[` +
-		`{"detail":"instance db is RUNNABLE","name":"source","passed":true},` +
-		`{"detail":"point-in-time recovery is enabled","name":"point-in-time-recovery","passed":true},` +
-		`{"detail":"db-restored will be created as a copy of the source","name":"new-instance","passed":true},` +
-		`{"detail":"must be between the earliest restore point (2026-09-25T08:00:00Z) and the latest (2026-10-02T07:59:00Z)","name":"restore-point","passed":true}],` +
+		`{"detail":"Instance db is RUNNABLE.","name":"source","passed":true},` +
+		`{"detail":"Point-in-time recovery is enabled.","name":"point-in-time-recovery","passed":true},` +
+		`{"detail":"Instance db-restored will be created as a copy of the source.","name":"new-instance","passed":true},` +
+		`{"detail":"The restore point is between the earliest restore point (2026-09-25T08:00:00Z) and the latest (2026-10-02T07:59:00Z).","name":"restore-point","passed":true}],` +
 		`"outcome":"planned","result":{"earliestRestorePoint":"2026-09-25T08:00:00Z","latestRestorePoint":"2026-10-02T07:59:00Z",` +
 		`"source":{"connectionName":"p:europe-central2:db","databaseVersion":"POSTGRES_17","ipAddresses":{"PRIVATE":"10.0.0.3"},` +
 		`"name":"db","region":"europe-central2","state":"RUNNABLE"},"submitted":false}}`

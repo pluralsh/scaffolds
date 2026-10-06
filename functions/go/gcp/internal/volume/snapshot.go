@@ -87,7 +87,7 @@ func (p SnapshotPolicy) Required(requested *bool) (bool, error) {
 		return true, nil
 	}
 	if !p.AllowSkip {
-		return false, core.InvalidRequestf("snapshot: false is not allowed by this installation; the volume is always snapshotted first")
+		return false, core.InvalidRequestf("snapshot: false is not allowed by this installation, which always snapshots the volume first")
 	}
 	return false, nil
 }

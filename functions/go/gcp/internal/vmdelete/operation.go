@@ -22,7 +22,7 @@ func (o *operation) run(ctx context.Context) (core.Response[Output], error) {
 		return core.Response[Output]{}, err
 	}
 	if found == nil {
-		guards := core.Guards{core.Fail(guardExists, "instance not found")}
+		guards := core.Guards{core.Fail(guardExists, "The instance doesn't exist.")}
 		return o.refuse(guards, Output{}), nil
 	}
 
@@ -40,7 +40,7 @@ func (o *operation) run(ctx context.Context) (core.Response[Output], error) {
 		}
 		if !ready {
 			guards = append(guards, core.Fail(guardAutoDelete,
-				"the instance is updating the auto-delete flags of its disks; execute again once it has finished"))
+				"The instance is updating the auto-delete flags of its disks. Execute again once it has finished."))
 			return core.Refused[Output](guards).WithResult(output), nil
 		}
 	}

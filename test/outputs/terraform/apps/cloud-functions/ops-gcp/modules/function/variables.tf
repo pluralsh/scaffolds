@@ -8,6 +8,11 @@ variable "account_id" {
   description = "ID of the function's service account, at most 30 characters."
 }
 
+variable "tool_name" {
+  type        = string
+  description = "Name of the function's workbench tool, at most 40 characters."
+}
+
 variable "role_id" {
   type        = string
   description = "ID of the function's project custom role."

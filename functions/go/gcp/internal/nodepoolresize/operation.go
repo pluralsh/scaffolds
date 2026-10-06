@@ -25,7 +25,7 @@ func (o *operation) run(ctx context.Context) (core.Response[Output], error) {
 		return core.Response[Output]{}, err
 	}
 	if target == nil {
-		return o.refuse(core.Guards{core.Fail(guardExists, "cluster or node pool not found")}, Output{To: o.params.Count}), nil
+		return o.refuse(core.Guards{core.Fail(guardExists, "The cluster or node pool doesn't exist.")}, Output{To: o.params.Count}), nil
 	}
 
 	guards := target.guards(o.params.Count, o.maxCount)

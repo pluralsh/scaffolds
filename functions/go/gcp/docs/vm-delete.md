@@ -93,11 +93,11 @@ See [Testing a function](../README.md#testing-a-function) for the conventions.
 
 | # | Request | Expected | Verify |
 |---|---|---|---|
-| B1 | `just vm-plan does-not-exist` | `refused`; only `exists` failed, `instance not found`; `result` = `{"autoDeleteSet":false,"deleted":false}` | - |
+| B1 | `just vm-plan does-not-exist` | `refused`; only `exists` failed, `The instance doesn't exist.`; `result` = `{"autoDeleteSet":false,"deleted":false}` | - |
 | B2 | `just vm-plan $P-vmd-ok` | `planned`; all 6 guards pass; `result.instance` = `{bootDisk: $P-vmd-ok, dataDisks: [$P-vmd-ok-data], state: RUNNING}`; `autoDeleteSet` false | `just vm-show $P-vmd-ok`: boot disk auto-delete still false, data disk still true |
-| B3 | `just vm-plan $P-vmd-prot` | `refused`; `deletion-protection` failed, `deletion protection is enabled; disable it first` | - |
-| B4 | `just vm-plan "$(just vm-mig-instance)"` | `refused`; `standalone` failed, `created by managed instance group $P-vmd-mig ...`; `result.instance.instanceGroupManager` = `$P-vmd-mig` | - |
-| B5 | `just vm-plan $P-vmd-stopped` | `planned`; `idle` = `status TERMINATED`; `autoDeleteSet` true (default flags, no data disk) | - |
+| B3 | `just vm-plan $P-vmd-prot` | `refused`; `deletion-protection` failed, `Deletion protection is enabled. Disable it first.` | - |
+| B4 | `just vm-plan "$(just vm-mig-instance)"` | `refused`; `standalone` failed, `Managed instance group $P-vmd-mig created the instance. ...`; `result.instance.instanceGroupManager` = `$P-vmd-mig` | - |
+| B5 | `just vm-plan $P-vmd-stopped` | `planned`; `idle` = `The instance's status is TERMINATED.`; `autoDeleteSet` true (default flags, no data disk) | - |
 | B6 | Optional, if the project has a GKE cluster: `just zone=<node zone> vm-plan <GKE node>` | `refused`; `standalone` and `not-gke` failed | - |
 
 ### C. Execute

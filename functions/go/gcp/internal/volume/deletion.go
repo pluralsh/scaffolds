@@ -43,7 +43,7 @@ type Deletion struct {
 // Evaluate evaluates the guards for the deletion and decides the next step.
 func (d Deletion) Evaluate() (core.Guards, Step) {
 	if d.Volume == nil {
-		return core.Guards{core.Fail(guardExists, "volume not found")}, StepNothing
+		return core.Guards{core.Fail(guardExists, "The volume doesn't exist.")}, StepNothing
 	}
 
 	guards := d.Volume.guards(d.PV)
@@ -63,22 +63,22 @@ func (d Deletion) snapshotGuard() (core.Guard, Step) {
 	snapshot := d.Snapshot
 	switch {
 	case !d.SnapshotRequired:
-		return core.Pass(guardSnapshot, "not requested"), StepDelete
+		return core.Pass(guardSnapshot, "The caller skipped the snapshot."), StepDelete
 	case snapshot.State == SnapshotCompleted:
-		return core.Pass(guardSnapshot, fmt.Sprintf("snapshot %s completed", snapshot.ID)), StepDelete
+		return core.Pass(guardSnapshot, fmt.Sprintf("Snapshot %s has completed.", snapshot.ID)), StepDelete
 	case snapshot.State == SnapshotInProgress:
 		progress := ""
 		if snapshot.Progress != nil {
 			progress = fmt.Sprintf(" (%s)", *snapshot.Progress)
 		}
-		detail := fmt.Sprintf("snapshot %s is in progress%s; execute again once it completes", snapshot.ID, progress)
+		detail := fmt.Sprintf("Snapshot %s is in progress%s. Execute again once it completes.", snapshot.ID, progress)
 		return core.Fail(guardSnapshot, detail), StepNothing
 	case d.Action != core.ActionPlan:
-		return core.Fail(guardSnapshot, "no completed snapshot yet"), StepCreateSnapshot
+		return core.Fail(guardSnapshot, "No snapshot has completed yet."), StepCreateSnapshot
 	case snapshot.State == SnapshotFailed:
-		detail := fmt.Sprintf("snapshot %s failed; execute takes a new snapshot first and deletes the volume in a later execute", snapshot.ID)
+		detail := fmt.Sprintf("Snapshot %s failed. Execute takes a new snapshot first and deletes the volume in a later execute.", snapshot.ID)
 		return core.Pass(guardSnapshot, detail), StepCreateSnapshot
 	default:
-		return core.Pass(guardSnapshot, "execute takes a snapshot first and deletes the volume in a later execute"), StepCreateSnapshot
+		return core.Pass(guardSnapshot, "Execute takes a snapshot first and deletes the volume in a later execute."), StepCreateSnapshot
 	}
 }

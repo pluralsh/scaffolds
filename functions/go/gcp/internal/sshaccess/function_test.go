@@ -171,9 +171,9 @@ func TestPlanDescribesTheGrant(t *testing.T) {
 	status, body := invoke(t, fake, request("plan", nil))
 
 	want := `{"action":"plan","guards":[` +
-		`{"detail":"instance vm-1","name":"exists","passed":true},` +
-		`{"detail":"OS Login is enabled (project metadata enable-oslogin=TRUE)","name":"os-login","passed":true},` +
-		`{"detail":"60 minutes; the installation allows at most 240","name":"duration-allowed","passed":true}],` +
+		`{"detail":"Instance vm-1 exists.","name":"exists","passed":true},` +
+		`{"detail":"OS Login is enabled (project metadata enable-oslogin=TRUE).","name":"os-login","passed":true},` +
+		`{"detail":"The access lasts 60 minutes, within the installation's limit of 240.","name":"duration-allowed","passed":true}],` +
 		`"outcome":"planned","result":{"access":{"expiresAt":"2026-10-02T09:00:00Z","role":"user"},"changed":false,` +
 		`"command":"gcloud compute ssh vm-1 --zone=us-central1-a --project=p --tunnel-through-iap",` +
 		`"instance":{"name":"vm-1","serviceAccount":"vm@p.iam.gserviceaccount.com","state":"RUNNING"},"member":"user:alice@example.com"}}`

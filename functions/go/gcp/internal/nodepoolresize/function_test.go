@@ -120,11 +120,11 @@ func TestPlanDescribesTheResize(t *testing.T) {
 	status, body := invoke(t, fake, request("plan", 3))
 
 	want := `{"action":"plan","guards":[` +
-		`{"detail":"node pool apps of cluster c","name":"exists","passed":true},` +
-		`{"detail":"Standard cluster; Autopilot clusters manage their nodes themselves","name":"standard-cluster","passed":true},` +
-		`{"detail":"cluster RUNNING, node pool RUNNING; another operation must finish first unless both are RUNNING","name":"idle","passed":true},` +
-		`{"detail":"cluster autoscaler disabled","name":"manually-scaled","passed":true},` +
-		`{"detail":"3 nodes per zone in 2 zones, 6 in total; the installation allows at most 10 in total","name":"count-allowed","passed":true}],` +
+		`{"detail":"Node pool apps of cluster c exists.","name":"exists","passed":true},` +
+		`{"detail":"The cluster is a Standard cluster.","name":"standard-cluster","passed":true},` +
+		`{"detail":"The cluster and the node pool are RUNNING.","name":"idle","passed":true},` +
+		`{"detail":"The cluster autoscaler is disabled for the pool.","name":"manually-scaled","passed":true},` +
+		`{"detail":"3 nodes per zone in 2 zones make 6 nodes in total, and the installation allows at most 10.","name":"count-allowed","passed":true}],` +
 		`"outcome":"planned","result":{"from":4,"nodePool":{"autoscaling":false,"machineType":"e2-standard-4","name":"apps",` +
 		`"nodesPerZone":{"us-central1-a":2,"us-central1-b":2},"state":"RUNNING","zones":["us-central1-a","us-central1-b"]},` +
 		`"submitted":false,"to":6}}`
@@ -213,7 +213,7 @@ func TestPlanOfMissingCluster(t *testing.T) {
 
 	_, body := invoke(t, fake, request("plan", 3))
 
-	want := `{"action":"plan","guards":[{"detail":"cluster or node pool not found","name":"exists","passed":false}],"outcome":"refused","result":{"submitted":false,"to":3}}`
+	want := `{"action":"plan","guards":[{"detail":"The cluster or node pool doesn't exist.","name":"exists","passed":false}],"outcome":"refused","result":{"submitted":false,"to":3}}`
 	if body != want {
 		t.Errorf("got %s", body)
 	}

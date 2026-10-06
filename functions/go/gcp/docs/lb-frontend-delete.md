@@ -113,7 +113,7 @@ See [Testing a function](../README.md#testing-a-function) for the conventions.
 |---|---|---|---|
 | B1 | `just lb-plan a00000000000000000000000000000000` | `refused`; only `exists` failed | - |
 | B2 | `just lb-plan` | `planned`; all 4 guards pass; steps: forwardingRule `delete`; targetPool, both firewalls and address `later`; httpHealthCheck `later`; `remaining` true | `just lb-show`: everything still there |
-| B3 | `just lb-plan $(just --evaluate lb) e2e/api` | `refused`; `service` failed, `created for Service e2e/web, not e2e/api` | - |
+| B3 | `just lb-plan $(just --evaluate lb) e2e/api` | `refused`; `service` failed, `The forwarding rule was created for Service e2e/web, not e2e/api.` | - |
 
 ### C. Execute
 
@@ -134,7 +134,7 @@ Recreate the fixtures first (`just lb-cleanup && just lb-fixtures`), then run as
 
 | # | Setup | Expected |
 |---|---|---|
-| D1 | Repeat B2 and C2 to C5 | Same results. **Check that `getHealth` needs nothing more** (B2 with an instance in the pool: `gcloud compute target-pools add-instances`) |
+| D1 | Repeat B2 and C2 to C5 | Same results. **Check that reading backend health needs nothing beyond `.get`** (there is no `getHealth` permission) (B2 with an instance in the pool: `gcloud compute target-pools add-instances`) |
 | D2 | `just role-remove lb-frontend-delete compute.firewalls.delete`, wait, restart, run C2 and C4 | C4: 502 `Provider`, 403 on the firewall; rerun after adding it back |
 
 Add the permissions back with `just role-add lb-frontend-delete <permission>`.

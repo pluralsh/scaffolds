@@ -150,8 +150,8 @@ func TestPlanDescribesTheFirstStep(t *testing.T) {
 	if len(fake.deleted) != 0 {
 		t.Errorf("deleted on plan: %v", fake.deleted)
 	}
-	if !strings.Contains(body, `{"detail":"forwarding rule created for Service default/web","name":"service","passed":true}`) ||
-		!strings.Contains(body, `{"detail":"targetPool `+lb+` has no healthy backends","name":"no-healthy-backends","passed":true}`) {
+	if !strings.Contains(body, `{"detail":"The forwarding rule was created for Service default/web.","name":"service","passed":true}`) ||
+		!strings.Contains(body, `{"detail":"targetPool `+lb+` has no healthy backends.","name":"no-healthy-backends","passed":true}`) {
 		t.Errorf("guards: %s", body)
 	}
 }

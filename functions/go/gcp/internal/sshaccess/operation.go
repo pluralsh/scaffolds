@@ -49,17 +49,16 @@ func (o *operation) run(ctx context.Context) (core.Response[Output], error) {
 		return core.Response[Output]{}, err
 	}
 	if found == nil {
-		return o.refuse(core.Guards{core.Fail(guardExists, "instance not found")}, Output{Member: member}), nil
+		return o.refuse(core.Guards{core.Fail(guardExists, "The instance doesn't exist.")}, Output{Member: member}), nil
 	}
 
-	guards := core.Guards{core.Pass(guardExists, "instance "+found.GetName())}
+	guards := core.Guards{core.Pass(guardExists, "Instance "+found.GetName()+" exists.")}
 	if !o.params.Revoke {
 		osLogin, err := o.osLoginGuard(ctx, found)
 		if err != nil {
 			return core.Response[Output]{}, err
 		}
-		guards = append(guards, osLogin, core.Check(guardDurationAllowed, *o.params.DurationMinutes <= o.maxMinutes,
-			fmt.Sprintf("%d minutes; the installation allows at most %d", *o.params.DurationMinutes, o.maxMinutes)))
+		guards = append(guards, osLogin, o.durationGuard())
 	}
 
 	login, tunnel, err := o.policies(ctx)
@@ -133,6 +132,15 @@ func (o *operation) refuse(guards core.Guards, output Output) core.Response[Outp
 	return core.Refused[Output](guards).WithResult(output)
 }
 
+// durationGuard checks the requested duration against the installation's limit.
+func (o *operation) durationGuard() core.Guard {
+	minutes := *o.params.DurationMinutes
+	if minutes > o.maxMinutes {
+		return core.Fail(guardDurationAllowed, fmt.Sprintf("The access would last %d minutes, but the installation allows at most %d.", minutes, o.maxMinutes))
+	}
+	return core.Pass(guardDurationAllowed, fmt.Sprintf("The access lasts %d minutes, within the installation's limit of %d.", minutes, o.maxMinutes))
+}
+
 // osLoginGuard checks that the instance uses OS Login, so IAM roles control who logs in.
 func (o *operation) osLoginGuard(ctx context.Context, instance *compute.Instance) (core.Guard, error) {
 	for _, item := range instance.GetMetadata().GetItems() {
@@ -149,9 +157,9 @@ func (o *operation) osLoginGuard(ctx context.Context, instance *compute.Instance
 
 func osLoginCheck(value, source string) core.Guard {
 	if strings.EqualFold(value, "true") {
-		return core.Pass(guardOSLogin, fmt.Sprintf("OS Login is enabled (%s metadata %s=%s)", source, osLoginKey, value))
+		return core.Pass(guardOSLogin, fmt.Sprintf("OS Login is enabled (%s metadata %s=%s).", source, osLoginKey, value))
 	}
-	return core.Fail(guardOSLogin, fmt.Sprintf("OS Login is not enabled (%s metadata %s=%q); set it to TRUE on the instance or project", source, osLoginKey, value))
+	return core.Fail(guardOSLogin, fmt.Sprintf("OS Login isn't enabled (%s metadata %s=%q). Set it to TRUE on the instance or project.", source, osLoginKey, value))
 }
 
 // policies reads the IAM policies of the instance and of the IAP tunnel to it.

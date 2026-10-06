@@ -30,12 +30,12 @@ type source struct {
 
 func (s source) guard() core.Guard {
 	if s.InstanceType != "" && s.InstanceType != typePrimary {
-		return core.Fail(guardSource, fmt.Sprintf("instance %s is a %s; restore its primary instead", s.Name, s.InstanceType))
+		return core.Fail(guardSource, fmt.Sprintf("Instance %s is a %s. Restore its primary instead.", s.Name, s.InstanceType))
 	}
 	if s.State != stateRunnable {
-		return core.Fail(guardSource, fmt.Sprintf("instance %s is %s, not %s", s.Name, s.State, stateRunnable))
+		return core.Fail(guardSource, fmt.Sprintf("Instance %s is %s, not %s.", s.Name, s.State, stateRunnable))
 	}
-	return core.Pass(guardSource, fmt.Sprintf("instance %s is %s", s.Name, s.State))
+	return core.Pass(guardSource, fmt.Sprintf("Instance %s is %s.", s.Name, s.State))
 }
 
 // recoverable reports whether the source keeps the logs a point-in-time restore needs: with
@@ -50,9 +50,9 @@ func (s source) recoverable() bool {
 
 func (s source) recoveryGuard() core.Guard {
 	if s.recoverable() {
-		return core.Pass(guardRecovery, "point-in-time recovery is enabled")
+		return core.Pass(guardRecovery, "Point-in-time recovery is enabled.")
 	}
-	return core.Fail(guardRecovery, "point-in-time recovery is disabled; the instance can't be restored to a point in time")
+	return core.Fail(guardRecovery, "Point-in-time recovery is disabled, so the instance can't be restored to a point in time.")
 }
 
 // logRetention is how long the source keeps the logs a restore replays, or zero if unknown.
@@ -85,23 +85,26 @@ func newWindow(reported cloudsql.RecoveryWindow, retention time.Duration, now ti
 
 func (w window) guard(point time.Time) core.Guard {
 	if w.earliest.IsZero() {
-		return core.Fail(guardRestorePoint, "the earliest restore point is unknown")
+		return core.Fail(guardRestorePoint, "The earliest restore point is unknown.")
 	}
-	return core.Check(guardRestorePoint, !point.Before(w.earliest) && !point.After(w.latest), fmt.Sprintf(
-		"must be between the earliest restore point (%s) and the latest (%s)", w.earliest.UTC().Format(time.RFC3339), w.latest.UTC().Format(time.RFC3339)))
+	earliest, latest := w.earliest.UTC().Format(time.RFC3339), w.latest.UTC().Format(time.RFC3339)
+	if point.Before(w.earliest) || point.After(w.latest) {
+		return core.Fail(guardRestorePoint, fmt.Sprintf("The restore point must be between the earliest restore point (%s) and the latest (%s).", earliest, latest))
+	}
+	return core.Pass(guardRestorePoint, fmt.Sprintf("The restore point is between the earliest restore point (%s) and the latest (%s).", earliest, latest))
 }
 
 // targetGuard checks that the restore creates a new instance.
 func targetGuard(params Params, existing *cloudsql.Instance) core.Guard {
 	switch {
 	case params.TargetInstance == params.Instance:
-		return core.Fail(guardNewInstance, "the target must be a new instance; restoring over the source isn't supported")
+		return core.Fail(guardNewInstance, "The target must be a new instance. Restoring over the source isn't supported.")
 	case existing != nil:
 		return core.Fail(guardNewInstance, fmt.Sprintf(
-			"an instance named %s already exists (%s, created %s) and is left alone; if an earlier execute restored into it, it is the restore, otherwise pick another name",
+			"An instance named %s already exists (%s, created %s), and the function leaves it alone. If an earlier execute restored into it, it is the restore. Otherwise, pick another name.",
 			existing.Name, existing.State, existing.CreateTime))
 	}
-	return core.Pass(guardNewInstance, params.TargetInstance+" will be created as a copy of the source")
+	return core.Pass(guardNewInstance, "Instance "+params.TargetInstance+" will be created as a copy of the source.")
 }
 
 func summary(instance *cloudsql.Instance) *Summary {

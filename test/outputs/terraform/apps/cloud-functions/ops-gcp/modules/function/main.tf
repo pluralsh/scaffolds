@@ -43,7 +43,7 @@ locals {
 }
 
 resource "plural_workbench_tool" "function" {
-  name                = replace(var.name, "-", "_")
+  name                = var.tool_name
   tool                = "CLOUD_RUN"
   cloud_connection_id = var.cloud_connection_id
   approval            = var.function.destructive

@@ -7,7 +7,7 @@
         "plan",
         "execute"
       ],
-      "description": "plan evaluates the safety checks and reports the restore window without changing anything. execute starts restoring the source instance into a new instance; call plan again with the same parameters to see its state and addresses. The source instance is never changed."
+      "description": "plan evaluates the safety checks and reports the restore window without changing anything. execute starts restoring the source instance into a new instance. Call plan again with the same parameters to see its state and addresses. The source instance is never changed."
     },
     "instance": {
       "type": "string",

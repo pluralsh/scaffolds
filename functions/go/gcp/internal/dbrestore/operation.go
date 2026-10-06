@@ -29,7 +29,7 @@ func (o *operation) run(ctx context.Context) (core.Response[Output], error) {
 		return core.Response[Output]{}, err
 	}
 	if found == nil {
-		return o.refuse(core.Guards{core.Fail(guardSource, "instance not found")}, Output{}), nil
+		return o.refuse(core.Guards{core.Fail(guardSource, "The instance doesn't exist.")}, Output{}), nil
 	}
 	src := source{found}
 	var target *cloudsql.Instance

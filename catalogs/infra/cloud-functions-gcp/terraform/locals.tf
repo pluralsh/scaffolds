@@ -20,4 +20,14 @@ locals {
   # suffix hashed from the project and installation name, and for a function's, its key.
   hash          = substr(sha1("${local.project_id}/${var.name}"), 0, 6)
   function_hash = { for key in keys(local.catalog) : key => substr(sha1("${local.project_id}/${var.name}/${key}"), 0, 6) }
+
+  # Workbenches show each tool to the model as cloud_run_function_call_<tool name>, and models
+  # accept tool names of at most 64 characters, so tool names get at most 40. Longer ones keep
+  # the function key, which tells the model what the tool does, shorten the installation name
+  # and add its hash, so installations with the same prefix stay apart.
+  tool_names = { for key in keys(local.catalog) : key => (
+    length("${var.name}_${key}") <= 40
+    ? replace("${var.name}_${key}", "-", "_")
+    : replace("${trim(substr(var.name, 0, 32 - length(key)), "-")}_${key}_${local.hash}", "-", "_")
+  ) }
 }

@@ -8,7 +8,7 @@ data "plural_service_context" "cluster" {
   lifecycle {
     postcondition {
       condition     = can(jsondecode(self.configuration).project_id)
-      error_message = "The plrl/clusters/${var.cluster} service context has no project_id in its configuration; cluster has to be a GKE cluster set up by the GCP bootstrap."
+      error_message = "The plrl/clusters/${var.cluster} service context has no project_id in its configuration. The cluster has to be a GKE cluster set up by the GCP bootstrap."
     }
   }
 }

@@ -21,6 +21,7 @@ module "function" {
   # underscores and dots. Both are cut to fit, so the function's own hash keeps them unique.
   account_id = "${trim(substr("${var.name}-${each.key}", 0, 23), "-")}-${local.function_hash[each.key]}"
   role_id    = "${substr(replace("${var.name}_${each.key}", "-", "_"), 0, 57)}_${local.function_hash[each.key]}"
+  tool_name  = local.tool_names[each.key]
 
   project_id         = local.project_id
   region             = var.region

@@ -4,24 +4,23 @@
 locals {
   lb_frontend_delete = {
     entry_point = "LBFrontendDelete"
-    description = "Removes what a deleted Kubernetes LoadBalancer Service left of its GKE load balancer: the forwarding rule named after the Service UID, its target pool or backend service, health check, firewall rules and reserved address, as far as they were created for that Service. Before calling it, confirm in the cluster that no Service has a UID starting with the hex digits of the name. Refused while any backend is healthy. Use action plan first; each execute deletes what nothing uses any more, so execute again while the result reports remaining: true."
+    description = "Removes what a deleted Kubernetes LoadBalancer Service left of its GKE load balancer: the forwarding rule named after the Service UID, its target pool or backend service, health check, firewall rules and reserved address, as far as they were created for that Service. Before calling it, confirm in the cluster that no Service has a UID starting with the hex digits of the name. Refused while any backend is healthy. Use action plan first. Each execute deletes what nothing uses any more, so execute again while the result reports remaining: true."
     memory      = "512Mi"
     timeout     = 30
     destructive = true
     apis        = ["compute.googleapis.com"]
     environment = {}
     # Every load balancer resource in the project; IAM can't restrict it to a Service's, so the
-    # function checks names and descriptions itself. Firewall rules of a Shared VPC live in the
+    # function checks names and descriptions itself. Reading a target pool's or backend
+    # service's backend health has no permission of its own; get covers it. Firewall rules of a Shared VPC live in the
     # host project, where the function can't see or delete them.
     permissions = [
       "compute.forwardingRules.get",
       "compute.forwardingRules.list",
       "compute.forwardingRules.delete",
       "compute.targetPools.get",
-      "compute.targetPools.getHealth",
       "compute.targetPools.delete",
       "compute.regionBackendServices.get",
-      "compute.regionBackendServices.getHealth",
       "compute.regionBackendServices.delete",
       "compute.httpHealthChecks.get",
       "compute.httpHealthChecks.delete",

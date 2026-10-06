@@ -27,37 +27,37 @@ type Volume struct {
 // guards checks the volume itself, which should belong to the PersistentVolume pv.
 func (v *Volume) guards(pv PVName) core.Guards {
 	return core.Guards{
-		core.Pass(guardExists, "found "+v.ID),
+		core.Pass(guardExists, "Volume "+v.ID+" exists."),
 		v.unattachedGuard(),
-		core.Check(guardState, v.Deletable, "state is "+v.State),
+		core.Check(guardState, v.Deletable, "The volume's state is "+v.State+"."),
 		v.kubernetesGuard(pv),
 	}
 }
 
 func (v *Volume) unattachedGuard() core.Guard {
 	if len(v.AttachedTo) == 0 {
-		return core.Pass(guardUnattached, "not attached")
+		return core.Pass(guardUnattached, "The volume isn't attached to any instance.")
 	}
-	return core.Fail(guardUnattached, "attached to "+strings.Join(v.AttachedTo, ", "))
+	return core.Fail(guardUnattached, "The volume is attached to "+strings.Join(v.AttachedTo, ", ")+".")
 }
 
 func (v *Volume) kubernetesGuard(pv PVName) core.Guard {
 	claim := v.Kubernetes
 	switch {
 	case claim == nil:
-		return core.Fail(guardKubernetes, "not created by Kubernetes for a PersistentVolumeClaim; only such volumes can be deleted")
+		return core.Fail(guardKubernetes, "Kubernetes didn't create the volume for a PersistentVolumeClaim. Only such volumes can be deleted.")
 	case claim.PV != string(pv):
 		created := claim.PV
 		if created == "" {
 			created = "<unknown>"
 		}
-		return core.Fail(guardKubernetes, fmt.Sprintf("created for PersistentVolume %s, not %s", created, pv))
+		return core.Fail(guardKubernetes, fmt.Sprintf("The volume was created for PersistentVolume %s, not %s.", created, pv))
 	}
 	namespace := ""
 	if claim.Namespace != "" {
 		namespace = claim.Namespace + "/"
 	}
-	return core.Pass(guardKubernetes, fmt.Sprintf("created for PersistentVolume %s of PVC %s%s", pv, namespace, claim.PVC))
+	return core.Pass(guardKubernetes, fmt.Sprintf("The volume was created for PersistentVolume %s of PersistentVolumeClaim %s%s.", pv, namespace, claim.PVC))
 }
 
 // KubernetesClaim identifies the PersistentVolumeClaim a volume was created for.

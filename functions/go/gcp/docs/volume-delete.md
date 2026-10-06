@@ -63,7 +63,7 @@ If any of `exists`, `unattached`, `state` or `kubernetes` fails, execute refuses
 snapshot.
 
 With `snapshot: false`, which needs `ALLOW_SKIP_SNAPSHOT=true`, the snapshot guard reports
-`not requested`, the response has no `result.snapshot` and one execute deletes the disk.
+`The caller skipped the snapshot.`, the response has no `result.snapshot` and one execute deletes the disk.
 
 ## Test fixtures
 
@@ -120,9 +120,9 @@ raw bodies for `just invoke`.
 
 | # | Request | Expected | Verify |
 |---|---|---|---|
-| B1 | `just volume-plan does-not-exist pvc-x` | `refused`; guards = only `exists` failed, `volume not found`; `result` = `{"deleted":false,"snapshot":{"state":"missing"}}` | - |
-| B2 | `just volume-plan $P-ok pvc-e2e-ok` | `planned`; all 5 guards pass; `kubernetes` = `created for PersistentVolume pvc-e2e-ok of PVC e2e/data`; `snapshot` = `execute takes a snapshot first ...`; `result.volume.state` = `READY`, `sizeGib` = 10, `kubernetes` = `{pvc:data, namespace:e2e, pv:pvc-e2e-ok}` | `just volume-snapshots $P-ok` is empty |
-| B3 | `just volume-plan $P-att pvc-e2e-att` | `refused`; `unattached` failed, `attached to $P-vm`; `result.volume.attachedTo` = `[$P-vm]` | - |
+| B1 | `just volume-plan does-not-exist pvc-x` | `refused`; guards = only `exists` failed, `The volume doesn't exist.`; `result` = `{"deleted":false,"snapshot":{"state":"missing"}}` | - |
+| B2 | `just volume-plan $P-ok pvc-e2e-ok` | `planned`; all 5 guards pass; `kubernetes` = `The volume was created for PersistentVolume pvc-e2e-ok of PersistentVolumeClaim e2e/data.`; `snapshot` = `execute takes a snapshot first ...`; `result.volume.state` = `READY`, `sizeGib` = 10, `kubernetes` = `{pvc:data, namespace:e2e, pv:pvc-e2e-ok}` | `just volume-snapshots $P-ok` is empty |
+| B3 | `just volume-plan $P-att pvc-e2e-att` | `refused`; `unattached` failed, `The volume is attached to $P-vm.`; `result.volume.attachedTo` = `[$P-vm]` | - |
 | B4 | `just volume-plan $P-nok8s pvc-x` | `refused`; `kubernetes` failed, `not created by Kubernetes for a PersistentVolumeClaim ...`; no `result.volume.kubernetes` | - |
 | B5 | `just volume-plan $P-ok pvc-other` | `refused`; `kubernetes` failed, `created for PersistentVolume pvc-e2e-ok, not pvc-other` | - |
 | B6 | `just volume-plan $P-nopv pvc-x` | `refused`; `kubernetes` failed, `created for PersistentVolume <unknown>, not pvc-x` | - |
@@ -132,10 +132,10 @@ raw bodies for `just invoke`.
 
 | # | Request | Expected | Verify |
 |---|---|---|---|
-| C1 | `just volume-execute $P-ok pvc-e2e-ok` | `refused`; `snapshot` guard failed, `no completed snapshot yet`; `result.snapshot` = `{state: inProgress, id: $P-ok-predelete-<ts>}`; `result.operation` set; `deleted` = false | `just volume-snapshots $P-ok` shows 1 snapshot, label = disk ID, `sourceDiskId` = disk ID; disk still exists |
-| C2 | Right after C1: `just volume-plan $P-ok pvc-e2e-ok` | while the snapshot is creating: `refused`, `snapshot <id> is in progress (creating\|uploading); execute again once it completes` | still exactly 1 snapshot |
+| C1 | `just volume-execute $P-ok pvc-e2e-ok` | `refused`; `snapshot` guard failed, `No snapshot has completed yet.`; `result.snapshot` = `{state: inProgress, id: $P-ok-predelete-<ts>}`; `result.operation` set; `deleted` = false | `just volume-snapshots $P-ok` shows 1 snapshot, label = disk ID, `sourceDiskId` = disk ID; disk still exists |
+| C2 | Right after C1: `just volume-plan $P-ok pvc-e2e-ok` | while the snapshot is creating: `refused`, `Snapshot <id> is in progress (creating\|uploading). Execute again once it completes.` | still exactly 1 snapshot |
 | C3 | Right after C1, and only while C2 still shows the snapshot in progress: `just volume-execute $P-ok pvc-e2e-ok` | `refused`, same in-progress detail; no new snapshot | still exactly 1 snapshot |
-| C4 | Once `just volume-snapshots $P-ok` shows `READY`: `just volume-plan $P-ok pvc-e2e-ok` | `planned`; `snapshot` = `snapshot <id> completed`; `result.snapshot.state` = `completed` | - |
+| C4 | Once `just volume-snapshots $P-ok` shows `READY`: `just volume-plan $P-ok pvc-e2e-ok` | `planned`; `snapshot` = `Snapshot <id> has completed.`; `result.snapshot.state` = `completed` | - |
 | C5 | `just volume-execute $P-ok pvc-e2e-ok` | `done`; `result.deleted` = true; `result.operation` set; `result.snapshot.state` = `completed` | `just volume-disk $P-ok` fails with NotFound after a few seconds; the snapshot still exists |
 | C6 | `just volume-plan $P-ok pvc-e2e-ok` | Same as B1 | - |
 
@@ -147,7 +147,7 @@ would delete the disk.
 
 | # | Request | Expected | Verify |
 |---|---|---|---|
-| D1 | `just volume-execute $P-att pvc-e2e-att` | `refused`; `unattached` failed; `snapshot` guard failed `no completed snapshot yet`; no `result.operation` | `just volume-snapshots $P-att` empty, disk still attached |
+| D1 | `just volume-execute $P-att pvc-e2e-att` | `refused`; `unattached` failed; `snapshot` guard failed `No snapshot has completed yet.`; no `result.operation` | `just volume-snapshots $P-att` empty, disk still attached |
 | D2 | `just volume-execute $P-nok8s pvc-x` | `refused`; `kubernetes` failed; no `result.operation` | no snapshot of `$P-nok8s` |
 | D3 | Before C, or on a recreated `$P-ok`: `just volume-execute $P-ok pvc-other` | `refused`; `kubernetes` failed; no `result.operation` | no new snapshot |
 
@@ -164,7 +164,7 @@ would delete the disk.
 
 | # | Request | Expected | Verify |
 |---|---|---|---|
-| F1 | `just volume-plan $P-skip pvc-e2e-skip false` | `planned`; `snapshot` guard `not requested`; no `result.snapshot` | - |
+| F1 | `just volume-plan $P-skip pvc-e2e-skip false` | `planned`; `snapshot` guard `The caller skipped the snapshot.`; no `result.snapshot` | - |
 | F2 | `just volume-execute $P-skip pvc-e2e-skip false` | `done`, `deleted` = true, no `result.snapshot` | disk gone, `gcloud compute snapshots list --filter "name~^$P-skip"` empty |
 | F3 | `just volume-plan $P-ok pvc-e2e-ok true` | Same as without the field: snapshot required | - |
 

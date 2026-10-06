@@ -103,7 +103,7 @@ resource "google_storage_bucket_object" "source" {
   lifecycle {
     precondition {
       condition     = fileexists(local.artifact)
-      error_message = "${local.artifact} not found. The stack's fetch-functions init container downloads it; check that it ran and that ${var.artifact_version} contains functions-gcp.zip."
+      error_message = "${local.artifact} not found. The stack's fetch-functions init container downloads it. Check that it ran and that ${var.artifact_version} contains functions-gcp.zip."
     }
   }
 }

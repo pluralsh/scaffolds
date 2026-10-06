@@ -17,7 +17,7 @@ locals {
 
   volume_delete = {
     entry_point = "VolumeDelete"
-    description = "Deletes an unattached zonal persistent disk that Kubernetes created for a PersistentVolume. Before calling it, confirm in the cluster that the PersistentVolume no longer exists and pass its name as pvName. Use action plan first; execute takes a snapshot and keeps the disk, and a later execute deletes it once the snapshot has completed."
+    description = "Deletes an unattached zonal persistent disk that Kubernetes created for a PersistentVolume. Before calling it, confirm in the cluster that the PersistentVolume no longer exists and pass its name as pvName. Use action plan first. Execute takes a snapshot and keeps the disk, and a later execute deletes it once the snapshot has completed."
     memory      = "512Mi"
     timeout     = 30
     destructive = true

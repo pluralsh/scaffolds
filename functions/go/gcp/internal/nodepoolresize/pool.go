@@ -34,13 +34,26 @@ type pool struct {
 // most maxCount nodes in total.
 func (p pool) guards(count, maxCount int64) core.Guards {
 	return core.Guards{
-		core.Pass(guardExists, fmt.Sprintf("node pool %s of cluster %s", p.Name, p.cluster.Name)),
-		core.Check(guardStandard, !p.autopilot(), "Standard cluster; Autopilot clusters manage their nodes themselves"),
-		core.Check(guardIdle, p.cluster.Status == statusRunning && p.Status == statusRunning,
-			fmt.Sprintf("cluster %s, node pool %s; another operation must finish first unless both are %s", p.cluster.Status, p.Status, statusRunning)),
+		core.Pass(guardExists, fmt.Sprintf("Node pool %s of cluster %s exists.", p.Name, p.cluster.Name)),
+		p.standardGuard(),
+		p.idleGuard(),
 		p.manualGuard(),
 		p.countGuard(count, maxCount),
 	}
+}
+
+func (p pool) standardGuard() core.Guard {
+	if p.autopilot() {
+		return core.Fail(guardStandard, "The cluster is an Autopilot cluster, which manages its nodes itself.")
+	}
+	return core.Pass(guardStandard, "The cluster is a Standard cluster.")
+}
+
+func (p pool) idleGuard() core.Guard {
+	if p.cluster.Status != statusRunning || p.Status != statusRunning {
+		return core.Fail(guardIdle, fmt.Sprintf("The cluster is %s and the node pool is %s. Another operation must finish first.", p.cluster.Status, p.Status))
+	}
+	return core.Pass(guardIdle, "The cluster and the node pool are "+statusRunning+".")
 }
 
 func (p pool) autopilot() bool {
@@ -53,15 +66,15 @@ func (p pool) autoscaling() bool {
 
 func (p pool) manualGuard() core.Guard {
 	if !p.autoscaling() {
-		return core.Pass(guardManuallyScaled, "cluster autoscaler disabled")
+		return core.Pass(guardManuallyScaled, "The cluster autoscaler is disabled for the pool.")
 	}
 	a := p.Autoscaling
 	if a.TotalMaxNodeCount > 0 {
 		return core.Fail(guardManuallyScaled, fmt.Sprintf(
-			"the cluster autoscaler scales this pool between %d and %d nodes in total; change those instead", a.TotalMinNodeCount, a.TotalMaxNodeCount))
+			"The cluster autoscaler scales this pool between %d and %d nodes in total. Change those limits instead.", a.TotalMinNodeCount, a.TotalMaxNodeCount))
 	}
 	return core.Fail(guardManuallyScaled, fmt.Sprintf(
-		"the cluster autoscaler scales this pool between %d and %d nodes per zone; change those instead", a.MinNodeCount, a.MaxNodeCount))
+		"The cluster autoscaler scales this pool between %d and %d nodes per zone. Change those limits instead.", a.MinNodeCount, a.MaxNodeCount))
 }
 
 func (p pool) countGuard(count, maxCount int64) core.Guard {
@@ -70,11 +83,11 @@ func (p pool) countGuard(count, maxCount int64) core.Guard {
 	reason := ""
 	if p.only() {
 		minCount = 1
-		reason = "; the cluster's only node pool keeps a node per zone"
+		reason = " The cluster's only node pool keeps at least one node per zone."
 	}
 	total := count * zones
 	return core.Check(guardCountAllowed, count >= minCount && total <= maxCount, fmt.Sprintf(
-		"%d nodes per zone in %d zones, %d in total; the installation allows at most %d in total%s", count, zones, total, maxCount, reason))
+		"%d nodes per zone in %d zones make %d nodes in total, and the installation allows at most %d.%s", count, zones, total, maxCount, reason))
 }
 
 // only reports whether the pool is the cluster's only node pool.

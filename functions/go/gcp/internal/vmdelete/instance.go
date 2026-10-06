@@ -46,38 +46,45 @@ type instance struct {
 // guards are the checks on the instance before it can be deleted.
 func (i instance) guards() core.Guards {
 	return core.Guards{
-		core.Pass(guardExists, "instance "+i.GetName()),
+		core.Pass(guardExists, "Instance "+i.GetName()+" exists."),
 		i.standaloneGuard(),
 		i.gkeGuard(),
 		i.deletionProtectionGuard(),
-		core.Check(guardBootDisk, i.bootDisk() != nil, "the boot disk must be a persistent disk to be deleted with the instance"),
-		core.Check(guardIdle, i.idle(), "status "+i.GetStatus()),
+		i.bootDiskGuard(),
+		core.Check(guardIdle, i.idle(), "The instance's status is "+i.GetStatus()+"."),
 	}
 }
 
 func (i instance) standaloneGuard() core.Guard {
 	if group := i.groupManager(); group != "" {
-		return core.Fail(guardStandalone, fmt.Sprintf("created by managed instance group %s; resize it instead so it doesn't recreate the instance", group))
+		return core.Fail(guardStandalone, fmt.Sprintf("Managed instance group %s created the instance. Resize the group instead, so it doesn't recreate the instance.", group))
 	}
-	return core.Pass(guardStandalone, "not part of a managed instance group")
+	return core.Pass(guardStandalone, "No managed instance group created the instance.")
 }
 
 func (i instance) gkeGuard() core.Guard {
 	labels := i.GetLabels()
 	if cluster, ok := labels[gkeClusterLabel]; ok {
-		return core.Fail(guardNotGKE, fmt.Sprintf("node of GKE cluster %s; use node-pool-resize instead", cluster))
+		return core.Fail(guardNotGKE, fmt.Sprintf("The instance is a node of GKE cluster %s. Use node-pool-resize instead.", cluster))
 	}
 	if _, ok := labels[gkeNodeLabel]; ok {
-		return core.Fail(guardNotGKE, fmt.Sprintf("managed by GKE (label %s); use node-pool-resize instead", gkeNodeLabel))
+		return core.Fail(guardNotGKE, fmt.Sprintf("GKE manages the instance (label %s). Use node-pool-resize instead.", gkeNodeLabel))
 	}
-	return core.Pass(guardNotGKE, "not managed by GKE")
+	return core.Pass(guardNotGKE, "GKE doesn't manage the instance.")
+}
+
+func (i instance) bootDiskGuard() core.Guard {
+	if i.bootDisk() == nil {
+		return core.Fail(guardBootDisk, "The instance has no persistent boot disk, which is what is deleted with it.")
+	}
+	return core.Pass(guardBootDisk, "The boot disk is a persistent disk, deleted with the instance.")
 }
 
 func (i instance) deletionProtectionGuard() core.Guard {
 	if i.GetDeletionProtection() {
-		return core.Fail(guardDeletionProtection, "deletion protection is enabled; disable it first")
+		return core.Fail(guardDeletionProtection, "Deletion protection is enabled. Disable it first.")
 	}
-	return core.Pass(guardDeletionProtection, "deletion protection is disabled")
+	return core.Pass(guardDeletionProtection, "Deletion protection is disabled.")
 }
 
 // groupManager is the name of the managed instance group that created the instance, or empty.

@@ -83,9 +83,9 @@ server with `MAX_NODE_COUNT=3 just serve node-pool-resize` for C4.
 
 | # | Request | Expected | Verify |
 |---|---|---|---|
-| B1 | `just pool-plan nope 1` | `refused`; only `exists` failed, `cluster or node pool not found` | - |
+| B1 | `just pool-plan nope 1` | `refused`; only `exists` failed, `The cluster or node pool doesn't exist.` | - |
 | B2 | `just pool-plan apps 2` | `planned`; all 5 guards pass; `from` 1, `to` 2, `nodesPerZone` = `{$ZONE: 1}`, `machineType` e2-small | `just pool-show`: apps still 1 |
-| B3 | `just pool-plan auto 2` | `refused`; `manually-scaled` failed, `... between 0 and 2 nodes per zone; change those instead` | - |
+| B3 | `just pool-plan auto 2` | `refused`; `manually-scaled` failed, `The cluster autoscaler scales this pool between 0 and 2 nodes per zone. Change those limits instead.` | - |
 | B4 | `just pool-plan apps 0` | `planned`; another pool has nodes, so the cluster keeps some | - |
 
 ### C. Execute
@@ -95,7 +95,7 @@ server with `MAX_NODE_COUNT=3 just serve node-pool-resize` for C4.
 | C1 | `just pool-execute auto 2` | `refused`; `manually-scaled` failed; no `result.operation` | auto unchanged |
 | C2 | `just pool-execute apps 2` | `done`; `submitted` true, `operation` set | After a few minutes, `just pool-show`: apps' group at 2 |
 | C3 | Right after C2: `just pool-execute apps 1` | `refused`; `idle` failed while the pool is `RECONCILING`. Once `RUNNING`: `done` | apps back at 1 |
-| C4 | With `MAX_NODE_COUNT=3`: `just pool-execute apps 4` | `refused`; `count-allowed` failed, `... at most 3 in total` | - |
+| C4 | With `MAX_NODE_COUNT=3`: `just pool-execute apps 4` | `refused`; `count-allowed` failed, `... and the installation allows at most 3.` | - |
 | C5 | `just pool-execute apps 1` when it already has 1 | `done`; `submitted` false, no `operation` | - |
 
 ### D. Permissions

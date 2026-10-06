@@ -73,22 +73,22 @@ func describedService(description string) string {
 // healthy, or empty.
 func (l *leftovers) guards(name, healthy string) core.Guards {
 	if l.empty() {
-		return core.Guards{core.Fail(guardExists, "nothing of load balancer "+name+" is left")}
+		return core.Guards{core.Fail(guardExists, "Nothing of load balancer "+name+" is left.")}
 	}
-	guards := core.Guards{core.Pass(guardExists, "load balancer "+name)}
+	guards := core.Guards{core.Pass(guardExists, "Load balancer "+name+" still has resources.")}
 	if l.rule == nil {
-		guards = append(guards, core.Pass(guardService, fmt.Sprintf("the forwarding rule is already deleted; only resources created for %s are deleted", l.service)))
+		guards = append(guards, core.Pass(guardService, fmt.Sprintf("The forwarding rule is already deleted. Only resources created for Service %s are deleted.", l.service)))
 	} else {
 		guards = append(guards, l.serviceGuard(), l.targetGuard())
 	}
 	switch target := l.healthTarget(); {
 	case target == nil:
-		guards = append(guards, core.Pass(guardUnhealthy, "no target pool or backend service left"))
+		guards = append(guards, core.Pass(guardUnhealthy, "No target pool or backend service is left."))
 	case healthy != "":
 		guards = append(guards, core.Fail(guardUnhealthy, fmt.Sprintf(
-			"%s %s reports %s as healthy; the Service may still exist, or nodes still answer its health check", target.Kind, target.Name, compute.NameFromURL(healthy))))
+			"%s %s reports %s as healthy. The Service may still exist, or the nodes still answer its health check.", target.Kind, target.Name, compute.NameFromURL(healthy))))
 	default:
-		guards = append(guards, core.Pass(guardUnhealthy, fmt.Sprintf("%s %s has no healthy backends", target.Kind, target.Name)))
+		guards = append(guards, core.Pass(guardUnhealthy, fmt.Sprintf("%s %s has no healthy backends.", target.Kind, target.Name)))
 	}
 	return guards
 }
@@ -96,20 +96,20 @@ func (l *leftovers) guards(name, healthy string) core.Guards {
 func (l *leftovers) serviceGuard() core.Guard {
 	switch described := describedService(l.rule.Description); described {
 	case l.service:
-		return core.Pass(guardService, "forwarding rule created for Service "+l.service)
+		return core.Pass(guardService, "The forwarding rule was created for Service "+l.service+".")
 	case "":
-		return core.Fail(guardService, "the forwarding rule's description names no Kubernetes Service")
+		return core.Fail(guardService, "The forwarding rule's description names no Kubernetes Service.")
 	default:
-		return core.Fail(guardService, fmt.Sprintf("the forwarding rule was created for Service %s, not %s", described, l.service))
+		return core.Fail(guardService, fmt.Sprintf("The forwarding rule was created for Service %s, not %s.", described, l.service))
 	}
 }
 
 func (l *leftovers) targetGuard() core.Guard {
 	target := l.rule.Target
 	if strings.Contains(target, targetPoolsPath) || strings.Contains(target, backendServicesPath) {
-		return core.Pass(guardTarget, "forwards to "+compute.NameFromURL(target))
+		return core.Pass(guardTarget, "The forwarding rule forwards to "+compute.NameFromURL(target)+".")
 	}
-	return core.Fail(guardTarget, fmt.Sprintf("forwards to %q, not a target pool or backend service; not a Service load balancer", target))
+	return core.Fail(guardTarget, fmt.Sprintf("The forwarding rule forwards to %q, which isn't a target pool or backend service, so it isn't a Service load balancer.", target))
 }
 
 // healthTarget is the target whose backends must not be healthy: the forwarding rule's, or once
@@ -129,13 +129,13 @@ func (l *leftovers) steps() []Resource {
 	var steps []Resource
 	add := func(r *compute.LBResource, step Step, detail string) {
 		if !l.owned(r) {
-			step, detail = StepKeep, "not created for Service "+l.service
+			step, detail = StepKeep, "It wasn't created for Service "+l.service+"."
 		}
 		steps = append(steps, Resource{Kind: r.Kind, Name: r.Name, Step: step, Detail: detail})
 	}
 	afterRule := func() (Step, string) {
 		if l.rule != nil {
-			return StepLater, "once the forwarding rule is deleted"
+			return StepLater, "A later execute deletes it, once the forwarding rule is gone."
 		}
 		return StepDelete, ""
 	}
@@ -146,7 +146,7 @@ func (l *leftovers) steps() []Resource {
 	for _, target := range l.targets {
 		step, detail := afterRule()
 		if user, ok := l.users[target.SelfLink]; ok && step == StepDelete {
-			step, detail = StepKeep, "used by forwarding rule "+user
+			step, detail = StepKeep, "Forwarding rule "+user+" uses it."
 		}
 		add(target, step, detail)
 	}
@@ -157,7 +157,7 @@ func (l *leftovers) steps() []Resource {
 	if l.address != nil {
 		step, detail := afterRule()
 		if l.address.Status == addressInUse && step == StepDelete {
-			step, detail = StepKeep, "in use by "+strings.Join(l.address.Users, ", ")
+			step, detail = StepKeep, strings.Join(l.address.Users, ", ")+" uses it."
 		}
 		add(l.address, step, detail)
 	}
@@ -175,11 +175,11 @@ func (l *leftovers) healthCheckSteps(steps []Resource) []Resource {
 		step, detail := StepDelete, ""
 		switch {
 		case !l.owned(check):
-			step, detail = StepKeep, "not created for Service "+l.service
+			step, detail = StepKeep, "It wasn't created for Service "+l.service+"."
 		case l.rule != nil || targetsGoing:
-			step, detail = StepLater, "once the target pool or backend service is deleted"
+			step, detail = StepLater, "A later execute deletes it, once the target pool or backend service is gone."
 		case len(l.targets) > 0:
-			step, detail = StepKeep, "a kept target pool or backend service may use it"
+			step, detail = StepKeep, "A kept target pool or backend service may use it."
 		}
 		checks = append(checks, Resource{Kind: check.Kind, Name: check.Name, Step: step, Detail: detail})
 	}

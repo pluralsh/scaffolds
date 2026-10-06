@@ -121,12 +121,12 @@ func TestPlanDescribesTheDeletion(t *testing.T) {
 	got := invoke(t, fake, request("plan"))
 
 	assertBody(t, got, http.StatusOK, `{"action":"plan","guards":[`+
-		`{"detail":"instance vm-1","name":"exists","passed":true},`+
-		`{"detail":"not part of a managed instance group","name":"standalone","passed":true},`+
-		`{"detail":"not managed by GKE","name":"not-gke","passed":true},`+
-		`{"detail":"deletion protection is disabled","name":"deletion-protection","passed":true},`+
-		`{"detail":"the boot disk must be a persistent disk to be deleted with the instance","name":"boot-disk","passed":true},`+
-		`{"detail":"status RUNNING","name":"idle","passed":true}],`+
+		`{"detail":"Instance vm-1 exists.","name":"exists","passed":true},`+
+		`{"detail":"No managed instance group created the instance.","name":"standalone","passed":true},`+
+		`{"detail":"GKE doesn't manage the instance.","name":"not-gke","passed":true},`+
+		`{"detail":"Deletion protection is disabled.","name":"deletion-protection","passed":true},`+
+		`{"detail":"The boot disk is a persistent disk, deleted with the instance.","name":"boot-disk","passed":true},`+
+		`{"detail":"The instance's status is RUNNING.","name":"idle","passed":true}],`+
 		`"outcome":"planned","result":{"autoDeleteSet":false,"deleted":false,`+
 		`"instance":{"bootDisk":"vm-1","dataDisks":["vm-1-data"],"localSsds":["local-ssd-0"],"name":"vm-1","state":"RUNNING"}}}`)
 	fake.assertNoWrites(t)
@@ -138,7 +138,7 @@ func TestPlanOfMissingInstance(t *testing.T) {
 	got := invoke(t, fake, request("plan"))
 
 	assertBody(t, got, http.StatusOK, `{"action":"plan","guards":[`+
-		`{"detail":"instance not found","name":"exists","passed":false}],`+
+		`{"detail":"The instance doesn't exist.","name":"exists","passed":false}],`+
 		`"outcome":"refused","result":{"autoDeleteSet":false,"deleted":false}}`)
 }
 
@@ -222,12 +222,12 @@ func TestExecuteSetsAutoDeleteAndDeletesInOneExecute(t *testing.T) {
 	got := invoke(t, fake, request("execute"))
 
 	assertBody(t, got, http.StatusOK, `{"action":"execute","guards":[`+
-		`{"detail":"instance vm-1","name":"exists","passed":true},`+
-		`{"detail":"not part of a managed instance group","name":"standalone","passed":true},`+
-		`{"detail":"not managed by GKE","name":"not-gke","passed":true},`+
-		`{"detail":"deletion protection is disabled","name":"deletion-protection","passed":true},`+
-		`{"detail":"the boot disk must be a persistent disk to be deleted with the instance","name":"boot-disk","passed":true},`+
-		`{"detail":"status RUNNING","name":"idle","passed":true}],`+
+		`{"detail":"Instance vm-1 exists.","name":"exists","passed":true},`+
+		`{"detail":"No managed instance group created the instance.","name":"standalone","passed":true},`+
+		`{"detail":"GKE doesn't manage the instance.","name":"not-gke","passed":true},`+
+		`{"detail":"Deletion protection is disabled.","name":"deletion-protection","passed":true},`+
+		`{"detail":"The boot disk is a persistent disk, deleted with the instance.","name":"boot-disk","passed":true},`+
+		`{"detail":"The instance's status is RUNNING.","name":"idle","passed":true}],`+
 		`"outcome":"done","result":{"autoDeleteSet":true,"deleted":true,`+
 		`"instance":{"bootDisk":"vm-1","dataDisks":["vm-1-data"],"name":"vm-1","state":"RUNNING"},"operation":"operation-delete"}}`)
 }

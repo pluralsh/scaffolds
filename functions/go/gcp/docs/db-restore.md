@@ -81,11 +81,11 @@ See [Testing a function](../README.md#testing-a-function) for the conventions.
 
 | # | Request | Expected | Verify |
 |---|---|---|---|
-| B1 | `just db-plan $P-db-r1 "$(just db-point 5)" nope` | `refused`; only `source` failed, `instance not found` | - |
+| B1 | `just db-plan $P-db-r1 "$(just db-point 5)" nope` | `refused`; only `source` failed, `The instance doesn't exist.` | - |
 | B2 | `just db-plan $P-db-r1 "$(just db-point 5)"` | `planned`; all 4 guards pass; `earliestRestorePoint` near the creation time, `latestRestorePoint` near now | `just resources`: no `$P-db-r1` |
 | B3 | `just db-plan $P-db-r1 2020-01-01T00:00:00Z` | `refused`; `restore-point` failed | - |
 | B4 | `just db-plan $P-db-replica "$(just db-point 5)"` | `refused`; `new-instance` failed, the replica exists; `result.target` describes it | - |
-| B5 | `just db-plan $P-db-r1 "$(just db-point 5)" $P-db-replica` | `refused`; `source` failed, `... is a READ_REPLICA_INSTANCE` | - |
+| B5 | `just db-plan $P-db-r1 "$(just db-point 5)" $P-db-replica` | `refused`; `source` failed, `Instance $P-db-replica is a READ_REPLICA_INSTANCE. Restore its primary instead.` | - |
 
 ### C. Execute
 

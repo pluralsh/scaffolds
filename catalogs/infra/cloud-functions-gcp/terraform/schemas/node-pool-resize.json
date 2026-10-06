@@ -7,7 +7,7 @@
         "plan",
         "execute"
       ],
-      "description": "plan evaluates the safety checks and reports the current and new node counts without changing anything. execute sets the new node count; GKE then adds nodes, or drains and removes the ones it takes away, in the background."
+      "description": "plan evaluates the safety checks and reports the current and new node counts without changing anything. execute sets the new node count. GKE then adds nodes, or drains and removes the ones it takes away, in the background."
     },
     "location": {
       "type": "string",
@@ -28,7 +28,7 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 1000,
-      "description": "New number of nodes in each zone of the pool; a regional pool in three zones gets three times as many nodes. The cluster's only node pool keeps at least one node per zone."
+      "description": "New number of nodes in each zone of the pool, so a regional pool in three zones gets three times as many nodes. The cluster's only node pool keeps at least one node per zone."
     }
   },
   "required": [

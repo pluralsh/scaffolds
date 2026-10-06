@@ -122,17 +122,17 @@ uses any more:
 2. the target pool or backend service, the firewall rules and the address;
 3. the health check.
 
-It refuses forwarding rules described as another Service's, rules that don't forward to a
-target pool or backend service, and load balancers with a healthy backend (the Service may
-still exist, or the nodes still answer the cluster's shared health check). Resources described
-as another Service's, targets other forwarding rules use and addresses in use elsewhere are
-kept; the cluster's shared node health check and its firewall rule are never touched. Load
-balancers of GKE's L4 controller (`k8s2-` names, with GKE subsetting or backend service based
-external load balancers) aren't supported. Permissions: read and delete forwarding rules,
-target pools, regional backend services, health checks (both kinds), firewall rules and
-addresses, read the backend health of target pools and backend services, and list forwarding
-rules. They cover every such resource in the project. In a Shared VPC, the firewall rules are
-in the host project, where the function can't delete them.
+It refuses forwarding rules described as another Service's, rules that don't forward to a target
+pool or backend service, and load balancers with a healthy backend (the Service may still exist,
+or the nodes still answer the cluster's shared health check). Resources described as another
+Service's, targets other forwarding rules use and addresses in use elsewhere are kept; the
+cluster's shared node health check and its firewall rule are never touched. Load balancers of
+GKE's L4 controller (`k8s2-` names, with GKE subsetting or backend service based external load
+balancers) aren't supported. Permissions: read and delete forwarding rules, target pools,
+regional backend services, health checks (both kinds), firewall rules and addresses (reading a
+target pool's or backend service's backend health needs only its get permission), and list
+forwarding rules. They cover every such resource in the project. In a Shared VPC, the firewall
+rules are in the host project, where the function can't delete them.
 
 ### db-restore
 

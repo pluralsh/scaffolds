@@ -143,11 +143,11 @@ func TestPlanDescribesTheDeletion(t *testing.T) {
 	got := invoke(t, fake, request(""))
 
 	assertBody(t, got, http.StatusOK, `{"action":"plan","guards":[`+
-		`{"detail":"found pvc-1","name":"exists","passed":true},`+
-		`{"detail":"not attached","name":"unattached","passed":true},`+
-		`{"detail":"state is READY","name":"state","passed":true},`+
-		`{"detail":"created for PersistentVolume pvc-123 of PVC apps/data","name":"kubernetes","passed":true},`+
-		`{"detail":"execute takes a snapshot first and deletes the volume in a later execute","name":"snapshot","passed":true}],`+
+		`{"detail":"Volume pvc-1 exists.","name":"exists","passed":true},`+
+		`{"detail":"The volume isn't attached to any instance.","name":"unattached","passed":true},`+
+		`{"detail":"The volume's state is READY.","name":"state","passed":true},`+
+		`{"detail":"The volume was created for PersistentVolume pvc-123 of PersistentVolumeClaim apps/data.","name":"kubernetes","passed":true},`+
+		`{"detail":"Execute takes a snapshot first and deletes the volume in a later execute.","name":"snapshot","passed":true}],`+
 		`"outcome":"planned","result":{"deleted":false,"snapshot":{"state":"missing"},`+
 		`"volume":{"deletable":true,"id":"pvc-1","kubernetes":{"namespace":"apps","pv":"pvc-123","pvc":"data"},"sizeGib":10,"state":"READY"}}}`)
 	if len(fake.created)+len(fake.deleted) != 0 {
@@ -164,11 +164,11 @@ func TestExecuteStartsSnapshotAndRefuses(t *testing.T) {
 	got := invoke(t, fake, request("execute"))
 
 	assertBody(t, got, http.StatusOK, `{"action":"execute","guards":[`+
-		`{"detail":"found pvc-1","name":"exists","passed":true},`+
-		`{"detail":"not attached","name":"unattached","passed":true},`+
-		`{"detail":"state is READY","name":"state","passed":true},`+
-		`{"detail":"created for PersistentVolume pvc-123 of PVC apps/data","name":"kubernetes","passed":true},`+
-		`{"detail":"no completed snapshot yet","name":"snapshot","passed":false}],`+
+		`{"detail":"Volume pvc-1 exists.","name":"exists","passed":true},`+
+		`{"detail":"The volume isn't attached to any instance.","name":"unattached","passed":true},`+
+		`{"detail":"The volume's state is READY.","name":"state","passed":true},`+
+		`{"detail":"The volume was created for PersistentVolume pvc-123 of PersistentVolumeClaim apps/data.","name":"kubernetes","passed":true},`+
+		`{"detail":"No snapshot has completed yet.","name":"snapshot","passed":false}],`+
 		`"outcome":"refused","result":{"deleted":false,"operation":"operation-snapshot",`+
 		`"snapshot":{"id":"pvc-1-predelete-1790769600","state":"inProgress"},`+
 		`"volume":{"deletable":true,"id":"pvc-1","kubernetes":{"namespace":"apps","pv":"pvc-123","pvc":"data"},"sizeGib":10,"state":"READY"}}}`)
@@ -234,7 +234,7 @@ func TestExecuteWaitsForSnapshotInProgress(t *testing.T) {
 	if got.outcome(t) != "refused" || len(got.failedGuards(t)) != 1 || got.output(t)["deleted"] != false {
 		t.Errorf("got %s", got.body)
 	}
-	if !strings.Contains(got.body, "snapshot pvc-1-predelete-1 is in progress (uploading); execute again once it completes") {
+	if !strings.Contains(got.body, "Snapshot pvc-1-predelete-1 is in progress (uploading). Execute again once it completes.") {
 		t.Errorf("body = %s", got.body)
 	}
 	if len(fake.created)+len(fake.deleted) != 0 {
@@ -247,7 +247,7 @@ func TestExecuteRefusesMissingDisk(t *testing.T) {
 
 	got := invoke(t, fake, request("execute"))
 
-	assertBody(t, got, http.StatusOK, `{"action":"execute","guards":[{"detail":"volume not found","name":"exists","passed":false}],`+
+	assertBody(t, got, http.StatusOK, `{"action":"execute","guards":[{"detail":"The volume doesn't exist.","name":"exists","passed":false}],`+
 		`"outcome":"refused","result":{"deleted":false,"snapshot":{"state":"missing"}}}`)
 	if len(fake.listed)+len(fake.created)+len(fake.deleted) != 0 {
 		t.Errorf("listed = %v, created = %v, deleted = %v", fake.listed, fake.created, fake.deleted)
@@ -262,7 +262,7 @@ func TestExecuteRefusesAttachedDiskWithoutSnapshotting(t *testing.T) {
 	if got.outcome(t) != "refused" || got.failedGuards(t)[0] != "unattached" {
 		t.Errorf("got %s", got.body)
 	}
-	if !strings.Contains(got.body, `"detail":"attached to node-1"`) {
+	if !strings.Contains(got.body, `"detail":"The volume is attached to node-1."`) {
 		t.Errorf("body = %s", got.body)
 	}
 	if len(fake.created)+len(fake.deleted) != 0 {
@@ -289,8 +289,8 @@ func TestSkippingTheSnapshotIsRejectedUnlessAllowed(t *testing.T) {
 
 	got := invoke(t, fake, request("execute", `"snapshot":false`))
 
-	assertBody(t, got, http.StatusBadRequest, `{"errorMessage":"invalid request: snapshot: false is not allowed by this installation; `+
-		`the volume is always snapshotted first","errorType":"InvalidRequest"}`)
+	assertBody(t, got, http.StatusBadRequest, `{"errorMessage":"invalid request: snapshot: false is not allowed by this installation, `+
+		`which always snapshots the volume first","errorType":"InvalidRequest"}`)
 	if len(fake.deleted) != 0 {
 		t.Errorf("deleted = %v", fake.deleted)
 	}
