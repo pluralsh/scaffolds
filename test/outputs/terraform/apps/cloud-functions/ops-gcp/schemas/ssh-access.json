@@ -1,0 +1,56 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan checks the instance and reports the access execute would grant without changing anything. execute grants the access (or revokes it with revoke: true) and removes expired access to the instance."
+    },
+    "zone": {
+      "type": "string",
+      "pattern": "^[a-z]+-[a-z]+[0-9]+-[a-z]$",
+      "description": "Zone of the instance, e.g. us-central1-a."
+    },
+    "instance": {
+      "type": "string",
+      "pattern": "^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$",
+      "description": "Name of the Compute Engine instance, in the project of the function. It needs OS Login enabled."
+    },
+    "principal": {
+      "type": "string",
+      "pattern": "^[^@\\s:,\"]+@[^@\\s:,\"]+\\.[^@\\s:,\"]+$",
+      "description": "Email of the user or service account that gets the access. Service accounts are recognised by their .gserviceaccount.com domain."
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "user",
+        "admin"
+      ],
+      "default": "user",
+      "description": "user logs in without sudo (roles/compute.osLogin), admin with sudo (roles/compute.osAdminLogin)."
+    },
+    "durationMinutes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1440,
+      "default": 60,
+      "description": "How long the access lasts, at most the installation's limit. Granting again extends it and never shortens it."
+    },
+    "revoke": {
+      "type": "boolean",
+      "default": false,
+      "description": "Remove the principal's access to the instance instead of granting it."
+    }
+  },
+  "required": [
+    "action",
+    "zone",
+    "instance",
+    "principal"
+  ],
+  "additionalProperties": false
+}

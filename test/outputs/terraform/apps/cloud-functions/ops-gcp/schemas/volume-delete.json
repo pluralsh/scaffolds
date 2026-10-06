@@ -1,0 +1,40 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan evaluates the safety checks without changing anything. execute takes a snapshot first (the disk is kept) and deletes the disk in a later execute once the snapshot has completed."
+    },
+    "zone": {
+      "type": "string",
+      "pattern": "^[a-z]+-[a-z]+[0-9]+-[a-z]$",
+      "description": "Zone of the disk, e.g. us-central1-a. Regional disks are not supported."
+    },
+    "disk": {
+      "type": "string",
+      "pattern": "^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$",
+      "description": "Name of the persistent disk to delete, in the project of the function."
+    },
+    "pvName": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?$",
+      "description": "Name of the PersistentVolume the disk was created for (kubernetes.io/created-for/pv/name in its description). Confirm in the cluster that this PersistentVolume no longer exists first."
+    },
+    "snapshot": {
+      "type": "boolean",
+      "default": true,
+      "description": "Take a snapshot and wait for it to complete before deleting. Only set to false when the data is known to be disposable."
+    }
+  },
+  "required": [
+    "action",
+    "zone",
+    "disk",
+    "pvName"
+  ],
+  "additionalProperties": false
+}

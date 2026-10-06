@@ -1,0 +1,25 @@
+[package]
+name = "volume-delete-azure"
+description = "Deletes an orphaned managed disk created by Kubernetes, after snapshotting it."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+functions-azure.workspace = true
+functions-core.workspace = true
+functions-http.workspace = true
+
+reqwest.workspace = true
+serde.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+tracing.workspace = true
+
+[dev-dependencies]
+functions-azure = { workspace = true, features = ["mock"] }
+serde_json.workspace = true
+time.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }

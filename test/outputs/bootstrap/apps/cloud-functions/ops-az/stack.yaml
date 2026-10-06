@@ -1,0 +1,90 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: cloud-functions-ops-az
+  namespace: apps
+spec:
+
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/cloud-functions/ops-az
+  repositoryRef:
+    name: infra
+    namespace: infra
+  variables:
+    name: "ops-az"
+    region: "eastus"
+    cloud_connection: "azure-workbench"
+    artifact_version: "v0.1.0-spike.1"
+    
+    functions:
+      - volume-delete
+      - lb-frontend-delete
+      - node-pool-resize
+      - vm-delete
+      - db-restore
+      - ssh-access
+    # Terraform derives each function's resource groups from these.
+    cluster_resource_group: "mgmt"
+    
+    
+    
+    
+    
+    
+    
+    
+  # The init container downloads and verifies the release's Azure packages. The pod mounts its
+  # own Azure identity token, as only AKS runs the workload identity webhook.
+  jobSpec:
+    namespace: plrl-deploy-operator
+    raw:
+      template:
+        metadata:
+          namespace: plrl-deploy-operator
+        spec:
+          serviceAccountName: stacks
+          initContainers:
+            - name: fetch-functions
+              image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+              command: ["/bin/sh", "-ec"]
+              args:
+                - |
+                  base=https://github.com/pluralsh/scaffolds/releases/download/functions/v0.1.0-spike.1
+                  mkdir -p /artifacts/v0.1.0-spike.1 && cd /artifacts/v0.1.0-spike.1
+                  curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS"
+                  grep -E -- '-azure\.(zip|tar\.gz)$' SHA256SUMS > packages.sums || { echo "no azure functions in v0.1.0-spike.1"; exit 1; }
+                  for zip in $(awk '{print $2}' packages.sums); do
+                    curl -fsSL --retry 3 -o "$zip" "$base/$zip"
+                  done
+                  sha256sum -c packages.sums
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+          containers:
+            - name: default
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+                  readOnly: true
+                - name: azure-identity-token
+                  mountPath: /var/run/secrets/azure/tokens
+                  readOnly: true
+          volumes:
+            - name: artifacts
+              emptyDir: {}
+            - name: azure-identity-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      audience: api://AzureADTokenExchange
+                      expirationSeconds: 3600
+                      path: azure-identity-token
+  clusterRef:
+    name: mgmt
+    namespace: infra

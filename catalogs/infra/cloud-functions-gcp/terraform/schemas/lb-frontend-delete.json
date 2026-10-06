@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan evaluates the safety checks, including the backend health of the load balancer, and lists what each execute deletes and keeps without changing anything. Each execute deletes what nothing uses any more: the forwarding rule first, then the target pool or backend service, firewall rules and address, then the health check. Execute again while the result reports remaining: true."
+    },
+    "region": {
+      "type": "string",
+      "pattern": "^[a-z]+-[a-z]+[0-9]+$",
+      "description": "Region of the load balancer, e.g. us-central1."
+    },
+    "forwardingRule": {
+      "type": "string",
+      "pattern": "^a[0-9a-f]{31}$",
+      "description": "Forwarding rule of the deleted Service: a followed by the first 31 hex digits of the Service UID without dashes. Confirm in the cluster that no Service has a UID starting with these digits first."
+    },
+    "serviceName": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?/[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$",
+      "description": "namespace/name of the deleted Service, as in the kubernetes.io/service-name of the forwarding rule's description."
+    }
+  },
+  "required": [
+    "action",
+    "region",
+    "forwardingRule",
+    "serviceName"
+  ],
+  "additionalProperties": false
+}

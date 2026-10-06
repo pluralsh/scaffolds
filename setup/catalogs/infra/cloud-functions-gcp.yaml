@@ -1,0 +1,105 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: cloud-functions-gcp
+spec:
+  name: cloud-functions-gcp
+  icon: https://docs.plural.sh/favicon-128.png
+  identifier: mgmt
+  documentation: |
+    Deploys the operational GCP functions (volume-delete, vm-delete, node-pool-resize,
+    lb-frontend-delete, db-restore and ssh-access) and registers them as Plural workbench tools.
+  creates:
+    git:
+      # TODO: back to main before merging; the branch lets the automation be tested first.
+      ref: marcin/prod-5251-generate-repo-of-common-operationally-useful-cloud-functions
+      folder: catalogs/infra/cloud-functions-gcp
+    templates:
+      - source: stack.yaml
+        destination: "bootstrap/apps/cloud-functions/{{ context.name }}/stack.yaml"
+        external: true
+      - source: terraform
+        destination: terraform/apps/cloud-functions/{{ context.name }}
+        external: true
+      - source: README.md
+        destination: documentation/cloud-functions-gcp/README.md
+        external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: infra
+  scmConnectionRef:
+    name: plural  # you'll need to add this ScmConnection manually before this is functional
+  title: "Setting up GCP cloud functions {{ context.name }}"
+  message: |
+    Set up GCP cloud functions {{ context.name }} ({{ context.region }})
+
+    Will deploy volume-delete, vm-delete, node-pool-resize, lb-frontend-delete, db-restore and
+    ssh-access from release {{ context.version }} and register each as a workbench tool. Every call
+    of a function requires human approval.
+
+    Plural Service: mgmt/apps
+  confirmation:
+    text: |
+      The stack runs on the management cluster and deploys the functions to the GCP project of
+      the selected cluster, from its plrl/clusters/<cluster> service context. Workbenches invoke
+      the functions through a cloud connection, which needs permission to invoke them. Every
+      function is registered as a workbench tool, and every call of a function requires human
+      approval.
+    checklist:
+      - label: "The management cluster runs on GKE, or credentialsSecret names a secret in the apps namespace with GCP credentials: the workload identity federation config the GKE workload cluster's stack uses (with workloadIdentityAudience), or a service account key."
+      - label: "If I leave invokerServiceAccount empty, I will grant the cloud connection's service account roles/run.invoker on the functions after the stack is applied. Until then, workbenches can't call them."
+      - label: "The cloud connection is for the same GCP project as the selected cluster."
+  configuration:
+    - name: name
+      type: STRING
+      documentation: Name of this installation, used as a prefix for every function, role and workbench tool.
+      validation:
+        regex: "^[a-z][a-z0-9-]{0,39}$"
+    - name: region
+      type: STRING
+      documentation: GCP region to deploy the functions to.
+    - name: cluster
+      type: CLUSTER
+      documentation: GKE cluster whose project the functions are deployed to.
+      default: mgmt
+    - name: credentialsSecret
+      type: STRING
+      optional: true
+      documentation: Secret in the apps namespace of the management cluster with GCP credentials as google-application-credentials.json, for when the stacks service account has no GKE workload identity, e.g. the workload identity federation config a GKE workload cluster's stack uses, or a service account key.
+      validation:
+        regex: "^([a-z0-9]([-a-z0-9.]{0,251}[a-z0-9])?)?$"
+    - name: workloadIdentityAudience
+      type: STRING
+      optional: true
+      documentation: Audience of the workload identity federation provider, //iam.googleapis.com/projects/<number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>, when credentialsSecret holds a federation config. The stack then projects a stacks token for it at /var/run/secrets/tokens/gcp-identity-token.
+      validation:
+        regex: "^(//iam\\.googleapis\\.com/projects/[0-9]+/locations/global/workloadIdentityPools/[^/]+/providers/[^/]+)?$"
+    - name: cloudConnection
+      type: STRING
+      documentation: Name of the Plural cloud connection workbenches use to invoke the functions. It must be for GCP.
+    - name: invokerServiceAccount
+      type: STRING
+      optional: true
+      documentation: Email of the service account the cloud connection authenticates as. When set, it is granted roles/run.invoker on every function, so workbenches can call them. Leave it empty to grant that role yourself.
+    - name: nodePoolMaxCount
+      type: STRING
+      optional: true
+      documentation: Largest total node count (across the pool's zones) node-pool-resize may set. Defaults to 100, and can be at most 1000. Leave empty for the default.
+      validation:
+        regex: "^(|[1-9][0-9]{0,2}|1000)$"
+    - name: sshAccessMaxMinutes
+      type: STRING
+      optional: true
+      documentation: Longest access ssh-access may grant, in minutes. Defaults to 240, and can be at most 1440 (a day). Leave empty for the default.
+      validation:
+        regex: "^(|[1-9][0-9]{0,2}|1[0-3][0-9]{2}|14[0-3][0-9]|1440)$"
+    - name: allowSkipSnapshot
+      type: BOOL
+      optional: true
+      documentation: Let volume-delete callers skip the snapshot it takes before deleting a volume. Off by default, so every deleted volume can be restored from its snapshot.
+    - name: version
+      type: STRING
+      documentation: Functions release to deploy, e.g. v0.1.0 (the functions/<version> tag in pluralsh/scaffolds).
+      validation:
+        regex: "^v[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.]+)?$"

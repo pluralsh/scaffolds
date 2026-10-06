@@ -1,0 +1,109 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: cloud-functions-ops-gcp
+  namespace: apps
+spec:
+
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/cloud-functions/ops-gcp
+  repositoryRef:
+    name: infra
+    namespace: infra
+  variables:
+    name: "ops-gcp"
+    region: "us-central1"
+    cluster: "gcp-dev"
+    cloud_connection: "gcp-workbench"
+    artifact_version: "v0.1.0-spike.1"
+    
+    
+    invoker_service_account: "plural-workbench@my-project.iam.gserviceaccount.com"
+    
+    
+    node_pool_max_count: 50
+    
+    
+    ssh_access_max_minutes: 120
+    
+    functions:
+      - volume-delete
+      - vm-delete
+      - node-pool-resize
+      - lb-frontend-delete
+      - db-restore
+      - ssh-access
+  # Before terraform runs, the init container downloads the release's GCP package into
+  # /artifacts/<version> and verifies it against SHA256SUMS. With raw, the operator ignores the
+  # other jobSpec fields, and a stack's jobSpec replaces the default one from the deployment
+  # settings, so the stacks service account, which carries the workload identity, is also set in
+  # raw.
+
+  # GCP credentials from a secret of this stack's namespace instead of the stacks service account's GKE
+  # workload identity: a service account key, or a workload identity federation config that
+  # exchanges the stacks token projected below. The harness writes the secret's keys as files.
+  files:
+    - mountPath: /plural/gcp
+      secretRef:
+        name: gcp-wif-credentials
+  environment:
+    - name: GOOGLE_APPLICATION_CREDENTIALS
+      value: /plural/gcp/google-application-credentials.json
+
+  jobSpec:
+    namespace: plrl-deploy-operator
+    raw:
+      template:
+        spec:
+          serviceAccountName: stacks
+          initContainers:
+            - name: fetch-functions
+              image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+              command: ["/bin/sh", "-ec"]
+              args:
+                - |
+                  base=https://github.com/pluralsh/scaffolds/releases/download/functions/v0.1.0-spike.1
+                  mkdir -p /artifacts/v0.1.0-spike.1 && cd /artifacts/v0.1.0-spike.1
+                  curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS"
+                  grep -E -- '-gcp\.(zip|tar\.gz)$' SHA256SUMS > packages.sums || { echo "no gcp functions in v0.1.0-spike.1"; exit 1; }
+                  for zip in $(awk '{print $2}' packages.sums); do
+                    curl -fsSL --retry 3 -o "$zip" "$base/$zip"
+                  done
+                  sha256sum -c packages.sums
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+          containers:
+            - name: default
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+                  readOnly: true
+
+                # The stacks token the workload identity federation config exchanges for GCP
+                # credentials; its credential_source file is /var/run/secrets/tokens/gcp-identity-token.
+                - name: gcp-wif-token
+                  mountPath: /var/run/secrets/tokens
+                  readOnly: true
+
+          volumes:
+            - name: artifacts
+              emptyDir: {}
+
+            - name: gcp-wif-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      audience: "//iam.googleapis.com/projects/123456789/locations/global/workloadIdentityPools/plural/providers/plural-oidc"
+                      expirationSeconds: 3600
+                      path: gcp-identity-token
+
+  clusterRef:
+    name: mgmt
+    namespace: infra

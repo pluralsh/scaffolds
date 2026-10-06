@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan evaluates the safety checks without changing anything. execute starts restoring the source server to a new server, once; check its progress with a read-only query of the new server. The source server is never changed."
+    },
+    "serverId": {
+      "type": "string",
+      "pattern": "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/Microsoft\\.DBfor(PostgreSQL|MySQL)/flexibleServers/[^/]+$",
+      "description": "Resource ID of the PostgreSQL or MySQL flexible server to restore."
+    },
+    "targetServerName": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$",
+      "description": "Name of the new server to restore into, in the source's resource group. It must not exist yet."
+    },
+    "restorePointInTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 time to restore to, between the source's earliest restore point (reported by plan) and now."
+    }
+  },
+  "required": [
+    "action",
+    "serverId",
+    "targetServerName",
+    "restorePointInTime"
+  ],
+  "additionalProperties": false
+}
