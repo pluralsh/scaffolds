@@ -21,8 +21,11 @@ const (
 	roleOSAdminLogin = "roles/compute.osAdminLogin"
 	roleTunnel       = "roles/iap.tunnelResourceAccessor"
 
-	// memberPrefix makes an IAM member of a user's email.
-	memberPrefix = "user:"
+	// The IAM member prefixes of users and service accounts, and the email domain suffix of
+	// service accounts.
+	userPrefix           = "user:"
+	serviceAccountPrefix = "serviceAccount:"
+	serviceAccountDomain = ".gserviceaccount.com"
 )
 
 // expiryExpression is the condition of a binding that holds until the timestamp.

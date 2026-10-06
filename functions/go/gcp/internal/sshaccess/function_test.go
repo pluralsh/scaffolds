@@ -130,7 +130,7 @@ func invoke(t *testing.T, fake *fakeCloud, body string) (int, string) {
 }
 
 func request(action string, extra map[string]any) string {
-	fields := map[string]any{"action": action, "zone": "us-central1-a", "instance": "vm-1", "user": "alice@example.com"}
+	fields := map[string]any{"action": action, "zone": "us-central1-a", "instance": "vm-1", "principal": "alice@example.com"}
 	maps.Copy(fields, extra)
 	body, _ := json.Marshal(fields)
 	return string(body)
@@ -308,7 +308,7 @@ func TestInvalidParamsAreRejected(t *testing.T) {
 	for name, extra := range map[string]map[string]any{
 		"zone":            {"zone": "us-central1"},
 		"instance":        {"instance": "VM"},
-		"user":            {"user": "serviceAccount:x@p.iam.gserviceaccount.com"},
+		"principal":       {"principal": "serviceAccount:x@p.iam.gserviceaccount.com"},
 		"role":            {"role": "root"},
 		"durationMinutes": {"durationMinutes": 0},
 	} {
@@ -330,7 +330,7 @@ func TestMaxMinutesFromEnv(t *testing.T) {
 	}
 }
 
-// A failed write must not leave the user with login access but no way to revoke it, nor with
+// A failed write must not leave the principal with login access but no way to revoke it, nor with
 // login access after a revoke.
 func TestLoginIsGrantedLastAndRevokedFirst(t *testing.T) {
 	fake := newFake()
@@ -354,5 +354,35 @@ func TestFailedTunnelWriteGrantsNoLogin(t *testing.T) {
 
 	if status != http.StatusBadGateway || len(granted(fake.login)) != 0 {
 		t.Errorf("got %d, login grants %v", status, granted(fake.login))
+	}
+}
+
+func TestServiceAccountsGetServiceAccountBindings(t *testing.T) {
+	fake := newFake()
+	const account = "ci@p.iam.gserviceaccount.com"
+
+	_, body := invoke(t, fake, request("execute", map[string]any{"principal": account}))
+
+	if !strings.Contains(body, `"member":"serviceAccount:`+account+`"`) {
+		t.Errorf("got %s", body)
+	}
+	for _, p := range []*iam.Policy{fake.login, fake.tunnel} {
+		last := p.Bindings[len(p.Bindings)-1]
+		if !slices.Equal(last.Members, []string{"serviceAccount:" + account}) || last.Condition.Title != marker {
+			t.Errorf("binding = %+v", last)
+		}
+	}
+}
+
+func TestMemberOfPrincipal(t *testing.T) {
+	for principal, want := range map[string]string{
+		"alice@example.com":                         "user:alice@example.com",
+		"ci@p.iam.gserviceaccount.com":              "serviceAccount:ci@p.iam.gserviceaccount.com",
+		"123-compute@developer.gserviceaccount.com": "serviceAccount:123-compute@developer.gserviceaccount.com",
+		"bob@gserviceaccount.com.example.org":       "user:bob@gserviceaccount.com.example.org",
+	} {
+		if got := (Params{Principal: principal}).member(); got != want {
+			t.Errorf("%s: got %s, want %s", principal, got, want)
+		}
 	}
 }

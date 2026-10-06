@@ -39,9 +39,9 @@ lb_service := "e2e/web"
 # db-restore fixtures: a small PostgreSQL instance with point-in-time recovery.
 db := prefix + "-db"
 
-# ssh-access fixtures: an instance with OS Login, and the user to grant access to.
+# ssh-access fixtures: an instance with OS Login, and the principal to grant access to.
 ssh_vm := prefix + "-ssh"
-ssh_user := env("SSH_USER", `gcloud config get account 2>/dev/null`)
+ssh_principal := env("SSH_PRINCIPAL", `gcloud config get account 2>/dev/null`)
 
 # Like terraform, every function gets its own service account (`<prefix>-<function>`) and
 # custom role (`e2e_<function>`). Keep the permissions in sync with `permissions` in
@@ -503,24 +503,24 @@ db-cleanup:
 
 # --- ssh-access ---
 
-# Plan an SSHAccess grant (role user or admin) to the user on the fixture instance.
+# Plan an SSHAccess grant (role user or admin) to the principal on the fixture instance.
 [group('ssh-access')]
-ssh-plan role="user" minutes="60" user=ssh_user instance=ssh_vm: (_ssh-access "plan" instance user role minutes "false")
+ssh-plan role="user" minutes="60" principal=ssh_principal instance=ssh_vm: (_ssh-access "plan" instance principal role minutes "false")
 
-# Grant the user SSH access (role user or admin) to the fixture instance.
+# Grant the principal SSH access (role user or admin) to the fixture instance.
 [group('ssh-access')]
-ssh-execute role="user" minutes="60" user=ssh_user instance=ssh_vm: (_ssh-access "execute" instance user role minutes "false")
+ssh-execute role="user" minutes="60" principal=ssh_principal instance=ssh_vm: (_ssh-access "execute" instance principal role minutes "false")
 
-# Revoke the user's SSH access to the fixture instance.
+# Revoke the principal's SSH access to the fixture instance.
 [group('ssh-access')]
-ssh-revoke user=ssh_user instance=ssh_vm: (_ssh-access "execute" instance user "user" "60" "true")
+ssh-revoke principal=ssh_principal instance=ssh_vm: (_ssh-access "execute" instance principal "user" "60" "true")
 
-_ssh-access action instance user role minutes revoke:
+_ssh-access action instance principal role minutes revoke:
     #!/usr/bin/env bash
     set -euo pipefail
     body="$(jq -cn --arg action {{ quote(action) }} --arg zone {{ quote(zone) }} --arg instance {{ quote(instance) }} \
-      --arg user {{ quote(user) }} --arg role {{ quote(role) }} --argjson minutes {{ quote(minutes) }} --argjson revoke {{ quote(revoke) }} \
-      '{action: $action, zone: $zone, instance: $instance, user: $user, role: $role, durationMinutes: $minutes, revoke: $revoke}')"
+      --arg principal {{ quote(principal) }} --arg role {{ quote(role) }} --argjson minutes {{ quote(minutes) }} --argjson revoke {{ quote(revoke) }} \
+      '{action: $action, zone: $zone, instance: $instance, principal: $principal, role: $role, durationMinutes: $minutes, revoke: $revoke}')"
     echo "> $body"
     just port={{ quote(port) }} invoke "$body"
 

@@ -1,4 +1,4 @@
-# ssh-access: grants a user short-lived SSH access to an instance through OS Login and an IAP
+# ssh-access: grants a user or service account short-lived SSH access to an instance through OS Login and an IAP
 # TCP tunnel. See functions/go/gcp/docs/ssh-access.md.
 
 variable "ssh_access_max_minutes" {
@@ -18,7 +18,7 @@ variable "ssh_access_max_minutes" {
 locals {
   ssh_access = {
     entry_point = "SSHAccess"
-    description = "Grants a Google user short-lived SSH access to a Compute Engine instance with OS Login enabled, through an Identity-Aware Proxy TCP tunnel, by granting an OS Login role on the instance and the IAP tunnel role, both expiring after durationMinutes, and returns the command to connect. revoke: true removes the access right away. Use action plan first to check the instance, then execute."
+    description = "Grants a user or service account short-lived SSH access to a Compute Engine instance with OS Login enabled, through an Identity-Aware Proxy TCP tunnel, by granting an OS Login role on the instance and the IAP tunnel role, both expiring after durationMinutes, and returns the command to connect. revoke: true removes the access right away. Use action plan first to check the instance, then execute."
     memory      = "512Mi"
     timeout     = 30
     destructive = true

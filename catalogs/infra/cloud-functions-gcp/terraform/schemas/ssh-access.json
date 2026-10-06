@@ -19,10 +19,10 @@
       "pattern": "^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$",
       "description": "Name of the Compute Engine instance, in the project of the function. It needs OS Login enabled."
     },
-    "user": {
+    "principal": {
       "type": "string",
       "pattern": "^[^@\\s:,\"]+@[^@\\s:,\"]+\\.[^@\\s:,\"]+$",
-      "description": "Email of the Google user who gets the access."
+      "description": "Email of the user or service account that gets the access. Service accounts are recognised by their .gserviceaccount.com domain."
     },
     "role": {
       "type": "string",
@@ -43,14 +43,14 @@
     "revoke": {
       "type": "boolean",
       "default": false,
-      "description": "Remove the user's access to the instance instead of granting it."
+      "description": "Remove the principal's access to the instance instead of granting it."
     }
   },
   "required": [
     "action",
     "zone",
     "instance",
-    "user"
+    "principal"
   ],
   "additionalProperties": false
 }

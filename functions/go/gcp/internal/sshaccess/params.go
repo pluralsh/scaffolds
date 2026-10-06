@@ -30,7 +30,7 @@ func MaxMinutesFromEnv() int64 {
 	return min(limit, maxMinutes)
 }
 
-// Role is the OS Login access the user gets.
+// Role is the OS Login access the principal gets.
 type Role string
 
 const (
@@ -44,8 +44,8 @@ const (
 type Params struct {
 	Zone     string `json:"zone" required:"true"`
 	Instance string `json:"instance" required:"true"`
-	// User is the email of the Google account that gets the access.
-	User string `json:"user" required:"true"`
+	// Principal is the email of the user or service account that gets the access.
+	Principal string `json:"principal" required:"true"`
 	// Role defaults to [RoleUser].
 	Role Role `json:"role"`
 	// DurationMinutes defaults to [defaultMinutes].
@@ -62,8 +62,8 @@ func (p Params) Validate() error {
 	if !compute.ResourceName(p.Instance).Valid() {
 		return core.InvalidRequestf("instance %q is not a Compute Engine instance name", p.Instance)
 	}
-	if !validEmail(p.User) {
-		return core.InvalidRequestf("user %q is not the email of a Google account", p.User)
+	if !validEmail(p.Principal) {
+		return core.InvalidRequestf("principal %q is not the email of a user or service account", p.Principal)
 	}
 	if p.Role != "" && p.Role != RoleUser && p.Role != RoleAdmin {
 		return core.InvalidRequestf("role %q is not %s or %s", p.Role, RoleUser, RoleAdmin)
@@ -85,6 +85,16 @@ func (p Params) withDefaults() Params {
 	return p
 }
 
+// member is the IAM member of the principal: a service account, if the email is in a service
+// account domain, or a user.
+func (p Params) member() string {
+	_, domain, _ := strings.Cut(p.Principal, "@")
+	if strings.HasSuffix(domain, serviceAccountDomain) {
+		return serviceAccountPrefix + p.Principal
+	}
+	return userPrefix + p.Principal
+}
+
 // validEmail reports whether s looks like an email: a local part and a domain with a dot,
 // without spaces or the characters IAM member strings use as separators.
 func validEmail(s string) bool {
@@ -96,11 +106,11 @@ func validEmail(s string) bool {
 // Output is the result reported to the caller.
 type Output struct {
 	Instance *Summary `json:"instance,omitempty"`
-	// Member is the IAM member the access is for, user:<email>.
+	// Member is the IAM member the access is for, user:<email> or serviceAccount:<email>.
 	Member string `json:"member"`
-	// Access is the user's access through this function after the call, if any.
+	// Access is the principal's access through this function after the call, if any.
 	Access *Access `json:"access,omitempty"`
-	// OtherAccess lists the OS Login roles the user has on the instance other than through this
+	// OtherAccess lists the OS Login roles the principal has on the instance other than through this
 	// function. Roles granted on the project or above aren't listed.
 	OtherAccess []string `json:"otherAccess,omitempty"`
 	// Changed is whether the IAM policies were changed.
@@ -115,8 +125,8 @@ type Output struct {
 type Summary struct {
 	Name  string `json:"name"`
 	State string `json:"state"`
-	// ServiceAccount is the account the instance runs as. OS Login also requires the user to
-	// have roles/iam.serviceAccountUser on it, which this function doesn't grant.
+	// ServiceAccount is the account the instance runs as. OS Login also requires the principal
+	// to have roles/iam.serviceAccountUser on it, which this function doesn't grant.
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 }
 

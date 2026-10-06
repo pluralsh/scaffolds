@@ -34,7 +34,7 @@ Cloud SQL Admin, IAP), which the stack enables.
 | `node-pool-resize` | Sets the node count of a manually scaled GKE node pool. |
 | `lb-frontend-delete` | Removes what a deleted Kubernetes `LoadBalancer` Service left of its GKE load balancer. |
 | `db-restore` | Restores a Cloud SQL instance to a point in time, as a new instance. |
-| `ssh-access` | Grants a Google user short-lived SSH access to an instance through OS Login and IAP. |
+| `ssh-access` | Grants a user or service account short-lived SSH access to an instance through OS Login and IAP. |
 
 Every deployed function is registered as a workbench tool. Every function changes
 resources, so every call of their tools requires human approval in the workbench.
@@ -151,25 +151,31 @@ once the target exists it is reported and refused, never changed. Permissions:
 
 ### ssh-access
 
-Grants a Google user (`user`, an email) SSH login to a Compute Engine instance (`zone`,
-`instance`) for `durationMinutes` (default 60, at most `ssh_access_max_minutes`), using OS
-Login and an Identity-Aware Proxy TCP tunnel: no keys are pushed to the instance and no port is
-opened to the internet. The instance needs OS Login (`enable-oslogin=TRUE` in its or the
-project's metadata) and a firewall rule letting IAP (`35.235.240.0/20`) reach port 22.
+Grants a user or service account (`principal`, an email) SSH login to a Compute Engine
+instance (`zone`, `instance`) for `durationMinutes` (default 60, at most
+`ssh_access_max_minutes`). Emails in a `.gserviceaccount.com` domain are granted as service
+accounts, all others as users. The access goes through OS Login and an Identity-Aware Proxy TCP
+tunnel, so no keys are pushed to the instance and no port is opened to the internet. The
+instance needs OS Login (`enable-oslogin=TRUE` in its or the project's metadata) and a firewall
+rule letting IAP (`35.235.240.0/20`) reach port 22.
+
 `execute` grants `roles/compute.osLogin` (or, with `role: admin`, `roles/compute.osAdminLogin`)
 on the instance and `roles/iap.tunnelResourceAccessor` on its tunnel, and returns the command
 to connect: `gcloud compute ssh <instance> --tunnel-through-iap`. Both bindings carry an IAM
-condition that ends them at the expiry, so the access ends without any cleanup job; every
+condition that ends them at the expiry, so the access ends without any cleanup job. Every
 `execute` also removes the function's expired bindings on the instance. Granting again extends
 the access and never shortens it, and `revoke: true` removes it right away. SSH sessions opened
-before the expiry aren't closed. If the instance runs as a service account, OS Login also
-requires `roles/iam.serviceAccountUser` on it, which the function doesn't grant; the result
-names the account. Access the user has through other bindings on the instance is listed as
-`otherAccess` and is neither granted nor revoked. Only bindings whose condition has the
-function's title are changed; anyone who can set the policy could create such a binding, so
-treat the title as a label, not a proof. Permissions: read instances and project metadata, and
-read and set the IAM policies of instances and IAP tunnel instances. Setting a policy allows
-granting any role on that resource; only the function restricts it to these roles.
+before the expiry aren't closed. The function doesn't create keys, change the instance or its
+metadata, or open firewall rules.
+
+If the instance runs as a service account, OS Login also requires `roles/iam.serviceAccountUser`
+on it, which the function doesn't grant. The result names the account. Access the principal has
+through other bindings on the instance is listed as `otherAccess` and is neither granted nor
+revoked. Only bindings whose condition has the function's title are changed. Anyone who can set
+the policy could create such a binding, so treat the title as a label, not a proof.
+Permissions: read instances and project metadata, and read and set the IAM policies of
+instances and IAP tunnel instances. Setting a policy allows granting any role on that resource,
+and only the function restricts it to these roles.
 
 ## Project and credentials
 

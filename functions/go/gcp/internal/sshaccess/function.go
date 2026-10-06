@@ -1,9 +1,9 @@
-// Package sshaccess is the function that grants a user short-lived SSH access to a Compute
-// Engine instance, through OS Login and an Identity-Aware Proxy TCP tunnel.
+// Package sshaccess is the function that grants a user or service account short-lived SSH
+// access to a Compute Engine instance, through OS Login and an Identity-Aware Proxy TCP tunnel.
 //
-// No keys are pushed to the instance and no port is opened to the internet: the user connects
-// with `gcloud compute ssh --tunnel-through-iap`, which needs an OS Login role on the instance
-// and permission to tunnel to it through IAP. The function grants both as instance-level IAM
+// No keys are pushed to the instance and no port is opened to the internet: the principal
+// connects with `gcloud compute ssh --tunnel-through-iap`, which needs an OS Login role on the
+// instance and permission to tunnel to it through IAP. The function grants both as instance-level IAM
 // bindings whose condition expires them, so the access ends without any cleanup. Expired
 // bindings are still removed by every execute on the instance, to keep the policies small.
 //

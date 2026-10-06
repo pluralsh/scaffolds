@@ -43,7 +43,7 @@ type operation struct {
 // run inspects the instance and its policies, evaluates the guards and changes the access if
 // they allow.
 func (o *operation) run(ctx context.Context) (core.Response[Output], error) {
-	member := memberPrefix + o.params.User
+	member := o.params.member()
 	found, err := o.instances.Instance(ctx, o.params.Zone, o.params.Instance)
 	if err != nil {
 		return core.Response[Output]{}, err
@@ -110,8 +110,8 @@ func (o *operation) apply(ctx context.Context, login, tunnel policy, member, rol
 		}
 		return o.tunnels.SetTunnelPolicy(ctx, o.params.Zone, o.params.Instance, tunnel.Policy)
 	}
-	// The OS Login role is what lets the user in: a grant writes it last and a revoke first, so
-	// if the other write fails, the user is left without access rather than with it.
+	// The OS Login role is what lets the principal in: a grant writes it last and a revoke first, so
+	// if the other write fails, the principal is left without access rather than with it.
 	writes := []func() error{writeTunnel, writeLogin}
 	if role == "" {
 		writes = []func() error{writeLogin, writeTunnel}
