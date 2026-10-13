@@ -24,3 +24,6 @@ bin/
 # Ignore all .terraform items
 .terraform
 .terraform.*
+
+# Rust build output
+target/
