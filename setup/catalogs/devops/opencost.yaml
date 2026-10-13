@@ -19,6 +19,9 @@ spec:
     - source: opencost.yaml.liquid
       destination: "helm/opencost/opencost.yaml.liquid"
       external: true
+    - source: extractor.yaml.liquid
+      destination: services/opencost/extractor.yaml
+      external: true
     - source: global.yaml.liquid
       destination: "bootstrap/apps/opencost/globalservice.yaml"
       external: true
@@ -30,7 +33,7 @@ spec:
     name: plural # you'll need to add this ScmConnection manually before this is functional
   title: "Global OpenCost Setup"
   message: |
-    Sets up OpenCost as a GlobalService Helm deployment.
+    Sets up OpenCost as a GlobalService Helm deployment, with KubecostExtractor resources (provider: OpenCost) to publish cost data back to Plural.
 
     Plural Service: mgmt/apps
   configuration:

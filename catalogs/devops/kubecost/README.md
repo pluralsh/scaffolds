@@ -1,2 +1,0 @@
-# Plural Kubecost
-
