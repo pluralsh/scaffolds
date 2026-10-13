@@ -10,7 +10,7 @@ spec:
     Sets up OpenCost cost monitoring with a GlobalService Helm deployment.
   creates:
     git:
-      ref: main
+      ref: marcin/prod-5117-service-catalog-kubecost-should-be-migrated-to-opencost # TEMP: revert to main before merge
       folder: catalogs/devops/opencost
     templates:
     - source: README.md
