@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan evaluates the safety checks, including the backend health of the frontend's rules, and reports the next step without changing anything. Each execute makes one change: it removes the frontend with its rules and probes (or deletes the load balancer if this was its last frontend and it has no backends), then, in a later execute, deletes the Service's public IP. Execute again while the result reports remaining: true."
+    },
+    "loadBalancerId": {
+      "type": "string",
+      "pattern": "^/subscriptions/[0-9a-fA-F-]{36}/resourceGroups/[^/]+/providers/Microsoft\\.Network/loadBalancers/[^/]+$",
+      "description": "Resource ID of the AKS load balancer (kubernetes or kubernetes-internal in the node resource group)."
+    },
+    "frontendName": {
+      "type": "string",
+      "pattern": "^a[0-9a-f]{31}(-[A-Za-z0-9_.-]+)?$",
+      "description": "Frontend IP configuration of the deleted Service: a followed by the first 31 hex digits of the Service UID without dashes. Confirm in the cluster that no Service has a UID starting with these digits first."
+    },
+    "serviceName": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?/[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$",
+      "description": "namespace/name of the deleted Service, as in the k8s-azure-service tag of its public IP."
+    }
+  },
+  "required": [
+    "action",
+    "loadBalancerId",
+    "frontendName",
+    "serviceName"
+  ],
+  "additionalProperties": false
+}

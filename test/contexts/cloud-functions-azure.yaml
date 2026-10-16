@@ -1,0 +1,9 @@
+name: ops-az
+region: eastus
+cloudConnection: azure-workbench
+version: v0.1.0-spike.1
+clusterResourceGroup: mgmt
+sshBastionId: ""
+networkResourceGroup: ""
+vmResourceGroup: ""
+nodePoolMaxCount: ""

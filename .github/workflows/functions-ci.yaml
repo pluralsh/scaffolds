@@ -1,0 +1,61 @@
+name: Functions CI
+
+# Pushes to main also build, to keep the Rust cache that PRs and releases restore warm.
+# Runs on every PR so `functions ci` can be a required check. The build only runs when the
+# functions changed.
+on:
+  pull_request:
+    branches:
+    - main
+  push:
+    branches:
+    - main
+    paths:
+    - functions/**
+    - .github/workflows/functions-*.yaml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # A new push to a PR supersedes its running build. Builds on main always finish, as they save
+  # the cache.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      functions: ${{ github.event_name == 'push' || steps.filter.outputs.functions == 'true' }}
+    steps:
+      - uses: dorny/paths-filter@v4
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          filters: |
+            functions:
+              - functions/**
+              - .github/workflows/functions-*.yaml
+
+  build:
+    needs: changes
+    if: needs.changes.outputs.functions == 'true'
+    uses: ./.github/workflows/functions-build.yaml
+    permissions:
+      contents: read
+
+  # The check to require: it passes when the build passed or wasn't needed.
+  result:
+    name: functions ci
+    needs: [changes, build]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: check the jobs
+        env:
+          RESULTS: ${{ toJSON(needs.*.result) }}
+        run: jq -e 'all(. == "success" or . == "skipped")' <<<"$RESULTS"

@@ -24,3 +24,7 @@ bin/
 # Ignore all .terraform items
 .terraform
 .terraform.*
+
+# Agent-related local files and dirs
+.state/
+CLAUDE.local.md

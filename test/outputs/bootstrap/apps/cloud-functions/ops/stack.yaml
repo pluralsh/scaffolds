@@ -1,0 +1,71 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: cloud-functions-ops
+  namespace: apps
+spec:
+
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/cloud-functions/ops
+  repositoryRef:
+    name: infra
+    namespace: infra
+  variables:
+    name: "ops"
+    region: "us-east-2"
+    cloud_connection: "aws-workbench"
+    artifact_version: "v0.1.0-spike.1"
+    
+    functions:
+      - volume-delete
+      - vm-delete
+      - node-pool-resize
+      - lb-delete
+      - db-restore
+      - ssh-access
+    
+    node_pool_max_count: 50
+    
+    
+  # Before terraform runs, the init container downloads the release's AWS packages into
+  # /artifacts/<version> and verifies them against SHA256SUMS.
+  jobSpec:
+    namespace: plrl-deploy-operator
+    raw:
+      template:
+        spec:
+          initContainers:
+            - name: fetch-functions
+              image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+              command: ["/bin/sh", "-ec"]
+              args:
+                - |
+                  base=https://github.com/pluralsh/scaffolds/releases/download/functions/v0.1.0-spike.1
+                  mkdir -p /artifacts/v0.1.0-spike.1 && cd /artifacts/v0.1.0-spike.1
+                  curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS"
+                  grep -E -- '-aws\.(zip|tar\.gz)$' SHA256SUMS > packages.sums || { echo "no aws functions in v0.1.0-spike.1"; exit 1; }
+                  for zip in $(awk '{print $2}' packages.sums); do
+                    curl -fsSL --retry 3 -o "$zip" "$base/$zip"
+                  done
+                  sha256sum -c packages.sums
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+          containers:
+            - name: default
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+                  readOnly: true
+          volumes:
+            - name: artifacts
+              emptyDir: {}
+  clusterRef:
+    name: mgmt
+    namespace: infra

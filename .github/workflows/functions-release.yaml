@@ -1,0 +1,96 @@
+name: Functions Release
+
+# Push a functions/vX.Y.Z tag to publish the function packages and SHA256SUMS as a GitHub release.
+# Tags with a suffix (functions/vX.Y.Z-rc.1) are published as pre-releases. X.Y.Z must match
+# the version in functions/Cargo.toml, also for suffixed tags.
+# A manual run builds the artifacts without publishing anything.
+on:
+  push:
+    tags:
+    - functions/v*
+  workflow_dispatch: {}
+
+concurrency:
+  group: functions-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: check version
+    if: startsWith(github.ref, 'refs/tags/functions/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        name: checkout repo
+        with:
+          persist-credentials: false
+
+      - name: compare the tag with the crate version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          crate=$(python3 -c 'import tomllib; print(tomllib.load(open("functions/Cargo.toml", "rb"))["workspace"]["package"]["version"])')
+          version=${TAG#functions/v}
+          if [[ "${version%%-*}" != "$crate" ]]; then
+            echo "::error::$TAG releases ${version%%-*}, but functions/Cargo.toml is at $crate. Bump the workspace version first, or tag functions/v$crate."
+            exit 1
+          fi
+
+  build:
+    uses: ./.github/workflows/functions-build.yaml
+    permissions:
+      contents: read
+
+  release:
+    name: publish release
+    needs: [version, build]
+    if: startsWith(github.ref, 'refs/tags/functions/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      # Sign and store the build provenance attestations.
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: functions-dist
+          path: dist
+
+      - name: verify checksums
+        working-directory: dist
+        run: sha256sum --check SHA256SUMS
+
+      # One attestation per package listed in SHA256SUMS. Verify a download with
+      # `gh attestation verify <package> --repo pluralsh/scaffolds`.
+      - name: attest build provenance
+        uses: actions/attest@v4
+        with:
+          subject-checksums: dist/SHA256SUMS
+
+      - name: create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          prerelease=""
+          if [[ "$TAG" == *-* ]]; then prerelease="--prerelease"; fi
+
+          {
+            echo "Operational cloud functions ${TAG#functions/}."
+            echo
+            echo '```'
+            cat dist/SHA256SUMS
+            echo '```'
+          } > notes.md
+
+          gh release create "$TAG" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$TAG" \
+            --notes-file notes.md \
+            --verify-tag \
+            $prerelease

@@ -1,0 +1,15 @@
+name: ops-az-all
+region: eastus
+cloudConnection: azure-workbench
+version: v0.1.0-spike.1
+networkResourceGroup: network
+vmResourceGroup: vms
+databaseResourceGroup: databases
+sshBastionId: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/hub/providers/Microsoft.Network/bastionHosts/hub-bastion
+allowSkipSnapshot: true
+nodePoolMaxCount: 20
+sshAccessMaxMinutes: 120
+invokerPrincipalId: 11111111-2222-3333-4444-555555555555
+functionsResourceGroup: functions
+clusterResourceGroup: mgmt
+stacksServiceAccount: azure-stacks
