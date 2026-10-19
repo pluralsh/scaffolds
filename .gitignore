@@ -27,3 +27,7 @@ bin/
 
 # Rust build output
 target/
+
+# Agent-related local files and dirs
+.state/
+CLAUDE.local.md

@@ -1,0 +1,30 @@
+[package]
+name = "functions-azure"
+description = "Azure identity and SDK helpers for Plural operational functions."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+functions-core.workspace = true
+
+azure_core.workspace = true
+azure_identity.workspace = true
+reqwest = { workspace = true, features = ["json", "query"] }
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["time"] }
+tracing.workspace = true
+
+# The in-process ARM mock for handler tests.
+async-trait = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+
+[features]
+mock = ["dep:async-trait", "dep:axum", "tokio/net", "tokio/rt"]
+# Authenticate as the Azure CLI's account instead of the managed identity, to run functions
+# locally (functions/e2e/azure/run.sh). Never enabled for release packages.
+az-cli = []

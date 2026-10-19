@@ -1,0 +1,17 @@
+[package]
+name = "functions-core"
+description = "Cloud-agnostic request/response envelope shared by all Plural operational functions."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+time.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

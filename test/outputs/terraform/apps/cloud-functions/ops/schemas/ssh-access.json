@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan checks the instance without changing anything. execute grants the access (or revokes it with revoke: true) and removes expired access policies for the principal."
+    },
+    "instanceId": {
+      "type": "string",
+      "pattern": "^i-[0-9a-f]{8,17}$",
+      "description": "ID of the Linux EC2 instance."
+    },
+    "principalArn": {
+      "type": "string",
+      "pattern": "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:(user|role)/.+$",
+      "description": "ARN of the IAM user or role that gets the access."
+    },
+    "durationMinutes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1440,
+      "default": 60,
+      "description": "How long the access lasts, at most the installation's limit. Granting again extends it and never shortens it."
+    },
+    "revoke": {
+      "type": "boolean",
+      "default": false,
+      "description": "Remove the principal's access to the instance instead of granting it."
+    }
+  },
+  "required": [
+    "action",
+    "instanceId",
+    "principalArn"
+  ],
+  "additionalProperties": false
+}

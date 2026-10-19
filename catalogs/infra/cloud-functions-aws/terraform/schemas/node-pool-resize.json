@@ -1,0 +1,40 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan evaluates the safety checks without changing anything. plan also reports the minimum and maximum size (newMin, newMax) that execute would set. execute sets the new desired size, lowering the group's minimum or raising its maximum when the size is outside them; EKS or Auto Scaling then adds or removes instances in the background."
+    },
+    "clusterName": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$",
+      "description": "EKS cluster name. Required with nodegroupName; do not set autoScalingGroupName."
+    },
+    "nodegroupName": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,62}$",
+      "description": "EKS managed node group name. Required with clusterName; do not set autoScalingGroupName."
+    },
+    "autoScalingGroupName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Auto Scaling group name. Set this instead of clusterName/nodegroupName to scale an ASG directly. Auto Scaling groups of EKS managed node groups are refused; use clusterName and nodegroupName for those."
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000,
+      "description": "New desired number of nodes or instances."
+    }
+  },
+  "required": [
+    "action",
+    "count"
+  ],
+  "additionalProperties": false
+}

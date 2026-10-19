@@ -1,0 +1,110 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: cloud-functions-{{ context.name }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/cloud-functions/{{ context.name }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  variables:
+    name: "{{ context.name }}"
+    region: "{{ context.region }}"
+    cloud_connection: "{{ context.cloudConnection }}"
+    artifact_version: "{{ context.version }}"
+    {% if context.allowSkipSnapshot == true or context.allowSkipSnapshot == "true" %}
+    allow_skip_snapshot: true
+    {% endif %}
+    functions:
+      - volume-delete
+      - lb-frontend-delete
+      - node-pool-resize
+      - vm-delete
+      - db-restore
+      - ssh-access
+    # Terraform derives each function's resource groups from these.
+    cluster_resource_group: "{{ context.clusterResourceGroup }}"
+    {% if context.vmResourceGroup and context.vmResourceGroup != "" %}
+    vm_resource_group: "{{ context.vmResourceGroup }}"
+    {% endif %}
+    {% if context.databaseResourceGroup and context.databaseResourceGroup != "" %}
+    database_resource_group: "{{ context.databaseResourceGroup }}"
+    {% endif %}
+    {% if context.networkResourceGroup and context.networkResourceGroup != "" %}
+    network_resource_groups: ["{{ context.networkResourceGroup }}"]
+    {% endif %}
+    {% if context.sshBastionId and context.sshBastionId != "" %}
+    ssh_bastion_id: "{{ context.sshBastionId }}"
+    {% endif %}
+    {% if context.functionsResourceGroup and context.functionsResourceGroup != "" %}
+    resource_group_name: "{{ context.functionsResourceGroup }}"
+    {% endif %}
+    {% if context.invokerPrincipalId and context.invokerPrincipalId != "" %}
+    invoker_principal_id: "{{ context.invokerPrincipalId }}"
+    {% endif %}
+    {% if context.nodePoolMaxCount and context.nodePoolMaxCount != "" %}
+    node_pool_max_count: {{ context.nodePoolMaxCount }}
+    {% endif %}
+    {% if context.sshAccessMaxMinutes and context.sshAccessMaxMinutes != "" %}
+    ssh_access_max_minutes: {{ context.sshAccessMaxMinutes }}
+    {% endif %}
+  # The init container downloads and verifies the release's Azure packages. The pod mounts its
+  # own Azure identity token, as only AKS runs the workload identity webhook.
+  jobSpec:
+    namespace: plrl-deploy-operator
+    raw:
+      template:
+        metadata:
+          namespace: plrl-deploy-operator
+        spec:
+          serviceAccountName: {{ context.stacksServiceAccount | default: "stacks" }}
+          initContainers:
+            - name: fetch-functions
+              image: curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777
+              command: ["/bin/sh", "-ec"]
+              args:
+                - |
+                  base=https://github.com/pluralsh/scaffolds/releases/download/functions/{{ context.version }}
+                  mkdir -p /artifacts/{{ context.version }} && cd /artifacts/{{ context.version }}
+                  curl -fsSL --retry 3 -o SHA256SUMS "$base/SHA256SUMS"
+                  grep -E -- '-azure\.(zip|tar\.gz)$' SHA256SUMS > packages.sums || { echo "no azure functions in {{ context.version }}"; exit 1; }
+                  for zip in $(awk '{print $2}' packages.sums); do
+                    curl -fsSL --retry 3 -o "$zip" "$base/$zip"
+                  done
+                  sha256sum -c packages.sums
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+          containers:
+            - name: default
+              volumeMounts:
+                - name: artifacts
+                  mountPath: /artifacts
+                  readOnly: true
+                - name: azure-identity-token
+                  mountPath: /var/run/secrets/azure/tokens
+                  readOnly: true
+          volumes:
+            - name: artifacts
+              emptyDir: {}
+            - name: azure-identity-token
+              projected:
+                sources:
+                  - serviceAccountToken:
+                      audience: api://AzureADTokenExchange
+                      expirationSeconds: 3600
+                      path: azure-identity-token
+  clusterRef:
+    name: mgmt
+    namespace: infra

@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "plan",
+        "execute"
+      ],
+      "description": "plan evaluates the safety checks without changing anything. execute starts restoring the source DB instance to a new instance; call again with the same parameters to see its state and endpoint. The source instance is never changed."
+    },
+    "dbInstanceIdentifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9-]{0,62}$",
+      "description": "Identifier of the RDS DB instance to restore. Aurora DB instances aren't supported."
+    },
+    "targetDbInstanceIdentifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9-]{0,62}$",
+      "description": "Identifier of the new DB instance to restore into, in the same region and account. It must not exist yet."
+    },
+    "restorePointInTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 time to restore to, between the source's earliest and latest restorable times (reported by plan)."
+    }
+  },
+  "required": [
+    "action",
+    "dbInstanceIdentifier",
+    "targetDbInstanceIdentifier",
+    "restorePointInTime"
+  ],
+  "additionalProperties": false
+}

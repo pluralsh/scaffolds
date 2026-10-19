@@ -1,0 +1,122 @@
+name: Functions Build
+
+# Shared by functions-ci and functions-release so both build exactly the same artifacts.
+# The checks and the packaging run in parallel; callers that need the artifact wait for both.
+on:
+  workflow_call: {}
+
+jobs:
+  check-rust:
+    name: check rust
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v7
+        name: checkout repo
+        with:
+          persist-credentials: false
+
+      # Installs the toolchain, components and targets pinned in functions/rust-toolchain.toml
+      # and caches the builds.
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          rust-src-dir: functions
+          cache-workspaces: functions
+          # Only main saves the cache. Tag builds can restore main's cache but not a PR's, and
+          # PR caches would evict it.
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Defaults to deny, which fails release builds on linker warnings. Clippy in
+          # `just check-rust` already denies warnings.
+          build-warnings: warn
+
+      - uses: extractions/setup-just@v4
+        with:
+          just-version: 1.58.0
+
+      - run: just check-rust
+
+  # The GCP functions are Go and need no Rust toolchain.
+  check-go:
+    name: check go
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v7
+        name: checkout repo
+        with:
+          persist-credentials: false
+
+      - uses: extractions/setup-just@v4
+        with:
+          just-version: 1.58.0
+
+      # Latest 1.27 patch, matching the go127 runtime the functions deploy to.
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27'
+          cache-dependency-path: functions/go/gcp/go.sum
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.14.0
+          install-only: true
+
+      - run: just check-go
+
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v7
+        name: checkout repo
+        with:
+          persist-credentials: false
+
+      # Installs the toolchain, components and targets pinned in functions/rust-toolchain.toml
+      # and caches the builds.
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          rust-src-dir: functions
+          cache-workspaces: functions
+          # Only main saves the cache. Tag builds can restore main's cache but not a PR's, and
+          # PR caches would evict it.
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Defaults to deny, which fails release builds on linker warnings. Clippy in
+          # `just check-rust` already denies warnings.
+          build-warnings: warn
+
+      - uses: extractions/setup-just@v4
+        with:
+          just-version: 1.58.0
+
+      # The PyPI package is the documented CI install and brings Zig for cross-compilation.
+      # Zig is pinned too, since cargo-lambda only sets a lower bound on it.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: install cargo-lambda
+        run: pip install cargo-lambda==1.9.2 ziglang==0.16.0
+
+      - run: just package
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: functions-dist
+          path: functions/dist/
+          if-no-files-found: error
+          retention-days: 7
