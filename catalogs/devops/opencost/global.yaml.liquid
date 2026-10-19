@@ -20,3 +20,19 @@ spec:
       valuesFiles:
       - opencost.yaml.liquid
 
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: opencost-extractor
+  namespace: apps
+spec:
+  template:
+    namespace: opencost
+    git:
+      folder: services/opencost
+      ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra

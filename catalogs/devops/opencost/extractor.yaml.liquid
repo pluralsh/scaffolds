@@ -3,9 +3,10 @@ kind: KubecostExtractor
 metadata:
   name: extractor
 spec:
+  provider: OpenCost
   interval: "6h"
   recommendationThreshold: "1"
-  kubecostPort: 9090
+  kubecostPort: 9003
   kubecostServiceRef:
-    name: kubecost-cost-analyzer
-    namespace: kubecost
+    name: opencost
+    namespace: opencost
