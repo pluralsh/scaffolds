@@ -1,0 +1,28 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: valkey-dev
+  namespace: apps
+spec:
+
+  name: valkey-dev
+  namespace: valkey
+  git:
+    folder: helm/valkey
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configurationRef:
+    name: valkey-users-dev
+    namespace: infra
+  helm:
+    # Keep chart and image versions paired; review persistence changes before upgrading.
+    version: "0.12.0"
+    chart: valkey
+    release: valkey-dev
+    url: https://valkey.io/valkey-helm/
+    valuesFiles:
+    - valkey.yaml.liquid
+  cluster: dev

@@ -1,0 +1,14 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: valkey
+spec:
+  workdir: test/outputs-valkey
+  templates:
+    from: catalogs/datastores/valkey
+    to: test/outputs-valkey/catalogs/datastores/valkey
+  automations:
+  - file: ../../setup/catalogs/datastores/valkey.yaml
+    context: ../contexts/valkey-dev.yaml
+  - file: ../../setup/catalogs/datastores/valkey.yaml
+    context: ../contexts/valkey-prod.yaml

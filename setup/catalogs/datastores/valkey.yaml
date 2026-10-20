@@ -1,0 +1,44 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: valkey
+spec:
+  name: valkey
+  icon: https://dyltqmyl993wv.cloudfront.net/assets/stacks/valkey/img/valkey-stack-220x234.png
+  identifier: mgmt
+  documentation: |
+    Sets up a standalone, authenticated Valkey datastore on a selected cluster.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/datastores/valkey
+    templates:
+    - source: README.md
+      destination: documentation/valkey/README.md
+      external: true
+    - source: helm/valkey.yaml.liquid
+      destination: helm/valkey/valkey.yaml.liquid
+      external: true
+    - source: generatedsecret.yaml
+      destination: bootstrap/apps/valkey/{{ context.cluster }}/generatedsecret.yaml
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: bootstrap/apps/valkey/{{ context.cluster }}/servicedeployment.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: datastores
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Valkey datastore ({{ context.cluster }})"
+  message: |
+    Sets up a standalone Valkey datastore on {{ context.cluster }}.
+
+    The deployment uses a 10 GiB RWO volume, internal ClusterIP access, and a generated ACL credential.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster where Valkey should run

@@ -1,0 +1,61 @@
+# The management configurationRef injects this value during the target
+# ServiceDeployment render. The chart then creates its own target Secret.
+image:
+  registry: docker.io
+  repository: valkey/valkey
+  tag: "9.1.2"
+  pullPolicy: IfNotPresent
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 6379
+
+dataStorage:
+  enabled: true
+  volumeName: valkey-data
+  requestedSize: 10Gi
+  className: ""
+  accessModes:
+  - ReadWriteOnce
+  keepPvc: true
+
+auth:
+  enabled: true
+  aclUsers:
+    default:
+      permissions: "~* &* +@all"
+      password: "{{ configuration.password }}"
+
+replica:
+  enabled: false
+
+deploymentStrategy: Recreate
+
+# The default chart probes only check whether a process responds. Authenticate
+# readiness and require PONG before routing clients to a restored datastore.
+extraVolumeMounts:
+- name: valkey-auth-secret
+  mountPath: /run/valkey-auth
+  readOnly: true
+
+readinessProbe:
+  enabled: true
+  customProbe:
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 1
+    exec:
+      command:
+      - sh
+      - -ec
+      - |
+        VALKEYCLI_AUTH="$(cat /run/valkey-auth/default-password)"
+        export VALKEYCLI_AUTH
+        test "$(timeout 1 valkey-cli --raw -e PING)" = PONG
+
+metrics:
+  enabled: false
+
+tls:
+  enabled: false
