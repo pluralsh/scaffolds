@@ -1,0 +1,76 @@
+# The management configurationRef injects these values during the target
+# ServiceDeployment render. The official chart creates the target Secret, and
+# the NATS process reads its credentials through Secret-backed environment vars.
+config:
+  cluster:
+    enabled: false
+  jetstream:
+    enabled: true
+    fileStore:
+      enabled: true
+      dir: /data
+      pvc:
+        enabled: true
+        size: 10Gi
+        storageClassName: ""
+  nats:
+    port: 4222
+  merge:
+    authorization:
+      users:
+      - user: "<< $NATS_USERNAME >>"
+        password: "<< $NATS_PASSWORD >>"
+
+container:
+  image:
+    repository: nats
+    tag: "2.14.6-alpine"
+    pullPolicy: IfNotPresent
+  env:
+    NATS_USERNAME:
+      valueFrom:
+        secretKeyRef:
+          name: nats-auth
+          key: username
+    NATS_PASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: nats-auth
+          key: password
+
+service:
+  enabled: true
+  merge:
+    spec:
+      type: ClusterIP
+  ports:
+    nats:
+      enabled: true
+    leafnodes:
+      enabled: false
+    websocket:
+      enabled: false
+    mqtt:
+      enabled: false
+    cluster:
+      enabled: false
+    gateway:
+      enabled: false
+    monitor:
+      enabled: false
+    profiling:
+      enabled: false
+
+natsBox:
+  enabled: false
+
+extraResources:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: nats-auth
+    namespace: nats
+  type: Opaque
+  stringData:
+    username: "{% raw %}{{ configuration.username }}{% endraw %}"
+    password: "{% raw %}{{ configuration.password }}{% endraw %}"
