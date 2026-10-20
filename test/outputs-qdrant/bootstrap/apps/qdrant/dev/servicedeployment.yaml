@@ -1,0 +1,29 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: qdrant-dev
+  namespace: apps
+spec:
+
+  name: qdrant
+  namespace: qdrant
+  git:
+    folder: helm/qdrant
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configurationRef:
+    name: qdrant-api-key-dev
+    namespace: infra
+  helm:
+    # Keep the chart and app version aligned. Qdrant's StatefulSet and PVC
+    # fields are persistent-data-sensitive, so do not auto-upgrade majors.
+    version: "1.19.1"
+    chart: qdrant
+    release: qdrant
+    url: https://qdrant.github.io/qdrant-helm
+    valuesFiles:
+    - qdrant.yaml.liquid
+  cluster: dev

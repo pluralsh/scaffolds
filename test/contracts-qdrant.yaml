@@ -1,0 +1,14 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: qdrant
+spec:
+  workdir: test/outputs-qdrant
+  templates:
+    from: catalogs/datastores/qdrant
+    to: test/outputs-qdrant/catalogs/datastores/qdrant
+  automations:
+  - file: ../../setup/catalogs/datastores/qdrant.yaml
+    context: ../contexts/qdrant-dev.yaml
+  - file: ../../setup/catalogs/datastores/qdrant.yaml
+    context: ../contexts/qdrant-prod.yaml
