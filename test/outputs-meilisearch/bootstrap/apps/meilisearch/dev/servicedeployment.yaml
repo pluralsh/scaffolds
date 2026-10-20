@@ -1,0 +1,32 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: meilisearch-dev
+  namespace: apps
+spec:
+
+  name: meilisearch
+  namespace: meilisearch
+  git:
+    folder: helm/meilisearch/dev
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configurationRef:
+    name: meilisearch-master-key-dev
+    namespace: infra
+  helm:
+    chart: meilisearch-wrapper
+    release: meilisearch
+    git:
+      folder: helm/meilisearch/dev
+      ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra
+    valuesFiles:
+    - values.yaml.liquid
+  cluster: dev

@@ -1,0 +1,41 @@
+# The management configurationRef supplies this value to the wrapper chart.
+# The wrapper writes it only to the target Secret; the child chart reads that
+# Secret through auth.existingMasterKeySecret.
+masterKey: {% raw %}"{{ configuration.master_key }}"{% endraw %}
+
+meilisearch:
+  image:
+    repository: getmeili/meilisearch
+    tag: "v1.53.1"
+    pullPolicy: IfNotPresent
+
+  environment:
+    MEILI_NO_ANALYTICS: true
+    MEILI_ENV: production
+
+  auth:
+    existingMasterKeySecret: meilisearch-master-key
+
+  service:
+    type: ClusterIP
+    port: 7700
+
+  ingress:
+    enabled: false
+
+  persistence:
+    enabled: true
+    accessMode: ReadWriteOnce
+    storageClass: ~
+    existingClaim: ""
+    size: 10Gi
+    annotations:
+      helm.sh/resource-policy: keep
+    volume:
+      name: data
+      mountPath: /meili_data
+
+  replicaCount: 1
+
+  serviceMonitor:
+    enabled: false

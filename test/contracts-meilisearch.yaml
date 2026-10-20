@@ -1,0 +1,14 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: meilisearch
+spec:
+  workdir: test/outputs-meilisearch
+  templates:
+    from: catalogs/datastores/meilisearch
+    to: test/outputs-meilisearch/catalogs/datastores/meilisearch
+  automations:
+  - file: ../../setup/catalogs/datastores/meilisearch.yaml
+    context: ../contexts/meilisearch-dev.yaml
+  - file: ../../setup/catalogs/datastores/meilisearch.yaml
+    context: ../contexts/meilisearch-prod.yaml

@@ -1,0 +1,34 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: meilisearch-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: meilisearch
+  namespace: meilisearch
+  git:
+    folder: helm/meilisearch/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  configurationRef:
+    name: meilisearch-master-key-{{ context.cluster }}
+    namespace: infra
+  helm:
+    chart: meilisearch-wrapper
+    release: meilisearch
+    git:
+      folder: helm/meilisearch/{{ context.cluster }}
+      ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra
+    valuesFiles:
+    - values.yaml.liquid
+  cluster: {{ context.cluster }}
