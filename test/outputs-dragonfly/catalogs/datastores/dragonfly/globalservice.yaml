@@ -1,0 +1,22 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: dragonfly
+  namespace: apps
+spec:
+  template:
+    name: dragonfly
+    namespace: dragonfly
+    git:
+      folder: helm/dragonfly
+      ref: main
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra
+    helm:
+      url: oci://ghcr.io/dragonflydb/dragonfly/helm/dragonfly
+      chart: dragonfly
+      version: v1.40.1
+      valuesFiles:
+      - dragonfly.yaml.liquid
