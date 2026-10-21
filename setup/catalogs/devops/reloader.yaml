@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: reloader
+spec:
+  name: reloader
+  icon: https://raw.githubusercontent.com/stakater/Reloader/master/assets/web/reloader-round-100px.png
+  identifier: mgmt
+  documentation: |
+    Sets up Stakater Reloader for workloads that opt in to restart on changes
+    to referenced Secrets and ConfigMaps.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/reloader
+    templates:
+    - source: README.md
+      destination: documentation/reloader/README.md
+      external: true
+    - source: reloader.yaml
+      destination: bootstrap/apps/reloader/reloader.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # Configure this ScmConnection before using the automation.
+  title: Stakater Reloader setup
+  message: |
+    Sets up Stakater Reloader with opt-in workload reloads.
+
+    Plural Service: mgmt/apps
