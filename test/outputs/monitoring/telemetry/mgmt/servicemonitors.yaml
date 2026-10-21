@@ -1,0 +1,49 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: telemetry-reader-metrics
+  namespace: plrl-telemetry
+spec:
+  namespaceSelector:
+    matchNames:
+    - plrl-telemetry
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: reader
+    matchExpressions:
+    - key: app.kubernetes.io/name
+      operator: In
+      values:
+      - logs
+      - metrics
+      - traces
+  endpoints:
+  - port: http
+    path: /metrics
+    scheme: http
+    interval: 30s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: telemetry-writer-metrics
+  namespace: plrl-telemetry
+spec:
+  namespaceSelector:
+    matchNames:
+    - plrl-telemetry
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: writer
+    matchExpressions:
+    - key: app.kubernetes.io/name
+      operator: In
+      values:
+      - logs
+      - metrics
+      - traces
+  endpoints:
+  - port: http
+    path: /metrics
+    scheme: http
+    interval: 30s

@@ -1,0 +1,8 @@
+cluster: gcp-dev
+cloud: gcp
+bucket: plrl-telemetry
+hostname: telemetry.plural.sh
+ingressClass: nginx
+clusterIssuer: letsencrypt-prod
+versioning: false
+monitoring: false

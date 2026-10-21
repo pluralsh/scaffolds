@@ -1,0 +1,112 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: plural-telemetry
+spec:
+  name: plural-telemetry
+  icon: https://github.com/pluralsh.png
+  identifier: mgmt
+  documentation: |
+    Sets up Plural Telemetry (metrics, logs and traces) with shared cloud object storage and a single path-routed ingress host.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/plural-telemetry
+    templates:
+    - source: README.md
+      destination: documentation/telemetry/README.md
+      external: true
+    - source: helm
+      destination: "helm/telemetry/{{ context.cluster }}"
+      external: true
+    - source: monitoring
+      destination: "monitoring/telemetry/{{ context.cluster }}"
+      external: true
+    - source: "terraform/{{ context.cloud }}"
+      destination: "terraform/apps/telemetry/{{ context.cluster }}"
+      external: true
+    - source: telemetry.yaml.liquid
+      destination: "bootstrap/apps/telemetry/{{ context.cluster }}/telemetry.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Plural Telemetry setup ({{ context.cluster }}, {{ context.cloud }})"
+  message: |
+    Sets up Plural Telemetry on {{ context.cluster }} with {{ context.cloud }} object storage, served at https://{{ context.hostname }}/{metrics,logs,traces}.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster you want to deploy Telemetry to
+  - name: cloud
+    type: ENUM
+    documentation: the cloud provider hosting the target cluster
+    values:
+    - aws
+    - azure
+    - gcp
+  - name: bucket
+    type: STRING
+    documentation: the globally unique S3/GCS bucket name, or Azure Blob container name, shared by metrics, logs and traces. Azure container names allow only lowercase letters, digits and single hyphens.
+    validation:
+      regex: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]\\z"
+  - name: hostname
+    type: STRING
+    documentation: the DNS name Telemetry is served under; metrics, logs and traces are routed by path (/metrics, /logs, /traces)
+    validation:
+      regex: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+\\z"
+  - name: ingressClass
+    type: STRING
+    optional: true
+    default: nginx
+    documentation: the ingress class used for the Telemetry ingresses. Defaults to nginx.
+    validation:
+      regex: "^(|[a-z0-9]([-a-z0-9.]*[a-z0-9])?)\\z"
+  - name: clusterIssuer
+    type: STRING
+    optional: true
+    default: letsencrypt-prod
+    documentation: the cert-manager ClusterIssuer that issues the TLS certificate. Defaults to letsencrypt-prod.
+    validation:
+      regex: "^(|[a-z0-9]([-a-z0-9.]*[a-z0-9])?)\\z"
+  - name: region
+    type: STRING
+    documentation: the AWS region containing the target EKS cluster and Telemetry bucket
+    validation:
+      regex: "^[a-z]{2,4}(-[a-z]+)+-[0-9]\\z"
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: storageAccount
+    type: STRING
+    documentation: the Azure storage account in the target AKS cluster's resource group
+    validation:
+      regex: "^[a-z0-9]{3,24}\\z"
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
+  - name: versioning
+    type: BOOL
+    optional: true
+    default: "true"
+    documentation: keep previous object versions so accidental deletes and overwrites can be recovered. On by default. Ignored on Azure, where blob versioning is a storage account setting.
+  - name: versionRetentionDays
+    type: STRING
+    optional: true
+    default: "7"
+    documentation: days a non-current object version is kept before it expires. Expiry also applies to versions left over after versioning is turned off. Ignored on Azure.
+    validation:
+      regex: "^(|[1-9][0-9]{0,3})\\z"
+  - name: monitoring
+    type: BOOL
+    optional: true
+    documentation: deploy ServiceMonitors for the Telemetry readers and writers. Off by default. Requires the Prometheus operator CRDs (monitoring.coreos.com/v1) on the target cluster and something that scrapes them; Telemetry cannot scrape itself.

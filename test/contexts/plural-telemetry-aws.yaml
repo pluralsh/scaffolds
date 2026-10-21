@@ -1,0 +1,10 @@
+cluster: mgmt
+cloud: aws
+bucket: plrl-telemetry
+hostname: telemetry.plural.sh
+region: us-east-2
+ingressClass: nginx
+clusterIssuer: letsencrypt-prod
+versioning: true
+versionRetentionDays: "7"
+monitoring: true
