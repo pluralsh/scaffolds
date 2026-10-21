@@ -56,7 +56,7 @@ Read the password from the secret:
 kubectl -n plrl-telemetry get secret plrl-telemetry-auth -o jsonpath='{.data.password}' | base64 -d
 ```
 
-Clusters that push data use these endpoints and credentials, for example through an Alloy or OpenTelemetry collector. To use the same credentials elsewhere, copy that secret into the namespace that needs it (the original also lives in the `apps` namespace on the management cluster as `telemetry-auth-<cluster>`). This catalog does not deploy a collector.
+Clusters that push data use these endpoints and credentials, for example through an Alloy or OpenTelemetry collector. To use the same credentials elsewhere, copy that secret into the namespace that needs it (the original also lives in the `apps` namespace on the management cluster as `telemetry-auth-<cluster>`). This catalog does not deploy a collector; the `plural-telemetry-agent` catalog deploys Grafana Alloy on every cluster for that.
 
 ## Security notes
 

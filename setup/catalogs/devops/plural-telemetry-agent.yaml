@@ -1,0 +1,44 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: plural-telemetry-agent
+spec:
+  name: plural-telemetry-agent
+  icon: https://github.com/pluralsh.png
+  identifier: mgmt
+  documentation: |
+    Deploys Grafana Alloy on every cluster to ship metrics, logs and traces to a Plural Telemetry instance.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/plural-telemetry-agent
+    templates:
+    - source: README.md
+      destination: documentation/telemetry-agent/README.md
+      external: true
+    - source: helm
+      destination: helm/telemetry-agent
+      external: true
+    - source: telemetry-agent.yaml.liquid
+      destination: bootstrap/apps/telemetry-agent/telemetry-agent.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Plural Telemetry agent setup (telemetry on {{ context.telemetryCluster }})"
+  message: |
+    Deploys Grafana Alloy on all clusters, shipping metrics, logs and traces to https://{{ context.hostname }}, the Plural Telemetry instance on {{ context.telemetryCluster }}.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: telemetryCluster
+    type: CLUSTER
+    documentation: the cluster Plural Telemetry is deployed to, from the plural-telemetry catalog. Its generated credentials are reused by the agents.
+  - name: hostname
+    type: STRING
+    documentation: the DNS name Plural Telemetry is served under, as set in the plural-telemetry catalog
+    validation:
+      regex: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+\\z"

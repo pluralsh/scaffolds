@@ -1,0 +1,98 @@
+cluster:
+  name: "{% raw %}{{ cluster.handle }}{% endraw %}"
+
+destinations:
+  metrics:
+    type: prometheus
+    url: https://{{ context.hostname }}/metrics/write/ns/default/api/v1/write
+    auth:
+      type: basic
+      username: "{% raw %}{{ configuration.username }}{% endraw %}"
+      password: "{% raw %}{{ configuration.password }}{% endraw %}"
+
+  logs:
+    type: loki
+    url: https://{{ context.hostname }}/logs/write/ns/default/loki/api/v1/push
+    auth:
+      type: basic
+      username: "{% raw %}{{ configuration.username }}{% endraw %}"
+      password: "{% raw %}{{ configuration.password }}{% endraw %}"
+
+  traces:
+    type: otlp
+    protocol: http
+    url: https://{{ context.hostname }}/traces/write/ns/default
+    auth:
+      type: basic
+      username: "{% raw %}{{ configuration.username }}{% endraw %}"
+      password: "{% raw %}{{ configuration.password }}{% endraw %}"
+    metrics:
+      enabled: false
+    logs:
+      enabled: false
+    traces:
+      enabled: true
+
+clusterMetrics:
+  enabled: true
+  destinations: [metrics]
+  cadvisor:
+    metricsTuning:
+      # added to the default allowlist for the Console's node, OOM kill and ephemeral storage graphs
+      includeMetrics:
+      - machine_cpu_cores
+      - container_oom_events_total
+      - container_fs_usage_bytes
+
+hostMetrics:
+  enabled: true
+  destinations: [metrics]
+  linuxHosts:
+    enabled: true
+    metricsTuning:
+      useIntegrationAllowList: true
+
+annotationAutodiscovery:
+  enabled: true
+  destinations: [metrics]
+
+# Scrapes ServiceMonitors and PodMonitors when the Prometheus operator CRDs exist.
+prometheusOperatorObjects:
+  enabled: true
+  destinations: [metrics]
+
+clusterEvents:
+  enabled: true
+  destinations: [logs]
+
+podLogsViaLoki:
+  enabled: true
+  destinations: [logs]
+
+# OTLP receivers for applications that push their own telemetry.
+applicationObservability:
+  enabled: true
+  destinations: [metrics, logs, traces]
+  receivers:
+    otlp:
+      grpc:
+        enabled: true
+      http:
+        enabled: true
+
+collectors:
+  alloy:
+    presets:
+    - clustered
+    - filesystem-log-reader
+    - otel-receiver
+
+# The Alloy operator is deployed separately as its own global service.
+alloy-operator:
+  deploy: false
+
+telemetryServices:
+  kube-state-metrics:
+    deploy: true
+  node-exporter:
+    deploy: true
