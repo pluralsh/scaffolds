@@ -4,8 +4,8 @@ This catalog deploys [Plural Telemetry](https://github.com/pluralsh/telemetry): 
 
 ## What it deploys
 
-- The `telemetry-operator` Helm chart (`oci://ghcr.io/pluralsh/charts`) into the `plrl-telemetry` namespace.
-- The `telemetry-stack` Helm chart, which creates the `Metrics`, `Logs` and `Traces` resources (sharded mode, one writer and one reader each) and one `NamespaceAuthentication` per product.
+- The `telemetry-operator` service, which installs the `telemetry-operator` Helm chart (`oci://ghcr.io/pluralsh/charts`) into the `plrl-telemetry` namespace.
+- The `telemetry` service, which installs the `telemetry-stack` Helm chart and creates the `Metrics`, `Logs` and `Traces` resources (sharded mode, one writer and one reader each) and one `NamespaceAuthentication` per product.
 - One object store for all three products: an S3 bucket, a GCS bucket, or an Azure Blob container. Each product keeps its data under its own path (`metrics/`, `logs/`, `traces/`).
 - One ingress host with path routing and a single TLS certificate:
   - `https://<hostname>/metrics`
@@ -44,8 +44,8 @@ On Azure the catalog does not change the storage account, because blob versionin
 
 Unless `agent` is turned off, two global services deploy [Grafana Alloy](https://grafana.com/oss/alloy-opentelemetry-collector/) on every cluster managed by Plural, including the management cluster, into the `plrl-telemetry-agent` namespace:
 
-- `telemetry-alloy-operator` (Helm chart `alloy-operator` 0.8.0, with the Alloy CRDs).
-- `telemetry-alloy` (Helm chart `k8s-monitoring` 4.5.3). It collects:
+- `telemetry-agent-operator` (Helm chart `alloy-operator` 0.8.0, with the Alloy CRDs).
+- `telemetry-agent` (Helm chart `k8s-monitoring` 4.5.3). It collects:
   - cluster, node and kube-state metrics, plus ServiceMonitors and PodMonitors when the Prometheus operator CRDs exist;
   - pod logs and Kubernetes events;
   - OTLP metrics, logs and traces pushed by applications, on the Alloy OTLP receivers (gRPC and HTTP);

@@ -72,13 +72,13 @@ spec:
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: telemetry-stack-{{ context.cluster }}
+  name: telemetry-{{ context.cluster }}
   namespace: apps
 spec:
 {% if context.ai %}
   agentId: {{ context.ai.session.agent_id }}
 {% endif %}
-  name: telemetry-stack
+  name: telemetry
   namespace: plrl-telemetry
   git:
     folder: helm/telemetry/{{ context.cluster }}
@@ -90,7 +90,7 @@ spec:
   helm:
     version: "0.1.25"
     chart: telemetry-stack
-    release: telemetry-stack
+    release: telemetry
     url: oci://ghcr.io/pluralsh/charts
     valuesFiles:
     - telemetry.yaml.liquid
@@ -119,14 +119,14 @@ spec:
 apiVersion: deployments.plural.sh/v1alpha1
 kind: GlobalService
 metadata:
-  name: telemetry-alloy-operator
+  name: telemetry-agent-operator
   namespace: apps
 spec:
   mgmt: true
   cascade:
     detach: true
   template:
-    name: telemetry-alloy-operator
+    name: telemetry-agent-operator
     namespace: plrl-telemetry-agent
     dependencies: []
     helm:
@@ -140,15 +140,15 @@ spec:
 apiVersion: deployments.plural.sh/v1alpha1
 kind: GlobalService
 metadata:
-  name: telemetry-alloy
+  name: telemetry-agent
   namespace: apps
 spec:
   mgmt: true
   template:
-    name: telemetry-alloy
+    name: telemetry-agent
     namespace: plrl-telemetry-agent
     dependencies:
-    - name: telemetry-alloy-operator
+    - name: telemetry-agent-operator
     git:
       ref: main
       folder: helm/telemetry/{{ context.cluster }}

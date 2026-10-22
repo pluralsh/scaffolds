@@ -62,11 +62,11 @@ spec:
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: telemetry-stack-gcp
+  name: telemetry-gcp
   namespace: apps
 spec:
 
-  name: telemetry-stack
+  name: telemetry
   namespace: plrl-telemetry
   git:
     folder: helm/telemetry/gcp
@@ -78,7 +78,7 @@ spec:
   helm:
     version: "0.1.25"
     chart: telemetry-stack
-    release: telemetry-stack
+    release: telemetry
     url: oci://ghcr.io/pluralsh/charts
     valuesFiles:
     - telemetry.yaml.liquid
