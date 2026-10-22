@@ -10,7 +10,7 @@ spec:
     Sets up Plural Telemetry (metrics, logs and traces) with shared cloud object storage, a single path-routed ingress host, and Grafana Alloy agents on every cluster.
   creates:
     git:
-      ref: main
+      ref: sebastian/prod-5328-add-plural-telemetry-service-catalog-entry # todo: change to main after testing
       folder: catalogs/devops/plural-telemetry
     templates:
     - source: README.md
