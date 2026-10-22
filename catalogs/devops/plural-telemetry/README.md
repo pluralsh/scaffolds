@@ -78,6 +78,31 @@ kubectl -n plrl-telemetry get secret plrl-telemetry-auth -o jsonpath='{.data.pas
 
 The agents already push with these endpoints and credentials. Applications can send OTLP to the Alloy receivers on their own cluster, or push straight to the write endpoints above. To use the credentials elsewhere, copy that secret into the namespace that needs it (the original also lives in the `apps` namespace on the management cluster as `telemetry-auth-<cluster>`).
 
+## Using Telemetry in the Console
+
+The Console reads logs and metrics through its deployment settings, which this catalog does not change. The generated credentials are also copied to the `plrl-deploy-operator` namespace as `telemetry-auth-<cluster>` (keys `username` and `password`), where `<cluster>` is the handle you installed Telemetry on, because the `global` `DeploymentSettings` there resolve secret references in their own namespace. Set this in those settings (replace `<hostname>` and `<cluster>`):
+
+```yaml
+spec:
+  logging:
+    enabled: true
+    driver: LOKI
+    loki:
+      host: https://<hostname>/logs/read/ns/default
+      user: plrl
+      passwordSecretRef:
+        name: telemetry-auth-<cluster>
+        key: password
+  prometheusConnection:
+    host: https://<hostname>/metrics/read/ns/default
+    user: plrl
+    passwordSecretRef:
+      name: telemetry-auth-<cluster>
+      key: password
+```
+
+Then the Console's logs tabs and its node, pod and service metrics graphs read from Telemetry. The Console reads the password when its settings reconcile, so after you rotate it (by deleting the generated secret in `apps`) make any change to the `DeploymentSettings` to push the new one; until then its logs and metrics views return 401. Only one Telemetry instance should be wired to the Console, like the agents.
+
 Point your DNS record for `hostname` at the ingress controller's address. The catalog does not create DNS records; the `externaldns` catalog can do that.
 
 ## Security notes

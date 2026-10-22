@@ -1,4 +1,4 @@
-cluster: mgmt
+cluster: aws
 cloud: aws
 bucket: plrl-telemetry
 hostname: telemetry.plural.sh

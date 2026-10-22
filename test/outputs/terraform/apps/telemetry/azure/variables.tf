@@ -1,6 +1,6 @@
 variable "cluster_handle" {
   type    = string
-  default = "azure-dev"
+  default = "azure"
 }
 
 variable "container_name" {

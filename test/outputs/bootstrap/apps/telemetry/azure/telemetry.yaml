@@ -1,7 +1,7 @@
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
-  name: telemetry-azure-dev
+  name: telemetry-azure
   namespace: apps
 spec:
 
@@ -12,7 +12,7 @@ spec:
   actor: console@plural.sh
   git:
     ref: main
-    folder: terraform/apps/telemetry/azure-dev
+    folder: terraform/apps/telemetry/azure
   repositoryRef:
     name: infra
     namespace: infra
@@ -34,20 +34,25 @@ spec:
 apiVersion: deployments.plural.sh/v1alpha1
 kind: GeneratedSecret
 metadata:
-  name: telemetry-auth-azure-dev
+  name: telemetry-auth-azure
   namespace: apps
 spec:
   template:
     username: plrl
     password: "{{ 32 | randAlphaNum }}"
   destinations:
-  - name: telemetry-auth-azure-dev
+  - name: telemetry-auth-azure
     namespace: apps
+  # The Console reads this one: the global DeploymentSettings resolve secret
+  # references in their own namespace, plrl-deploy-operator. The name is per
+  # instance so it cannot collide with a secret another GeneratedSecret owns.
+  - name: telemetry-auth-azure
+    namespace: plrl-deploy-operator
 ---
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: telemetry-operator-azure-dev
+  name: telemetry-operator-azure
   namespace: apps
 spec:
 
@@ -58,19 +63,19 @@ spec:
     chart: telemetry-operator
     release: telemetry-operator
     url: oci://ghcr.io/pluralsh/charts
-  cluster: azure-dev
+  cluster: azure
 ---
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: telemetry-stack-azure-dev
+  name: telemetry-stack-azure
   namespace: apps
 spec:
 
   name: telemetry-stack
   namespace: plrl-telemetry
   git:
-    folder: helm/telemetry/azure-dev
+    folder: helm/telemetry/azure
     ref: main
   repositoryRef:
     kind: GitRepository
@@ -86,20 +91,20 @@ spec:
   dependencies:
   - name: telemetry-operator
   configurationRef:
-    name: telemetry-auth-azure-dev
+    name: telemetry-auth-azure
     namespace: apps
   imports:
   - stackRef:
-      name: telemetry-azure-dev
+      name: telemetry-azure
       namespace: apps
   configuration:
-    cluster: "azure-dev"
+    cluster: "azure"
     cloud: "azure"
-    stackName: telemetry-azure-dev
+    stackName: telemetry-azure
     hostname: "telemetry.plural.sh"
     ingressClass: "nginx"
     clusterIssuer: "letsencrypt-prod"
-  cluster: azure-dev
+  cluster: azure
 
 ---
 # Grafana Alloy on every cluster, including mgmt, shipping metrics, logs and
@@ -140,13 +145,13 @@ spec:
     - name: telemetry-alloy-operator
     git:
       ref: main
-      folder: helm/telemetry/azure-dev
+      folder: helm/telemetry/azure
     repositoryRef:
       kind: GitRepository
       name: infra
       namespace: infra
     configurationRef:
-      name: telemetry-auth-azure-dev
+      name: telemetry-auth-azure
       namespace: apps
     helm:
       version: "4.5.3"

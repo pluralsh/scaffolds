@@ -1,4 +1,4 @@
-cluster: gcp-dev
+cluster: gcp
 cloud: gcp
 bucket: plrl-telemetry
 hostname: telemetry.plural.sh

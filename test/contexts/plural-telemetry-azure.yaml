@@ -1,4 +1,4 @@
-cluster: azure-dev
+cluster: azure
 cloud: azure
 bucket: telemetry
 hostname: telemetry.plural.sh

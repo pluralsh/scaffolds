@@ -45,6 +45,11 @@ spec:
   destinations:
   - name: telemetry-auth-{{ context.cluster }}
     namespace: apps
+  # The Console reads this one: the global DeploymentSettings resolve secret
+  # references in their own namespace, plrl-deploy-operator. The name is per
+  # instance so it cannot collide with a secret another GeneratedSecret owns.
+  - name: telemetry-auth-{{ context.cluster }}
+    namespace: plrl-deploy-operator
 ---
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
