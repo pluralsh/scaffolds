@@ -7,4 +7,3 @@ ingressClass: nginx
 clusterIssuer: letsencrypt-prod
 versioning: true
 versionRetentionDays: "7"
-monitoring: true

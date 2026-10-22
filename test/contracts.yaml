@@ -31,6 +31,3 @@ spec:
   - file: ../../setup/catalogs/devops/plural-telemetry.yaml
     context: ../contexts/plural-telemetry-gcp.yaml
     externalDir: ../../catalogs/devops/plural-telemetry
-  - file: ../../setup/catalogs/devops/plural-telemetry-agent.yaml
-    context: ../contexts/plural-telemetry-agent.yaml
-    externalDir: ../../catalogs/devops/plural-telemetry-agent

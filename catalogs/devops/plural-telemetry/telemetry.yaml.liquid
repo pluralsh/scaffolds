@@ -106,29 +106,58 @@ spec:
     ingressClass: "{{ context.ingressClass | default: "nginx" }}"
     clusterIssuer: "{{ context.clusterIssuer | default: "letsencrypt-prod" }}"
   cluster: {{ context.cluster }}
-{% if context.monitoring == true or context.monitoring == "true" %}
+{% unless context.agent == false or context.agent == "false" %}
 ---
-# Needs the Prometheus operator CRDs (monitoring.coreos.com/v1) on the target
-# cluster, and something that scrapes ServiceMonitors.
+# Grafana Alloy on every cluster, including mgmt, shipping metrics, logs and
+# traces to the Telemetry ingress above. It reuses the generated credentials
+# through configurationRef, so no password is stored in git.
 apiVersion: deployments.plural.sh/v1alpha1
-kind: ServiceDeployment
+kind: GlobalService
 metadata:
-  name: telemetry-monitoring-{{ context.cluster }}
+  name: telemetry-alloy-operator
   namespace: apps
 spec:
-{% if context.ai %}
-  agentId: {{ context.ai.session.agent_id }}
-{% endif %}
-  name: telemetry-monitoring
-  namespace: plrl-telemetry
-  git:
-    folder: monitoring/telemetry/{{ context.cluster }}
-    ref: main
-  repositoryRef:
-    kind: GitRepository
-    name: infra
-    namespace: infra
-  dependencies:
-  - name: telemetry-stack
-  cluster: {{ context.cluster }}
-{% endif %}
+  mgmt: true
+  cascade:
+    detach: true
+  template:
+    name: telemetry-alloy-operator
+    namespace: plrl-telemetry-agent
+    dependencies: []
+    helm:
+      version: "0.8.0"
+      chart: alloy-operator
+      url: https://grafana.github.io/helm-charts
+      values:
+        crds:
+          deployAlloyCRD: true
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: telemetry-alloy
+  namespace: apps
+spec:
+  mgmt: true
+  template:
+    name: telemetry-alloy
+    namespace: plrl-telemetry-agent
+    dependencies:
+    - name: telemetry-alloy-operator
+    git:
+      ref: main
+      folder: helm/telemetry/{{ context.cluster }}
+    repositoryRef:
+      kind: GitRepository
+      name: infra
+      namespace: infra
+    configurationRef:
+      name: telemetry-auth-{{ context.cluster }}
+      namespace: apps
+    helm:
+      version: "4.5.3"
+      chart: k8s-monitoring
+      url: https://grafana.github.io/helm-charts
+      valuesFiles:
+      - alloy.yaml.liquid
+{% endunless %}

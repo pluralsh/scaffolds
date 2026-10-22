@@ -3,4 +3,3 @@ cloud: azure
 bucket: telemetry
 hostname: telemetry.plural.sh
 storageAccount: plrltelemetry
-monitoring: false

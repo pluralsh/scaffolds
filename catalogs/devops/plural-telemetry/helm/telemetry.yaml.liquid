@@ -54,15 +54,19 @@ products:
       username: "{{ configuration.username }}"
       permission: write
     spec:
+      # The pod annotations make the Alloy agents scrape the stores' own /metrics.
       # Writers are not rolled out with less than 6Gi of memory.
       writer:
         replicas: 1
         resources:
           limits:
             memory: 6Gi
-{% if configuration.cloud == 'azure' %}
         podTemplate:
           metadata:
+            annotations:
+              k8s.grafana.com/scrape: "true"
+              k8s.grafana.com/metrics.portName: http
+{% if configuration.cloud == 'azure' %}
             labels:
               azure.workload.identity/use: "true"
 {% endif %}
@@ -75,9 +79,12 @@ products:
           limits:
             memory: 4Gi
 {% endif %}
-{% if configuration.cloud == 'azure' %}
         podTemplate:
           metadata:
+            annotations:
+              k8s.grafana.com/scrape: "true"
+              k8s.grafana.com/metrics.portName: http
+{% if configuration.cloud == 'azure' %}
             labels:
               azure.workload.identity/use: "true"
 {% endif %}

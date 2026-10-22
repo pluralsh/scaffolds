@@ -7,7 +7,7 @@ spec:
   icon: https://github.com/pluralsh.png
   identifier: mgmt
   documentation: |
-    Sets up Plural Telemetry (metrics, logs and traces) with shared cloud object storage and a single path-routed ingress host.
+    Sets up Plural Telemetry (metrics, logs and traces) with shared cloud object storage, a single path-routed ingress host, and Grafana Alloy agents on every cluster.
   creates:
     git:
       ref: main
@@ -18,9 +18,6 @@ spec:
       external: true
     - source: helm
       destination: "helm/telemetry/{{ context.cluster }}"
-      external: true
-    - source: monitoring
-      destination: "monitoring/telemetry/{{ context.cluster }}"
       external: true
     - source: "terraform/{{ context.cloud }}"
       destination: "terraform/apps/telemetry/{{ context.cluster }}"
@@ -36,7 +33,7 @@ spec:
     name: plural # you'll need to add this ScmConnection manually before this is functional
   title: "Plural Telemetry setup ({{ context.cluster }}, {{ context.cloud }})"
   message: |
-    Sets up Plural Telemetry on {{ context.cluster }} with {{ context.cloud }} object storage, served at https://{{ context.hostname }}/{metrics,logs,traces}.
+    Sets up Plural Telemetry on {{ context.cluster }} with {{ context.cloud }} object storage, served at https://{{ context.hostname }}/{metrics,logs,traces}, and ships telemetry from every cluster to it with Grafana Alloy.
 
     Plural Service: mgmt/apps
   configuration:
@@ -106,7 +103,8 @@ spec:
     documentation: days a non-current object version is kept before it expires. Expiry also applies to versions left over after versioning is turned off. Ignored on Azure.
     validation:
       regex: "^(|[1-9][0-9]{0,3})\\z"
-  - name: monitoring
+  - name: agent
     type: BOOL
     optional: true
-    documentation: deploy ServiceMonitors for the Telemetry readers and writers. Off by default. Requires the Prometheus operator CRDs (monitoring.coreos.com/v1) on the target cluster and something that scrapes them; Telemetry cannot scrape itself.
+    default: "true"
+    documentation: deploy Grafana Alloy on every cluster, including this one, to ship metrics, logs and traces to Telemetry, and to scrape Telemetry's own metrics. On by default. Turn it off if you run your own collectors, and for any additional Telemetry instance, because the agents are fleet-wide and a second set would take over the first.

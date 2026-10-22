@@ -5,4 +5,4 @@ hostname: telemetry.plural.sh
 ingressClass: nginx
 clusterIssuer: letsencrypt-prod
 versioning: false
-monitoring: false
+agent: false
