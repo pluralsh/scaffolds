@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: kyverno
+spec:
+  workdir: test/outputs
+  templates:
+    from: catalogs/security/kyverno
+    to: test/outputs/catalogs/security/kyverno
+  automations:
+  - file: ../../setup/catalogs/security/kyverno.yaml
+    context: ../contexts/kyverno.yaml

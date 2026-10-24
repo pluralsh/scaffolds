@@ -1,0 +1,30 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: kyverno
+spec:
+  name: kyverno
+  icon: https://kyverno.io/img/kyverno.svg
+  identifier: mgmt
+  documentation: |
+    Sets up the Kyverno policy engine without installing policy resources.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/security/kyverno
+    templates:
+    - source: README.md
+      destination: documentation/kyverno/README.md
+      external: true
+    - source: kyverno.yaml
+      destination: bootstrap/apps/kyverno/kyverno.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: security
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Kyverno setup
+  message: |
+    Sets up Kyverno as an opt-in Kubernetes policy engine.
