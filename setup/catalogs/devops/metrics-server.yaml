@@ -1,0 +1,35 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: metrics-server
+spec:
+  name: metrics-server
+  icon: https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.png
+  identifier: mgmt
+  documentation: |
+    Sets up Metrics Server for the metrics.k8s.io API, powering
+    `kubectl top` and horizontal pod autoscaling.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/metrics-server
+    templates:
+    - source: README.md
+      destination: documentation/metrics-server/README.md
+      external: true
+    - source: metrics-server.yaml
+      destination: bootstrap/apps/metrics-server/metrics-server.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Metrics Server setup
+  message: |
+    Sets up Metrics Server resource metrics in the management cluster using
+    the official kubernetes-sigs Helm chart.
+
+    Plural Service: mgmt/apps
+  configuration: []
