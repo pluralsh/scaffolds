@@ -63,7 +63,7 @@ spec:
   name: telemetry-operator
   namespace: plrl-telemetry
   helm:
-    version: "0.1.42"
+    version: "0.1.x"
     chart: telemetry-operator
     release: telemetry-operator
     url: oci://ghcr.io/pluralsh/charts
@@ -88,7 +88,7 @@ spec:
     name: infra
     namespace: infra
   helm:
-    version: "0.1.25"
+    version: "0.1.x"
     chart: telemetry-stack
     release: telemetry
     url: oci://ghcr.io/pluralsh/charts
