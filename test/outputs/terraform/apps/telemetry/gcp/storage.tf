@@ -19,21 +19,6 @@ resource "google_storage_bucket" "telemetry" {
   uniform_bucket_level_access = true
   public_access_prevention    = "enforced"
 
-  versioning {
-    enabled = var.enable_versioning
-  }
-
-  # Kept even with versioning off, so versions stored while it was on still expire.
-  lifecycle_rule {
-    action {
-      type = "Delete"
-    }
-
-    condition {
-      days_since_noncurrent_time = var.version_retention_days
-    }
-  }
-
   lifecycle_rule {
     action {
       type = "AbortIncompleteMultipartUpload"

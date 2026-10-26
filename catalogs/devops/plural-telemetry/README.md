@@ -30,15 +30,14 @@ Terraform provisions the bucket and cloud identity first. The Telemetry service 
 - `clusterIssuer`: cert-manager `ClusterIssuer` for the TLS certificate (default `letsencrypt-prod`).
 - `region`: AWS region for the target EKS cluster and S3 bucket (AWS only).
 - `storageAccount`: existing storage account in the target AKS cluster's resource group (Azure only).
-- `versioning`: keep previous object versions so accidental deletes can be recovered (default on, AWS and GCP).
-- `versionRetentionDays`: days a non-current version is kept before it expires (default `7`).
 - `agent`: deploy the Alloy agents on every cluster (default on).
+- `consoleSettings`: update `bootstrap/settings.yaml` so the Console reads logs and metrics from Telemetry (default on; see [Using Telemetry in the Console](#using-telemetry-in-the-console)).
 
-### Versioning
+### Bucket versioning and retention
 
-On AWS and GCP the bucket is versioned by default, and non-current versions expire after `versionRetentionDays`. Compaction rewrites and deletes objects constantly, so a long retention increases storage cost.
+The catalog creates the bucket private and encrypted, with a lifecycle rule that aborts incomplete multipart uploads. It does not enable versioning or any retention rule, and on Azure it does not change the storage account at all. Compaction constantly rewrites and deletes objects, so versioning raises storage cost unless old versions also expire.
 
-On Azure the catalog does not change the storage account, because blob versioning and lifecycle policies are account-wide settings and the account is shared. Enable blob versioning and a lifecycle rule on the account yourself if you want the same safety net.
+If you need to recover deleted or overwritten data, turn on versioning and add a rule that expires non-current versions by editing the generated Terraform in your infra repo (`terraform/apps/telemetry/<cluster>/`), not the bucket directly. Terraform owns the bucket's whole lifecycle configuration, so a rule added by hand is removed on the next stack run. On an existing install that already has versioning enabled, check the Terraform plan: dropping the versioning resource suspends versioning but leaves already stored versions in the bucket, with no rule left to expire them.
 
 ## Agents
 
@@ -80,7 +79,7 @@ The agents already push with these endpoints and credentials. Applications can s
 
 ## Using Telemetry in the Console
 
-The Console reads logs and metrics through its deployment settings. The PR this catalog generates updates `bootstrap/settings.yaml` for you, so the Console uses Telemetry once the PR is merged and synced. It sets these fields (`<hostname>` and `<cluster>` are your install's hostname and cluster handle):
+The Console reads logs and metrics through its deployment settings. Unless `consoleSettings` is turned off, the PR this catalog generates updates `bootstrap/settings.yaml` so the Console uses Telemetry once the PR is merged and synced. The file must already exist in your infra repo, because the PR cannot be generated without it. It sets these fields (`<hostname>` and `<cluster>` are your install's hostname and cluster handle):
 
 ```yaml
 spec:
@@ -101,11 +100,16 @@ spec:
       key: password
 ```
 
-This merges into the existing file. It overrides the `logging` driver and `loki` block and the `prometheusConnection` host, user and password reference, which replaces an Elasticsearch log driver or a Victoria Metrics host. Other settings stay as they are, including old connection blocks that are no longer selected, such as `logging.elastic`. Review the diff in the PR before merging, since a changed log driver and metrics source affect every Console user. If your settings are not in `bootstrap/settings.yaml`, the PR fails, so apply the snippet above by hand instead.
+Things to know before you merge that PR:
+
+- **It merges into the file.** It overrides the fields above, such as an Elasticsearch log driver or a Victoria Metrics host, and keeps every other key. Old blocks like `logging.elastic` stay, unused, and extra keys inside `logging.loki` or `prometheusConnection` (for example a `clusterLabel`) also stay. Delete stale ones yourself in the PR: the Console still resolves the secret of every connection block that is present, so a removed credential would break the whole settings sync, and a leftover `clusterLabel` makes cluster log views come back empty.
+- **The file is rewritten.** Comments are removed, keys are sorted, and a second YAML document in the same file is dropped, so the diff can touch unrelated lines. This happens even when `consoleSettings` is off, though no values change then. Review the diff.
+- **The Console switches over when the PR is merged and synced,** not when Telemetry is ready. Its logs and metrics views fail until the Telemetry stack is healthy and DNS and TLS work, and existing logs and metrics in the old backend are not migrated. To keep the Console on its current source until Telemetry is up, turn `consoleSettings` off and apply the snippet later.
+- **Only one Telemetry instance should be wired to the Console.** Turn `consoleSettings` off (and `agent` off) for any additional instance, or the newest PR repoints the Console at it.
 
 The generated credentials are also copied to the `plrl-deploy-operator` namespace as `telemetry-auth-<cluster>` (keys `username` and `password`), because the `global` `DeploymentSettings` there resolve secret references in their own namespace.
 
-Then the Console's logs tabs and its node, pod and service metrics graphs read from Telemetry. The Console reads the password when its settings reconcile, so after you rotate it (by deleting the generated secret in `apps`) make any change to the `DeploymentSettings` to push the new one; until then its logs and metrics views return 401. Only one Telemetry instance should be wired to the Console, like the agents.
+Then the Console's logs tabs and its node, pod and service metrics graphs read from Telemetry. The Console reads the password when its settings reconcile, so after you rotate it (by deleting the generated secret in `apps`) make any change to the `DeploymentSettings` to push the new one; until then its logs and metrics views return 401.
 
 Point your DNS record for `hostname` at the ingress controller's address. The catalog does not create DNS records; the `externaldns` catalog can do that.
 
@@ -113,7 +117,7 @@ Point your DNS record for `hostname` at the ingress controller's address. The ca
 
 - All three products share one cloud identity and one `plrl` credential. A compromised pod or collector holding the password can read every product's data in the `default` telemetry namespace, and every cluster running the agent holds that password. Use separate read and write credentials (the stack chart's `authSecrets`) once collectors run outside Plural-managed clusters.
 - On GCP the workload identity binding is `PROJECT.svc.id.goog[plrl-telemetry/<product>]`, which GKE treats as the same identity on every cluster in the project. Run one Telemetry per GCP project, or restrict who can create service accounts in `plrl-telemetry` on the other clusters.
-- The cloud identity can delete objects, including old versions, so a compromised pod can remove the version history. AWS is the exception, because its policy omits `s3:DeleteObjectVersion`.
+- The cloud identity can delete and overwrite objects in the bucket, so a compromised pod can destroy stored telemetry. The catalog sets no versioning or retention that would let you restore it (see above).
 - Inputs are validated before they are rendered into Terraform and YAML; keep those patterns if you edit the PrAutomation.
 
 ## Sizing

@@ -9,7 +9,7 @@ spec:
   documentation: |
     Sets up Plural Telemetry (metrics, logs and traces) with shared cloud object storage, a single path-routed ingress host, and Grafana Alloy agents on every cluster.
 
-    The generated PR also updates `bootstrap/settings.yaml`: it points the Console's log driver (`logging`, driver LOKI) and its Prometheus connection (`prometheusConnection`) at this Telemetry instance. It overrides the existing values for those fields, such as an Elasticsearch log driver or a Victoria Metrics host, and leaves other settings untouched, including old connection blocks that are no longer selected.
+    Unless `consoleSettings` is turned off, the generated PR also updates `bootstrap/settings.yaml`, which must exist: it points the Console's log driver (`logging`, driver LOKI) and its Prometheus connection (`prometheusConnection`) at this Telemetry instance. It merges into the file, so it overrides those fields (for example an Elasticsearch log driver or a Victoria Metrics host) and keeps every other key, including old connection blocks that are no longer selected and any extra keys inside `logging.loki` or `prometheusConnection`. The file is rewritten, so comments are removed and keys are sorted. The Console switches to Telemetry as soon as the PR is merged and synced, so its log and metrics views fail until the Telemetry stack is healthy and DNS and TLS work, and existing logs and metrics are not migrated.
   creates:
     git:
       ref: sebastian/prod-5328-add-plural-telemetry-service-catalog-entry # todo: change to main after testing
@@ -29,11 +29,13 @@ spec:
       external: true
   updates:
     yamlOverlays:
-    # Reads and writes through the ingress with the generated credentials, which the
+    # The Console reads through the ingress with the generated credentials, which the
     # catalog also copies into plrl-deploy-operator, where these settings resolve secrets.
+    # The file must exist even when consoleSettings is off; an empty overlay changes no values.
     - file: bootstrap/settings.yaml
       templated: true
       yaml: |
+        {% unless context.consoleSettings == false or context.consoleSettings == "false" %}
         spec:
           logging:
             enabled: true
@@ -50,6 +52,7 @@ spec:
             passwordSecretRef:
               name: telemetry-auth-{{ context.cluster }}
               key: password
+        {% endunless %}
   repositoryRef:
     name: scaffolds
   catalogRef:
@@ -60,9 +63,19 @@ spec:
   message: |
     Sets up Plural Telemetry on {{ context.cluster }} with {{ context.cloud }} object storage, served at https://{{ context.hostname }}/{metrics,logs,traces}, and ships telemetry from every cluster to it with Grafana Alloy.
 
-    This PR also updates `bootstrap/settings.yaml` so the Console reads logs and metrics from Telemetry. It overrides the existing `logging` driver and `prometheusConnection` host, user and password reference there, and leaves other settings untouched.
+    Unless `consoleSettings` was turned off, this PR also updates `bootstrap/settings.yaml` so the Console reads logs and metrics from Telemetry. It merges into the file: it overrides the `logging` driver and the `logging.loki` and `prometheusConnection` fields it sets, keeps every other key (delete stale `logging.elastic`, `victoria` or `opensearch` blocks and leftover `loki` keys such as `clusterLabel` yourself), and rewrites the file, which removes comments and sorts keys. The Console switches over when this PR is merged and synced, so its log and metrics views fail until the Telemetry stack is healthy and DNS and TLS work, and existing logs and metrics are not migrated. Review the diff first.
 
     Plural Service: mgmt/apps
+  confirmation:
+    text: |
+      Telemetry stores metrics, logs and traces in a bucket, serves them on one host, and by default
+      switches the Console and every cluster over to it. Check these before you create the PR.
+    checklist:
+      - label: "The DNS name I entered points at my ingress controller, and the ingress class and cert-manager ClusterIssuer I chose exist."
+      - label: "The target cluster has about 26Gi of free memory for the Telemetry writers and readers (each writer needs at least 6Gi)."
+      - label: "bootstrap/settings.yaml exists, and unless I turned off consoleSettings, I accept that the Console switches its logs and metrics to Telemetry when this PR is synced. Existing logs and metrics are not migrated."
+      - label: "This is the only Telemetry install for this fleet, or I turned off agent and consoleSettings."
+      - label: "The bucket is not versioned by this catalog. If I need to recover deleted or overwritten data, I will add versioning and a rule that expires non-current versions to the generated Terraform in my infra repo."
   configuration:
   - name: cluster
     type: CLUSTER
@@ -118,20 +131,13 @@ spec:
       field: cloud
       operation: EQ
       value: azure
-  - name: versioning
-    type: BOOL
-    optional: true
-    default: "true"
-    documentation: keep previous object versions so accidental deletes and overwrites can be recovered. On by default. Ignored on Azure, where blob versioning is a storage account setting.
-  - name: versionRetentionDays
-    type: STRING
-    optional: true
-    default: "7"
-    documentation: days a non-current object version is kept before it expires. Expiry also applies to versions left over after versioning is turned off. Ignored on Azure.
-    validation:
-      regex: "^(|[1-9][0-9]{0,3})\\z"
   - name: agent
     type: BOOL
     optional: true
     default: "true"
     documentation: deploy Grafana Alloy on every cluster, including this one, to ship metrics, logs and traces to Telemetry, and to scrape Telemetry's own metrics. On by default. Turn it off if you run your own collectors, and for any additional Telemetry instance, because the agents are fleet-wide and a second set would take over the first.
+  - name: consoleSettings
+    type: BOOL
+    optional: true
+    default: "true"
+    documentation: point the Console's log driver and Prometheus connection at this Telemetry by updating bootstrap/settings.yaml (the file must exist). On by default. Turn it off for any additional Telemetry instance, or to keep the Console on its current log and metrics source until Telemetry is up; the Console switches as soon as the PR is merged and synced, and existing logs and metrics are not migrated.

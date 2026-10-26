@@ -4,5 +4,5 @@ bucket: plrl-telemetry
 hostname: telemetry.plural.sh
 ingressClass: nginx
 clusterIssuer: letsencrypt-prod
-versioning: false
 agent: false
+consoleSettings: false

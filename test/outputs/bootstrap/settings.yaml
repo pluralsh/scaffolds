@@ -18,12 +18,12 @@ spec:
       host: https://telemetry.plural.sh/logs/read/ns/default
       passwordSecretRef:
         key: password
-        name: telemetry-auth-gcp
+        name: telemetry-auth-azure
       user: plrl
   managementRepo: pluralsh/example
   prometheusConnection:
     host: https://telemetry.plural.sh/metrics/read/ns/default
     passwordSecretRef:
       key: password
-      name: telemetry-auth-gcp
+      name: telemetry-auth-azure
     user: plrl
