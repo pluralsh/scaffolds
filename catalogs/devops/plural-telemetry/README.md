@@ -6,7 +6,7 @@ This catalog deploys [Plural Telemetry](https://github.com/pluralsh/telemetry): 
 
 - The `telemetry-operator` service, which installs the `telemetry-operator` Helm chart (`oci://ghcr.io/pluralsh/charts`) into the `plrl-telemetry` namespace.
 - The `telemetry` service, which installs the `telemetry-stack` Helm chart and creates the `Metrics`, `Logs` and `Traces` resources (sharded mode, one writer and one reader each) and one `NamespaceAuthentication` per product.
-- One object store for all three products: an S3 bucket, a GCS bucket, or an Azure Blob container. Each product keeps its data under its own path (`metrics/`, `logs/`, `traces/`).
+- One object store for all three products: an S3 bucket, a GCS bucket, or an Azure Blob container in a dedicated storage account. Each product keeps its data under its own path (`metrics/`, `logs/`, `traces/`).
 - One ingress host with path routing and a single TLS certificate:
   - `https://<hostname>/metrics`
   - `https://<hostname>/logs`
@@ -24,20 +24,25 @@ Terraform provisions the bucket and cloud identity first. The Telemetry service 
 
 - `cluster`: Kubernetes cluster to deploy Telemetry to.
 - `cloud`: `aws`, `azure`, or `gcp`. It must match the target cluster's cloud.
-- `bucket`: globally unique bucket name on AWS/GCP, or the Azure Blob container name.
+- `bucket`: globally unique bucket name on AWS/GCP, or the Azure Blob container name. On Azure the catalog also creates the storage account (Standard, locally redundant, TLS 1.2, no public blob access) in the cluster's resource group, named `plrltel` plus a hash of the subscription, resource group and cluster name, so it is unique across Azure.
 - `hostname`: DNS name Telemetry is served under. Point it at your ingress controller.
 - `ingressClass`: ingress class for the Telemetry ingresses (default `nginx`).
 - `clusterIssuer`: cert-manager `ClusterIssuer` for the TLS certificate (default `letsencrypt-prod`).
 - `region`: AWS region for the target EKS cluster and S3 bucket (AWS only).
-- `storageAccount`: existing storage account in the target AKS cluster's resource group (Azure only).
 - `agent`: deploy the Alloy agents on every cluster (default on).
 - `consoleSettings`: update `bootstrap/settings.yaml` so the Console reads logs and metrics from Telemetry (default on; see [Using Telemetry in the Console](#using-telemetry-in-the-console)).
 
+### Azure storage account
+
+On Azure the catalog creates a dedicated storage account, so the Terraform stack identity needs permission to create storage accounts, managed identities, federated credentials and role assignments in the target cluster's resource group. Bootstrap grants the stack identity that only for the management cluster's resource group, so for a workload cluster in another group you have to grant it yourself, and the `Microsoft.Storage` resource provider must be registered in the subscription.
+
+The account is hardened by default with TLS 1.2, no public blob access and no cross-tenant replication, and the container is private. Access uses workload identity and the container-scoped `Storage Blob Data Contributor` role. Shared key access and the public network endpoint are left at the Azure defaults, so anyone who can list the account keys can read the data. To tighten them, edit the generated Terraform in your infra repo (`terraform/apps/telemetry/<cluster>/`): set `shared_access_key_enabled = false` (test a plan first, since the azurerm provider then needs Entra ID access to the data plane) and add network rules or a private endpoint.
+
 ### Bucket versioning and retention
 
-The catalog creates the bucket private and encrypted, with a lifecycle rule that aborts incomplete multipart uploads. It does not enable versioning or any retention rule, and on Azure it does not change the storage account at all. Compaction constantly rewrites and deletes objects, so versioning raises storage cost unless old versions also expire.
+The catalog creates the bucket private and encrypted, with a lifecycle rule that aborts incomplete multipart uploads. It does not enable versioning or any retention rule, and on Azure the dedicated storage account has no blob versioning or lifecycle policy either. Compaction constantly rewrites and deletes objects, so versioning raises storage cost unless old versions also expire.
 
-If you need to recover deleted or overwritten data, turn on versioning and add a rule that expires non-current versions by editing the generated Terraform in your infra repo (`terraform/apps/telemetry/<cluster>/`), not the bucket directly. Terraform owns the bucket's whole lifecycle configuration, so a rule added by hand is removed on the next stack run. On an existing install that already has versioning enabled, check the Terraform plan: dropping the versioning resource suspends versioning but leaves already stored versions in the bucket, with no rule left to expire them.
+If you need to recover deleted or overwritten data, turn on versioning and add a rule that expires non-current versions by editing the generated Terraform in your infra repo (`terraform/apps/telemetry/<cluster>/`), not the bucket directly. On AWS and GCP, Terraform owns the bucket's whole lifecycle configuration, so a rule added by hand is removed on the next stack run. On Azure the catalog sets no versioning or lifecycle policy, so settings you add to the storage account stay. On an existing install that already has versioning enabled, check the Terraform plan: dropping the versioning resource suspends versioning but leaves already stored versions in the bucket, with no rule left to expire them.
 
 ## Agents
 

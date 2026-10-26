@@ -4,7 +4,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 3.51, < 5.0"
+      version = ">= 4.9, < 5.0"
     }
     plural = {
       source  = "pluralsh/plural"

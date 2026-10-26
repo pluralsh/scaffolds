@@ -75,6 +75,7 @@ spec:
       - label: "The target cluster has about 26Gi of free memory for the Telemetry writers and readers (each writer needs at least 6Gi)."
       - label: "bootstrap/settings.yaml exists, and unless I turned off consoleSettings, I accept that the Console switches its logs and metrics to Telemetry when this PR is synced. Existing logs and metrics are not migrated."
       - label: "This is the only Telemetry install for this fleet, or I turned off agent and consoleSettings."
+      - label: "On Azure, the stack identity can create storage accounts, managed identities and role assignments in the target cluster's resource group. Bootstrap grants this only for the management cluster's resource group."
       - label: "The bucket is not versioned by this catalog. If I need to recover deleted or overwritten data, I will add versioning and a rule that expires non-current versions to the generated Terraform in my infra repo."
   configuration:
   - name: cluster
@@ -121,16 +122,6 @@ spec:
       field: cloud
       operation: EQ
       value: aws
-  - name: storageAccount
-    type: STRING
-    documentation: the Azure storage account in the target AKS cluster's resource group
-    validation:
-      regex: "^[a-z0-9]{3,24}\\z"
-    optional: true
-    condition:
-      field: cloud
-      operation: EQ
-      value: azure
   - name: agent
     type: BOOL
     optional: true

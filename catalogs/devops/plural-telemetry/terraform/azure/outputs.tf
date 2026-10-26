@@ -11,5 +11,5 @@ output "container_name" {
 }
 
 output "storage_account_name" {
-  value = data.azurerm_storage_account.telemetry.name
+  value = azurerm_storage_account.telemetry.name
 }
