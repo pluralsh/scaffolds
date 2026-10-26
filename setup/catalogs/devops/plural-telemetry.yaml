@@ -8,6 +8,8 @@ spec:
   identifier: mgmt
   documentation: |
     Sets up Plural Telemetry (metrics, logs and traces) with shared cloud object storage, a single path-routed ingress host, and Grafana Alloy agents on every cluster.
+
+    The generated PR also updates `bootstrap/settings.yaml`: it points the Console's log driver (`logging`, driver LOKI) and its Prometheus connection (`prometheusConnection`) at this Telemetry instance. It overrides the existing values for those fields, such as an Elasticsearch log driver or a Victoria Metrics host, and leaves other settings untouched, including old connection blocks that are no longer selected.
   creates:
     git:
       ref: sebastian/prod-5328-add-plural-telemetry-service-catalog-entry # todo: change to main after testing
@@ -25,6 +27,29 @@ spec:
     - source: telemetry.yaml.liquid
       destination: "bootstrap/apps/telemetry/{{ context.cluster }}/telemetry.yaml"
       external: true
+  updates:
+    yamlOverlays:
+    # Reads and writes through the ingress with the generated credentials, which the
+    # catalog also copies into plrl-deploy-operator, where these settings resolve secrets.
+    - file: bootstrap/settings.yaml
+      templated: true
+      yaml: |
+        spec:
+          logging:
+            enabled: true
+            driver: LOKI
+            loki:
+              host: https://{{ context.hostname }}/logs/read/ns/default
+              user: plrl
+              passwordSecretRef:
+                name: telemetry-auth-{{ context.cluster }}
+                key: password
+          prometheusConnection:
+            host: https://{{ context.hostname }}/metrics/read/ns/default
+            user: plrl
+            passwordSecretRef:
+              name: telemetry-auth-{{ context.cluster }}
+              key: password
   repositoryRef:
     name: scaffolds
   catalogRef:
@@ -34,6 +59,8 @@ spec:
   title: "Plural Telemetry setup ({{ context.cluster }}, {{ context.cloud }})"
   message: |
     Sets up Plural Telemetry on {{ context.cluster }} with {{ context.cloud }} object storage, served at https://{{ context.hostname }}/{metrics,logs,traces}, and ships telemetry from every cluster to it with Grafana Alloy.
+
+    This PR also updates `bootstrap/settings.yaml` so the Console reads logs and metrics from Telemetry. It overrides the existing `logging` driver and `prometheusConnection` host, user and password reference there, and leaves other settings untouched.
 
     Plural Service: mgmt/apps
   configuration:

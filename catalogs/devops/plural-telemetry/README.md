@@ -80,7 +80,7 @@ The agents already push with these endpoints and credentials. Applications can s
 
 ## Using Telemetry in the Console
 
-The Console reads logs and metrics through its deployment settings, which this catalog does not change. The generated credentials are also copied to the `plrl-deploy-operator` namespace as `telemetry-auth-<cluster>` (keys `username` and `password`), where `<cluster>` is the handle you installed Telemetry on, because the `global` `DeploymentSettings` there resolve secret references in their own namespace. Set this in those settings (replace `<hostname>` and `<cluster>`):
+The Console reads logs and metrics through its deployment settings. The PR this catalog generates updates `bootstrap/settings.yaml` for you, so the Console uses Telemetry once the PR is merged and synced. It sets these fields (`<hostname>` and `<cluster>` are your install's hostname and cluster handle):
 
 ```yaml
 spec:
@@ -100,6 +100,10 @@ spec:
       name: telemetry-auth-<cluster>
       key: password
 ```
+
+This merges into the existing file. It overrides the `logging` driver and `loki` block and the `prometheusConnection` host, user and password reference, which replaces an Elasticsearch log driver or a Victoria Metrics host. Other settings stay as they are, including old connection blocks that are no longer selected, such as `logging.elastic`. Review the diff in the PR before merging, since a changed log driver and metrics source affect every Console user. If your settings are not in `bootstrap/settings.yaml`, the PR fails, so apply the snippet above by hand instead.
+
+The generated credentials are also copied to the `plrl-deploy-operator` namespace as `telemetry-auth-<cluster>` (keys `username` and `password`), because the `global` `DeploymentSettings` there resolve secret references in their own namespace.
 
 Then the Console's logs tabs and its node, pod and service metrics graphs read from Telemetry. The Console reads the password when its settings reconcile, so after you rotate it (by deleting the generated secret in `apps`) make any change to the `DeploymentSettings` to push the new one; until then its logs and metrics views return 401. Only one Telemetry instance should be wired to the Console, like the agents.
 
