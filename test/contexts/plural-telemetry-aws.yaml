@@ -1,0 +1,7 @@
+cluster: aws
+cloud: aws
+bucket: plrl-telemetry
+hostname: telemetry.plural.sh
+region: us-east-2
+ingressClass: nginx
+clusterIssuer: letsencrypt-prod

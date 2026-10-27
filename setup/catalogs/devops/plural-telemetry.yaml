@@ -1,0 +1,134 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: plural-telemetry
+spec:
+  name: plural-telemetry
+  icon: https://github.com/pluralsh.png
+  identifier: mgmt
+  documentation: |
+    Sets up Plural Telemetry (metrics, logs and traces) with shared cloud object storage, a single path-routed ingress host, and Grafana Alloy agents on every cluster.
+
+    Unless `consoleSettings` is turned off, the generated PR also updates `bootstrap/settings.yaml`, which must exist: it points the Console's log driver (`logging`, driver LOKI) and its Prometheus connection (`prometheusConnection`) at this Telemetry instance. It merges into the file, so it overrides those fields (for example an Elasticsearch log driver or a Victoria Metrics host) and keeps every other key, including old connection blocks that are no longer selected and any extra keys inside `logging.loki` or `prometheusConnection`. The file is rewritten, so comments are removed and keys are sorted. The Console switches to Telemetry as soon as the PR is merged and synced, so its log and metrics views fail until the Telemetry stack is healthy and DNS and TLS work, and existing logs and metrics are not migrated.
+  creates:
+    git:
+      ref: sebastian/prod-5328-add-plural-telemetry-service-catalog-entry # todo: change to main after testing
+      folder: catalogs/devops/plural-telemetry
+    templates:
+    - source: README.md
+      destination: documentation/telemetry/README.md
+      external: true
+    - source: helm
+      destination: "helm/telemetry/{{ context.cluster }}"
+      external: true
+    - source: "terraform/{{ context.cloud }}"
+      destination: "terraform/apps/telemetry/{{ context.cluster }}"
+      external: true
+    - source: telemetry.yaml.liquid
+      destination: "bootstrap/apps/telemetry/{{ context.cluster }}/telemetry.yaml"
+      external: true
+  updates:
+    yamlOverlays:
+    # The Console reads through the ingress with the generated credentials, which the
+    # catalog also copies into plrl-deploy-operator, where these settings resolve secrets.
+    # The file must exist even when consoleSettings is off; an empty overlay changes no values.
+    - file: bootstrap/settings.yaml
+      templated: true
+      yaml: |
+        {% unless context.consoleSettings == false or context.consoleSettings == "false" %}
+        spec:
+          logging:
+            enabled: true
+            driver: LOKI
+            loki:
+              host: https://{{ context.hostname }}/logs/read/ns/default
+              user: plrl
+              passwordSecretRef:
+                name: telemetry-auth-{{ context.cluster }}
+                key: password
+          prometheusConnection:
+            host: https://{{ context.hostname }}/metrics/read/ns/default
+            user: plrl
+            passwordSecretRef:
+              name: telemetry-auth-{{ context.cluster }}
+              key: password
+        {% endunless %}
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Plural Telemetry setup ({{ context.cluster }}, {{ context.cloud }})"
+  message: |
+    Sets up Plural Telemetry on {{ context.cluster }} with {{ context.cloud }} object storage, served at https://{{ context.hostname }}/{metrics,logs,traces}, and ships telemetry from every cluster to it with Grafana Alloy.
+
+    Unless `consoleSettings` was turned off, this PR also updates `bootstrap/settings.yaml` so the Console reads logs and metrics from Telemetry. It merges into the file: it overrides the `logging` driver and the `logging.loki` and `prometheusConnection` fields it sets, keeps every other key (delete stale `logging.elastic`, `victoria` or `opensearch` blocks and leftover `loki` keys such as `clusterLabel` yourself), and rewrites the file, which removes comments and sorts keys. The Console switches over when this PR is merged and synced, so its log and metrics views fail until the Telemetry stack is healthy and DNS and TLS work, and existing logs and metrics are not migrated. Review the diff first.
+
+    Plural Service: mgmt/apps
+  confirmation:
+    text: |
+      Telemetry stores metrics, logs and traces in a bucket, serves them on one host, and by default
+      switches the Console and every cluster over to it. Check these before you create the PR.
+    checklist:
+      - label: "The DNS name I entered points at my ingress controller, and the ingress class and cert-manager ClusterIssuer I chose exist."
+      - label: "The target cluster has about 26Gi of free memory for the Telemetry writers and readers (each writer needs at least 6Gi)."
+      - label: "bootstrap/settings.yaml exists, and unless I turned off consoleSettings, I accept that the Console switches its logs and metrics to Telemetry when this PR is synced. Existing logs and metrics are not migrated."
+      - label: "This is the only Telemetry install for this fleet, or I turned off agent and consoleSettings."
+      - label: "On Azure, the stack identity can create storage accounts, managed identities and role assignments in the target cluster's resource group. Bootstrap grants this only for the management cluster's resource group."
+      - label: "The bucket is not versioned by this catalog. If I need to recover deleted or overwritten data, I will add versioning and a rule that expires non-current versions to the generated Terraform in my infra repo."
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster you want to deploy Telemetry to
+  - name: cloud
+    type: ENUM
+    documentation: the cloud provider hosting the target cluster
+    values:
+    - aws
+    - azure
+    - gcp
+  - name: bucket
+    type: STRING
+    documentation: the globally unique S3/GCS bucket name, or Azure Blob container name, shared by metrics, logs and traces. Azure container names allow only lowercase letters, digits and single hyphens.
+    validation:
+      regex: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]\\z"
+  - name: hostname
+    type: STRING
+    documentation: the DNS name Telemetry is served under; metrics, logs and traces are routed by path (/metrics, /logs, /traces)
+    validation:
+      regex: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)+\\z"
+  - name: ingressClass
+    type: STRING
+    optional: true
+    default: nginx
+    documentation: the ingress class used for the Telemetry ingresses. Defaults to nginx.
+    validation:
+      regex: "^(|[a-z0-9]([-a-z0-9.]*[a-z0-9])?)\\z"
+  - name: clusterIssuer
+    type: STRING
+    optional: true
+    default: letsencrypt-prod
+    documentation: the cert-manager ClusterIssuer that issues the TLS certificate. Defaults to letsencrypt-prod.
+    validation:
+      regex: "^(|[a-z0-9]([-a-z0-9.]*[a-z0-9])?)\\z"
+  - name: region
+    type: STRING
+    documentation: the AWS region containing the target EKS cluster and Telemetry bucket
+    validation:
+      regex: "^[a-z]{2,4}(-[a-z]+)+-[0-9]\\z"
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: agent
+    type: BOOL
+    optional: true
+    default: "true"
+    documentation: deploy Grafana Alloy on every cluster, including this one, to ship metrics, logs and traces to Telemetry, and to scrape Telemetry's own metrics. On by default. Turn it off if you run your own collectors, and for any additional Telemetry instance, because the agents are fleet-wide and a second set would take over the first.
+  - name: consoleSettings
+    type: BOOL
+    optional: true
+    default: "true"
+    documentation: point the Console's log driver and Prometheus connection at this Telemetry by updating bootstrap/settings.yaml (the file must exist). On by default. Turn it off for any additional Telemetry instance, or to keep the Console on its current log and metrics source until Telemetry is up; the Console switches as soon as the PR is merged and synced, and existing logs and metrics are not migrated.
