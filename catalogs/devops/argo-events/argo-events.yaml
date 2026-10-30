@@ -1,0 +1,13 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: argo-events
+  namespace: apps
+spec:
+  template:
+    name: argo-events
+    namespace: argo-events
+    helm:
+      url: https://argoproj.github.io/argo-helm
+      chart: argo-events
+      version: '2.x.x'
