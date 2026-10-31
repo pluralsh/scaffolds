@@ -1,0 +1,6 @@
+cluster: notify-c
+baseUrl: ''
+storageClass: ''
+ai:
+  session:
+    agent_id: test-agent

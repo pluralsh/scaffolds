@@ -1,0 +1,53 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: ntfy
+spec:
+  name: ntfy
+  icon: https://helmforge.dev/icons/charts/ntfy.png
+  identifier: mgmt
+  documentation: |
+    Sets up a private ntfy notification server with persistent message and
+    account databases. Create an initial account before publishing messages.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devops/ntfy
+    templates:
+    - source: README.md
+      destination: documentation/ntfy/README.md
+      external: true
+    - source: helm/values.yaml.liquid
+      destination: "helm/ntfy/{{ context.cluster }}/values.yaml"
+      external: true
+    - source: servicedeployment.yaml.liquid
+      destination: "bootstrap/apps/ntfy/{{ context.cluster }}/servicedeployment.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devops
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "ntfy setup ({{ context.cluster }})"
+  message: |
+    Sets up a private, persistent ntfy server on {{ context.cluster }}.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: Kubernetes 1.26 or newer cluster in which ntfy will run
+  - name: baseUrl
+    type: STRING
+    optional: true
+    documentation: |
+      Optional canonical URL, for example https://notify.example.org, for a
+      separately configured ingress. Leave empty for internal access only.
+      This value is committed to Git; do not include credentials.
+  - name: storageClass
+    type: STRING
+    optional: true
+    documentation: |
+      Optional StorageClass for the 2Gi ReadWriteOnce data volume. Omit or
+      leave empty to use the cluster default StorageClass.

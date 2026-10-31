@@ -1,0 +1,74 @@
+fullnameOverride: ntfy
+
+ntfy:
+  authDefaultAccess: deny-all
+  behindProxy: false
+  enableMetrics: false
+  database:
+    enabled: false
+
+
+  baseUrl: "https://notify.example.org"
+
+
+persistence:
+  enabled: true
+  size: 2Gi
+  accessModes:
+  - ReadWriteOnce
+
+
+  storageClass: "fast-rwo"
+
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+
+gateway:
+  enabled: false
+
+externalSecrets:
+  enabled: false
+
+serviceAccount:
+  create: true
+  name: ntfy
+
+podSecurityContext:
+  fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+    # The upstream chart fixes the container's HTTP port at 80.
+    add:
+    - NET_BIND_SERVICE
+
+extraVolumes:
+- name: tmp
+  emptyDir:
+    sizeLimit: 64Mi
+
+extraVolumeMounts:
+- name: tmp
+  mountPath: /tmp
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

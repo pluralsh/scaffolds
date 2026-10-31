@@ -1,0 +1,16 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: ntfy
+spec:
+  workdir: test/outputs-ntfy
+  templates:
+    from: catalogs/devops/ntfy
+    to: test/outputs-ntfy/catalogs/devops/ntfy
+  automations:
+  - file: ../../setup/catalogs/devops/ntfy.yaml
+    context: ../contexts/ntfy.yaml
+  - file: ../../setup/catalogs/devops/ntfy.yaml
+    context: ../contexts/ntfy-storage.yaml
+  - file: ../../setup/catalogs/devops/ntfy.yaml
+    context: ../contexts/ntfy-empty.yaml
