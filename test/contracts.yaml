@@ -31,3 +31,6 @@ spec:
   - file: ../../setup/catalogs/devops/plural-telemetry.yaml
     context: ../contexts/plural-telemetry-gcp.yaml
     externalDir: ../../catalogs/devops/plural-telemetry
+  - file: ../../setup/catalogs/devops/argo-events.yaml
+    context: ../contexts/argo-events.yaml
+    externalDir: ../../catalogs/devops/argo-events
