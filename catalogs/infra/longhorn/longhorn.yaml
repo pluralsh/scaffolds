@@ -1,0 +1,13 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: longhorn
+  namespace: apps
+spec:
+  template:
+    name: longhorn
+    namespace: longhorn-system
+    helm:
+      url: https://charts.longhorn.io
+      chart: longhorn
+      version: '1.x.x'

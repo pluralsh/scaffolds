@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: longhorn
+spec:
+  name: longhorn
+  icon: https://raw.githubusercontent.com/cncf/artwork/main/projects/longhorn/icon/color/longhorn-icon-color.svg
+  identifier: mgmt
+  documentation: |
+    Sets up Longhorn distributed block storage as a cluster-wide GlobalService.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/infra/longhorn
+    templates:
+    - source: README.md
+      destination: documentation/longhorn/README.md
+      external: true
+    - source: longhorn.yaml
+      destination: bootstrap/apps/longhorn/longhorn.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: infra
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Global Longhorn Setup"
+  message: |
+    Sets up Longhorn distributed block storage as a GlobalService Helm deployment.
+
+    Plural Service: mgmt/apps
+  configuration: []
