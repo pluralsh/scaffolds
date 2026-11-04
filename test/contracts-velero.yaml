@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: velero
+spec:
+  workdir: test/outputs-velero
+  templates:
+    from: catalogs/infra/velero
+    to: test/outputs-velero/catalogs/infra/velero
+  automations:
+  - file: ../../setup/catalogs/infra/velero.yaml
+    context: ../contexts/velero.yaml

@@ -1,0 +1,33 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: velero
+spec:
+  name: velero
+  icon: https://raw.githubusercontent.com/vmware-tanzu/velero/main/docs/img/velero.png
+  identifier: mgmt
+  documentation: |
+    Sets up Velero for cluster backup and restore of Kubernetes resources and persistent volumes.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/infra/velero
+    templates:
+    - source: README.md
+      destination: documentation/velero/README.md
+      external: true
+    - source: velero.yaml
+      destination: bootstrap/apps/velero/velero.yaml
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: infra
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: Velero setup
+  message: |
+    Sets up Velero cluster backup on the management cluster (no backup storage location configured yet).
+
+    Plural Service: mgmt/apps
+  configuration: []

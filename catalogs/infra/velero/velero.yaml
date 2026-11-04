@@ -1,0 +1,24 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: GlobalService
+metadata:
+  name: velero
+  namespace: apps
+spec:
+  template:
+    name: velero
+    namespace: velero
+    helm:
+      url: https://vmware-tanzu.github.io/helm-charts
+      chart: velero
+      version: "12.1.0"
+      values:
+          credentials:
+            useSecret: false
+          snapshotsEnabled: false
+          deployNodeAgent: false
+          configuration:
+            backupStorageLocation: []
+            volumeSnapshotLocation: []
+          metrics:
+            serviceMonitor:
+              enabled: false
