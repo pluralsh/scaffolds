@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: kured
+spec:
+  workdir: test/outputs-kured
+  templates:
+    from: catalogs/infra/kured
+    to: test/outputs-kured/catalogs/infra/kured
+  automations:
+  - file: ../../setup/catalogs/infra/kured.yaml
+    context: ../contexts/kured.yaml
