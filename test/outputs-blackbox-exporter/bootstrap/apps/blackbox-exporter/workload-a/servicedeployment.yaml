@@ -1,0 +1,24 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: blackbox-exporter-workload-a
+  namespace: apps
+spec:
+
+  name: blackbox-exporter
+  namespace: blackbox-exporter
+  git:
+    ref: main
+    folder: helm/blackbox-exporter/workload-a
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    chart: prometheus-blackbox-exporter
+    version: "11.18.0"
+    release: blackbox-exporter
+    url: https://prometheus-community.github.io/helm-charts
+    valuesFiles:
+    - values.yaml
+  cluster: "workload-a"

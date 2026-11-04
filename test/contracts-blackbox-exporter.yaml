@@ -1,0 +1,12 @@
+apiVersion: platform.plural.sh/v1alpha1
+kind: PrContracts
+metadata:
+  name: blackbox-exporter
+spec:
+  workdir: test/outputs-blackbox-exporter
+  templates:
+    from: catalogs/devops/blackbox-exporter
+    to: test/outputs-blackbox-exporter/catalogs/devops/blackbox-exporter
+  automations:
+  - file: ../../setup/catalogs/devops/blackbox-exporter.yaml
+    context: ../contexts/blackbox-exporter.yaml
