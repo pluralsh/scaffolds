@@ -1,0 +1,29 @@
+
+# Qdrant's chart turns this string into the target-cluster Secret consumed by
+# the Qdrant pod. Do not use valueFrom.secretKeyRef here: Helm lookup runs in
+# the target cluster and cannot resolve the management-cluster GeneratedSecret.
+apiKey: "{{ configuration.api_key }}"
+
+
+# Keep one node and a deliberately small persistent volume for the catalog's
+# minimal, single-cluster use case. Increase storage only as a planned change.
+replicaCount: 1
+image:
+  repository: docker.io/qdrant/qdrant
+  tag: "v1.19.1"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: false
+
+persistence:
+  accessModes:
+  - ReadWriteOnce
+  size: 10Gi
+
+config:
+  cluster:
+    enabled: false
