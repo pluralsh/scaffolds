@@ -1,0 +1,11 @@
+cluster: devbox-gcp
+cloud: gcp
+pool: devbox
+sandboxClass: microvm
+instanceTypes: n2-standard-16
+diskMode: local
+localSsdCount: "2"
+bootDiskSize: "100"
+minNodes: "1"
+maxNodes: "10"
+diskPrepImage: ghcr.io/pluralsh/agent-harness-base:0.6.76

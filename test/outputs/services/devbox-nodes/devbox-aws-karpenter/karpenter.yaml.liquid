@@ -1,0 +1,87 @@
+
+
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: devbox
+spec:
+  amiSelectorTerms:
+  - alias: al2023@latest
+
+  role: {{ imports[configuration.stackName].node_role_name }}
+  subnetSelectorTerms:
+{% assign subnets = imports[configuration.stackName].subnet_ids | split: "," %}
+{% for subnet in subnets %}
+  - id: {{ subnet }}
+{% endfor %}
+  securityGroupSelectorTerms:
+  - id: {{ imports[configuration.stackName].node_security_group_id }}
+
+
+  cpuOptions:
+    nestedVirtualization: enabled
+
+  metadataOptions:
+    httpEndpoint: enabled
+    httpTokens: required
+    httpPutResponseHopLimit: 1
+  blockDeviceMappings:
+  - deviceName: /dev/xvda
+    ebs:
+      volumeSize: 100Gi
+      volumeType: gp3
+      encrypted: true
+      deleteOnTermination: true
+
+  tags:
+    plural.sh/devbox-pool: devbox
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: devbox
+spec:
+  template:
+    metadata:
+      labels:
+        plural.sh/devbox-pool: devbox
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: devbox
+      taints:
+      - key: ate.dev/sandboxClass
+        value: microvm
+        effect: NoSchedule
+      startupTaints:
+      - key: plural.sh/devbox-disk
+        value: pending
+        effect: NoSchedule
+      requirements:
+      - key: kubernetes.io/arch
+        operator: In
+        values: ["amd64"]
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values: ["on-demand"]
+      - key: node.kubernetes.io/instance-type
+        operator: In
+        values:
+
+        - c8id.4xlarge
+
+        - m8id.4xlarge
+
+      # Sandboxes are stateful between snapshots: never expire nodes, and give atelet time to suspend
+      # actors when a node is drained.
+      expireAfter: Never
+      terminationGracePeriod: 1h
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 15m
+    budgets:
+    - nodes: "10%"
+  limits:
+    cpu: "1000"
+

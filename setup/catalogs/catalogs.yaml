@@ -94,3 +94,16 @@ spec:
   author: Plural
   description: |
     Sets up common datastores using Plural
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: Catalog
+metadata:
+  name: devbox
+spec:
+  name: devbox
+  category: ai
+  icon: https://docs.plural.sh/favicon-128.png
+  author: Plural
+  description: |
+    Sets up Plural devboxes: sandboxed coding-agent environments on Agent Substrate, with dedicated node pools and
+    DevboxRunners

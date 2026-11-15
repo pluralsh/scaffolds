@@ -1,0 +1,57 @@
+
+
+
+
+
+
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: devbox-nodes-devbox-gcp
+  namespace: apps
+spec:
+
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/devbox-nodes/devbox-gcp
+  repositoryRef:
+    name: infra
+    namespace: infra
+  
+  clusterRef:
+    name: mgmt
+    namespace: infra
+
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: devbox-nodes-devbox-gcp
+  namespace: apps
+spec:
+
+  name: devbox-nodes
+  namespace: devbox-nodes
+  git:
+    folder: services/devbox-nodes/devbox-gcp
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+
+  imports:
+  - stackRef:
+      name: devbox-nodes-devbox-gcp
+      namespace: apps
+  configuration:
+    stackName: devbox-nodes-devbox-gcp
+    pool: devbox
+    diskModel: "^nvme_card$"
+    diskPrepImage: ghcr.io/pluralsh/agent-harness-base:0.6.76
+  cluster: devbox-gcp

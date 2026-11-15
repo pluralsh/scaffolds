@@ -1,0 +1,47 @@
+{% assign diskSize = '' %}
+{% if context.diskSize and context.diskSize != '' %}
+{% assign diskSize = context.diskSize %}
+{% elsif context.diskMode == 'network' and context.cloud == 'aws' %}
+{% assign diskSize = context.dataDiskSize | default: 200 %}
+{% elsif context.diskMode == 'network' %}
+{% comment %}GCP/Azure network mode shares the boot disk with the OS and container images.{% endcomment %}
+{% assign diskSize = context.bootDiskSize | minus: 50 %}
+{% elsif context.cloud == 'gcp' %}
+{% comment %}375GB per local SSD.{% endcomment %}
+{% assign diskSize = context.localSsdCount | default: 2 | times: 349 %}
+{% endif %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: DevboxRunner
+metadata:
+  name: {{ context.runnerName }}
+spec:
+  agents:
+  - type: {{ context.agent }}
+    default: true
+  resources:
+    cpu: "{{ context.instanceCpu }}"
+    memory: {{ context.instanceMemory }}
+    disk: {{ context.instanceDisk }}
+  workerPool:
+    autoscaling:
+      minReplicas: {{ context.minNodes }}
+      maxReplicas: {{ context.maxNodes }}
+      spareInstances: {{ context.spareInstances | default: 1 }}
+{% if diskSize != '' %}
+    diskSize: {{ diskSize }}Gi
+{% endif %}
+    sandboxClass: {{ context.sandboxClass }}
+    nodeSelector:
+      plural.sh/devbox-pool: {{ context.pool }}
+    tolerations:
+    # Lets the cluster autoscaler size the pool from its template; atelet still waits for the disk.
+    - key: plural.sh/devbox-disk
+      operator: Exists
+      effect: NoSchedule
+{% if context.cloud == 'aws' and context.awsProvisioner == 'karpenter' %}
+    podAnnotations:
+      karpenter.sh/do-not-disrupt: "true"
+{% endif %}
+    resources:
+      requests: {cpu: "{{ context.workerCpu }}", memory: {{ context.workerMemory }}}
+      limits: {cpu: "{{ context.workerCpu }}", memory: {{ context.workerMemory }}}

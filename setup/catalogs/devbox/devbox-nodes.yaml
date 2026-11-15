@@ -1,0 +1,172 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: devbox-nodes
+spec:
+  name: devbox-nodes
+  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/plural-logo.png
+  identifier: mgmt
+  documentation: |
+    Sets up a dedicated, autoscaled node pool for Plural devboxes (Agent Substrate workers) with /var/lib/ate on
+    fast local or attached disk. On AWS the pool is provisioned with Karpenter or an EKS managed node group.
+  creates:
+    git:
+      ref: main
+      folder: catalogs/devbox/devbox-nodes
+    templates:
+    - source: README.md
+      destination: documentation/devbox-nodes/README.md
+      external: true
+    - source: helm
+      destination: "helm/devbox-nodes/{{ context.cluster }}"
+      external: true
+    - source: services
+      destination: "services/devbox-nodes/{{ context.cluster }}"
+      external: true
+    - source: "terraform/{{ context.cloud }}"
+      destination: "terraform/apps/devbox-nodes/{{ context.cluster }}"
+      external: true
+    - source: devbox-nodes.yaml.liquid
+      destination: "bootstrap/apps/devbox-nodes/{{ context.cluster }}/devbox-nodes.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devbox
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Devbox node pool {{ context.pool }} ({{ context.cluster }}, {{ context.cloud }})"
+  message: |
+    Sets up the {{ context.pool }} devbox node pool on {{ context.cluster }} ({{ context.cloud }}{% if context.cloud == 'aws' %}, {{ context.awsProvisioner }}{% endif %}) for {{ context.sandboxClass }} sandboxes on {{ context.instanceTypes }}, with /var/lib/ate on {{ context.diskMode }} disk.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster the devbox nodes join
+  - name: cloud
+    type: ENUM
+    documentation: the cloud provider hosting the target cluster
+    values:
+    - aws
+    - azure
+    - gcp
+  - name: pool
+    type: STRING
+    documentation: |
+      the node pool name, also the plural.sh/devbox-pool node label DevboxRunners select on (lowercase
+      alphanumeric, at most 12 characters on Azure)
+    default: devbox
+    validation:
+      regex: '^[a-z][a-z0-9]{0,11}$'
+  - name: sandboxClass
+    type: ENUM
+    documentation: |
+      the Substrate sandbox class these nodes run. microvm needs nested virtualization: on AWS only Karpenter
+      can enable it (*7i/*8i, i7i, x8i), on GCP use Intel machines (n2, c3, c4, n4), on Azure Dv5/Ev5/Lsv3.
+    values:
+    - gvisor
+    - microvm
+  - name: region
+    type: STRING
+    documentation: the AWS region of the target EKS cluster
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: awsProvisioner
+    type: ENUM
+    documentation: how AWS nodes are provisioned. Only Karpenter supports the microvm sandbox class.
+    optional: true
+    values:
+    - karpenter
+    - managed-node-group
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: installKarpenter
+    type: BOOL
+    documentation: install Karpenter (IAM, interruption queue and the Helm chart); leave off if the cluster already runs it
+    optional: true
+    condition:
+      field: awsProvisioner
+      operation: EQ
+      value: karpenter
+  - name: karpenterVersion
+    type: STRING
+    documentation: the Karpenter chart version to install, 1.13+ is needed for nested virtualization
+    optional: true
+    default: "1.13.0"
+    condition:
+      field: awsProvisioner
+      operation: EQ
+      value: karpenter
+  - name: maxCpu
+    type: STRING
+    documentation: the Karpenter NodePool CPU limit across all devbox nodes
+    optional: true
+    default: "1000"
+    condition:
+      field: awsProvisioner
+      operation: EQ
+      value: karpenter
+  - name: resourceGroup
+    type: STRING
+    documentation: the resource group of the target AKS cluster, if its cluster context doesn't carry one
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
+  - name: instanceTypes
+    type: STRING
+    documentation: |
+      the machine type. AWS takes a comma-separated list, e.g. c8id.4xlarge,m8id.4xlarge (local NVMe) or
+      c8i.4xlarge (network disk). GCP takes one machine type, e.g. c3-standard-22-lssd or n2-standard-16. Azure
+      takes one VM size, e.g. Standard_L16s_v3 (local NVMe) or Standard_D16s_v5.
+  - name: diskMode
+    type: ENUM
+    documentation: |
+      where /var/lib/ate lives. local formats the instance's NVMe disks (RAID0 when there are several); network
+      attaches a gp3 data volume on AWS and uses a larger boot disk on GCP and Azure.
+    values:
+    - local
+    - network
+  - name: localSsdCount
+    type: STRING
+    documentation: the number of local NVMe SSDs per node on GCP (375GB each); -lssd machine types have a fixed count
+    optional: true
+    default: "2"
+    condition:
+      field: cloud
+      operation: EQ
+      value: gcp
+  - name: dataDiskSize
+    type: STRING
+    documentation: the size in GiB of the AWS gp3 data volume when diskMode is network
+    optional: true
+    default: "200"
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: bootDiskSize
+    type: STRING
+    documentation: the boot disk size in GiB (holds /var/lib/ate on GCP and Azure when diskMode is network)
+    default: "250"
+  - name: minNodes
+    type: STRING
+    documentation: the minimum node count (ignored by Karpenter)
+    default: "1"
+  - name: maxNodes
+    type: STRING
+    documentation: the maximum node count (ignored by Karpenter, use maxCpu)
+    default: "10"
+  - name: diskPrepImage
+    type: STRING
+    documentation: |
+      the image the disk-prep DaemonSet runs, the agent-harness base image (it ships /devbox-disk-prep). Use the
+      same version as the deployment operator, or a mirror of it.
+    default: ghcr.io/pluralsh/agent-harness-base:0.6.76
