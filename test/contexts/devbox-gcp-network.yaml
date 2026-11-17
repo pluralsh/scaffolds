@@ -15,3 +15,6 @@ instanceMemory: 4Gi
 instanceDisk: 20Gi
 workerCpu: "14"
 workerMemory: 56Gi
+substrate: true
+substrateVersion: "0.1.0"
+existingCnpg: true

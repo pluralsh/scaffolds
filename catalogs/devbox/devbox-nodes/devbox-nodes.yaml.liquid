@@ -2,6 +2,10 @@
 {% if context.cloud == 'aws' and context.awsProvisioner == 'karpenter' and context.installKarpenter %}
 {% assign karpenter = true %}
 {% endif %}
+{% assign substrate = false %}
+{% if context.substrate == true or context.substrate == "true" %}
+{% assign substrate = true %}
+{% endif %}
 {% if context.diskMode == 'local' %}
 {% case context.cloud %}
 {% when 'aws' %}{% assign diskModel = 'Instance Storage' %}
@@ -78,6 +82,42 @@ spec:
     stackName: devbox-nodes-{{ context.cluster }}
   cluster: {{ context.cluster }}
 {% endif %}
+{% if substrate %}
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: agent-substrate-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: agent-substrate
+  # The Substrate binaries default every in-cluster address and SPIFFE ID to ate-system, so the chart only renders there.
+  namespace: ate-system
+  git:
+    folder: helm/agent-substrate/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "{{ context.substrateVersion | default: '0.1.0' }}"
+    chart: agent-substrate
+    release: ate
+    url: oci://ghcr.io/pluralsh/charts
+    valuesFiles:
+    - agent-substrate.yaml.liquid
+  imports:
+  - stackRef:
+      name: devbox-nodes-{{ context.cluster }}
+      namespace: apps
+  configuration:
+    stackName: devbox-nodes-{{ context.cluster }}
+  cluster: {{ context.cluster }}
+{% endif %}
 ---
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
@@ -97,9 +137,15 @@ spec:
     kind: GitRepository
     name: infra
     namespace: infra
-{% if karpenter %}
+{% if karpenter or substrate %}
   dependencies:
+{% if karpenter %}
   - name: karpenter
+{% endif %}
+{% if substrate %}
+  # The DevboxRunner needs Substrate's WorkerPool API.
+  - name: agent-substrate
+{% endif %}
 {% endif %}
   imports:
   - stackRef:

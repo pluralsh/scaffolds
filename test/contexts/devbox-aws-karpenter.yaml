@@ -14,6 +14,11 @@ maxNodes: "10"
 diskPrepImage: ghcr.io/pluralsh/agent-harness-base:0.6.76
 runnerName: platform
 agent: claude
+scmConnections: github, gitlab
+allowedRepositories: https://github.com/acme/api.git,https://github.com/acme/web.git
+autonomy: manual
+browser: true
+awsRoleArn: arn:aws:iam::123456789012:role/devbox
 instanceCpu: "2"
 instanceMemory: 4Gi
 instanceDisk: 20Gi
@@ -21,3 +26,5 @@ workerCpu: "14"
 workerMemory: 56Gi
 diskSize: "880"
 spareInstances: "2"
+substrate: true
+substrateVersion: "0.1.0"

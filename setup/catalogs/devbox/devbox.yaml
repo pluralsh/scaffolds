@@ -7,9 +7,10 @@ spec:
   icon: https://docs.plural.sh/favicon-128.png
   identifier: mgmt
   documentation: |
-    Sets up a Plural devbox end to end: a dedicated, autoscaled node pool (as in devbox-nodes) and a DevboxRunner
-    whose autoscaled Substrate workers run one per node on it. The cluster needs Agent Substrate and a deployment
-    operator with devbox support installed.
+    Sets up a Plural devbox end to end: a dedicated, autoscaled node pool (as in devbox-nodes), Agent Substrate with
+    its snapshot storage and workload identities, and a DevboxRunner whose autoscaled Substrate workers run one per
+    node on it. The cluster needs Kubernetes 1.34+ with the ClusterTrustBundle and PodCertificateRequest APIs, and a
+    deployment operator with devbox support.
   creates:
     git:
       ref: substrate-setup
@@ -27,6 +28,10 @@ spec:
     - source: "terraform/{{ context.cloud }}"
       destination: "terraform/apps/devbox-nodes/{{ context.cluster }}"
       external: true
+    - source: substrate
+      destination: "helm/agent-substrate/{{ context.cluster }}"
+      external: true
+      condition: context.substrate == true
     - source: runner/devbox-runner.yaml.liquid
       destination: "services/devbox-nodes/{{ context.cluster }}/devbox-runner.yaml"
       external: true
@@ -41,7 +46,7 @@ spec:
     name: plural # you'll need to add this ScmConnection manually before this is functional
   title: "Devbox {{ context.runnerName }} ({{ context.cluster }}, {{ context.cloud }})"
   message: |
-    Sets up the {{ context.runnerName }} DevboxRunner ({{ context.agent }}) on {{ context.cluster }} and the {{ context.pool }} node pool it runs on ({{ context.cloud }}{% if context.cloud == 'aws' %}, {{ context.awsProvisioner }}{% endif %}) for {{ context.sandboxClass }} sandboxes on {{ context.instanceTypes }}, with /var/lib/ate on {{ context.diskMode }} disk.
+    Sets up the {{ context.runnerName }} DevboxRunner ({{ context.agent }}) on {{ context.cluster }} and the {{ context.pool }} node pool it runs on ({{ context.cloud }}{% if context.cloud == 'aws' %}, {{ context.awsProvisioner }}{% endif %}) for {{ context.sandboxClass }} sandboxes on {{ context.instanceTypes }}, with /var/lib/ate on {{ context.diskMode }} disk.{% if context.substrate == true or context.substrate == "true" %} Installs Agent Substrate (chart {{ context.substrateVersion }}) in ate-system with its snapshot storage.{% endif %}
 
     Plural Service: mgmt/apps
   configuration:
@@ -55,6 +60,36 @@ spec:
     - aws
     - azure
     - gcp
+  - name: substrate
+    type: BOOL
+    optional: true
+    default: "true"
+    documentation: |
+      install Agent Substrate in ate-system: its snapshot bucket (S3, GCS or Azure Blob), the workload identities of
+      ate-api-server and atelet, and the agent-substrate chart wired to the deployment operator's devbox gateway.
+      On by default. Turn it off if Substrate already runs on the cluster. Substrate needs pod certificates, which
+      EKS, GKE and AKS only serve from Kubernetes 1.37, so the cluster must run 1.37 or later.
+  - name: substrateVersion
+    type: STRING
+    documentation: the agent-substrate chart version (oci://ghcr.io/pluralsh/charts), when substrate is on
+    optional: true
+    default: "0.1.0"
+  - name: existingCnpg
+    type: BOOL
+    documentation: |
+      CloudNativePG already runs on the cluster, when substrate is on. Substrate's Postgres is a CNPG Cluster, and the
+      chart bundles the operator unless this is on; two copies of the cluster-wide operator conflict.
+    optional: true
+  - name: azureBlobPluginTag
+    type: STRING
+    documentation: |
+      the ghcr.io/pluralsh/objectstore-azure-blob image tag Substrate's snapshot storage runs on Azure; the chart
+      requires it pinned
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
   - name: pool
     type: STRING
     documentation: |
@@ -185,6 +220,81 @@ spec:
     - opencode
     - gemini
     - pi
+  - name: scmConnections
+    type: STRING
+    documentation: |
+      comma-separated console SCM connection names devboxes may use for git credentials, e.g. github. Without one
+      devboxes can't clone private repositories or push
+    optional: true
+  - name: allowedRepositories
+    type: STRING
+    documentation: |
+      comma-separated git repositories devboxes may use, e.g. https://github.com/acme/api.git. Leave empty to allow
+      any repository the SCM connections can reach
+    optional: true
+  - name: autonomy
+    type: ENUM
+    documentation: |
+      how much agents may do without asking. manual sends every permission request to a human, auto lets the
+      agent's reviewer approve what it can, full approves everything
+    values:
+    - auto
+    - manual
+    - full
+  - name: browser
+    type: BOOL
+    documentation: give each devbox a headless browser the agent can drive
+    optional: true
+  - name: image
+    type: STRING
+    documentation: |
+      a custom devbox image built FROM ghcr.io/pluralsh/devbox-minimal or devbox-fat. Leave empty for devbox-fat at
+      the deployment operator's version
+    optional: true
+  - name: awsRoleArn
+    type: STRING
+    documentation: |
+      an IAM role devboxes assume through workload identity federation; its trust policy must allow the console's
+      workload identity issuer. Leave empty for no cloud credentials
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: gcpWorkloadIdentityProvider
+    type: STRING
+    documentation: |
+      the workload identity provider devboxes federate through, projects/<number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>.
+      Leave empty for no cloud credentials
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: gcp
+  - name: gcpServiceAccount
+    type: STRING
+    documentation: the email of the GCP service account devboxes impersonate
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: gcp
+  - name: azureTenantId
+    type: STRING
+    documentation: the Entra tenant of the app registration devboxes federate as; leave empty for no cloud credentials
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
+  - name: azureClientId
+    type: STRING
+    documentation: the client id of the federated app registration
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
   - name: instanceCpu
     type: STRING
     documentation: each devbox's minimum CPU; devboxes split the worker's CPU evenly, so they usually get more

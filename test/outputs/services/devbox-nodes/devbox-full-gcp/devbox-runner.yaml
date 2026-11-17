@@ -3,14 +3,25 @@
 
 
 
+
+
+
 apiVersion: deployments.plural.sh/v1alpha1
 kind: DevboxRunner
 metadata:
   name: platform
 spec:
+
   agents:
   - type: codex
     default: true
+
+
+  autonomy:
+    default: auto
+    max: auto
+
+
   resources:
     cpu: "2"
     memory: 4Gi

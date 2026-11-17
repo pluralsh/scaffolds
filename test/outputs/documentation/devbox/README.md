@@ -1,12 +1,12 @@
 # Devbox node pool
 
-Creates a dedicated node pool for Plural devboxes (Agent Substrate workers) on `devbox-full-gcp` and puts
+Creates a dedicated node pool for Plural devboxes (Agent Substrate workers) on `devbox-full-azure` and puts
 `/var/lib/ate`, where atelet keeps actor bundles, the gVisor rootfs overlay, durable directories and snapshots, on
 fast disk instead of the boot volume.
 
 ## What gets created
 
-* An `InfrastructureStack` (`terraform/apps/devbox-nodes/devbox-full-gcp`) with the node pool:
+* An `InfrastructureStack` (`terraform/apps/devbox-nodes/devbox-full-azure`) with the node pool:
   * **AWS, Karpenter**: Karpenter IAM (controller pod identity, node role with an access entry) and the
     interruption queue. The `NodePool`/`EC2NodeClass` are rendered into the `devbox-nodes` service. With
     `installKarpenter` the Karpenter chart is installed as its own service.
@@ -15,6 +15,8 @@ fast disk instead of the boot volume.
   * **GCP**: a GKE node pool (Ubuntu, raw local NVMe SSDs, nested virtualization for `microvm`).
   * **Azure**: an AKS node pool. Use an L-series size (e.g. `Standard_L16s_v3`) for local NVMe.
 * A `devbox-nodes` service with the `devbox-disk-prep` DaemonSet.
+* Agent Substrate, see [Agent Substrate](#agent-substrate).
+
 
 Every node carries the label `plural.sh/devbox-pool=devbox`, the taint
 `ate.dev/sandboxClass=gvisor:NoSchedule` (Substrate worker pods tolerate it automatically)
@@ -42,10 +44,33 @@ The DaemonSet runs `/devbox-disk-prep` from the agent-harness base image (`ghcr.
 already carries `mdadm`, `xfsprogs` and `util-linux`, so it needs no extra image. Keep it on the deployment
 operator's version.
 
+## Agent Substrate
+
+The `agent-substrate` service installs the [agent-substrate chart](https://github.com/pluralsh/console/tree/master/charts/agent-substrate)
+(`0.1.0`, release `ate`) in `ate-system`, with values in
+`helm/agent-substrate/devbox-full-azure/agent-substrate.yaml.liquid`. Its devbox preset wires Substrate's egress
+and router to the deployment operator's `devbox-gateway` and makes the operator's ServiceAccount
+(`plrl-deploy-operator/deployment-operator`) a Substrate owner, so it can create atespaces. The operator mints its
+Substrate token and reads the API's CA from the cluster, so nothing else needs configuring on its side. The
+`devbox-nodes` service, which holds the DevboxRunner, waits for it.
+
+The stack also creates Substrate's snapshot storage:
+
+* a storage account with a `snapshots` container, `azblob://snapshots/substrate/` the snapshot location,
+* two user-assigned identities federated to `ate-system/atelet` and `ate-system/ate-api-server` on the AKS OIDC
+  issuer (the cluster needs the OIDC issuer enabled), with Storage Blob Data Contributor on the account. They run the
+  `objectstore-azure-blob` plugin at `0.3.0`.
+
+Postgres is a CloudNativePG `Cluster` in `ate-system`, with the operator bundled. Set `cloudnative-pg.enabled: false` in the values if the cluster already runs one.
+
+The cluster needs Kubernetes 1.34+ with the `ClusterTrustBundle`, `ClusterTrustBundleProjection` and
+`PodCertificateRequest` feature gates and the `certificates.k8s.io/v1beta1` API, which Substrate's pod-certificate
+controller issues every workload certificate through. The chart refuses to render otherwise.
+
 ## Point a DevboxRunner at the pool
 
 The `platform` DevboxRunner is already set up on this pool, in
-`services/devbox-nodes/devbox-full-gcp/devbox-runner.yaml`. Edit it there to add agents, SCM connections or
+`services/devbox-nodes/devbox-full-azure/devbox-runner.yaml`. Edit it there to add agents, SCM connections or
 egress rules. The rest of this section explains its settings.
 
 Run one worker per node by setting requests equal to limits at roughly the node's allocatable resources. The worker's
@@ -106,8 +131,9 @@ spec:
     #       - {key: topology.kubernetes.io/zone, operator: In, values: [us-east-2a, us-east-2b]}
 ```
 
-To keep atelet off other nodes, set `atelet.nodeSelector` in the `agent-substrate` chart values to
-`plural.sh/devbox-pool: devbox`.
+The Substrate values set `atelet.nodeSelector` to
+`plural.sh/devbox-pool: devbox`, so atelet stays off other nodes; widen it before adding WorkerPools on
+other pools.
 
 ## Disruption
 

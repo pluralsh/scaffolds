@@ -53,3 +53,9 @@ variable "max_nodes" {
   type    = number
   default = {{ context.maxNodes | default: 10 }}
 }
+
+variable "install_substrate" {
+  type        = bool
+  default     = {% if context.substrate == true or context.substrate == "true" %}true{% else %}false{% endif %}
+  description = "create Agent Substrate's snapshot storage and the workload identities of ate-api-server and atelet"
+}

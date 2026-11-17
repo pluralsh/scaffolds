@@ -15,6 +15,8 @@ fast disk instead of the boot volume.
   * **GCP**: a GKE node pool (Ubuntu, raw local NVMe SSDs, nested virtualization for `microvm`).
   * **Azure**: an AKS node pool. Use an L-series size (e.g. `Standard_L16s_v3`) for local NVMe.
 * A `devbox-nodes` service with the `devbox-disk-prep` DaemonSet.
+{% if context.substrate == true or context.substrate == "true" %}* Agent Substrate, see [Agent Substrate](#agent-substrate).
+{% endif %}
 
 Every node carries the label `plural.sh/devbox-pool={{ context.pool }}`, the taint
 `ate.dev/sandboxClass={{ context.sandboxClass }}:NoSchedule` (Substrate worker pods tolerate it automatically)
@@ -42,7 +44,42 @@ The DaemonSet runs `/devbox-disk-prep` from the agent-harness base image (`{{ co
 already carries `mdadm`, `xfsprogs` and `util-linux`, so it needs no extra image. Keep it on the deployment
 operator's version.
 
-## Point a DevboxRunner at the pool
+{% if context.substrate == true or context.substrate == "true" %}## Agent Substrate
+
+The `agent-substrate` service installs the [agent-substrate chart](https://github.com/pluralsh/console/tree/master/charts/agent-substrate)
+(`{{ context.substrateVersion | default: '0.1.0' }}`, release `ate`) in `ate-system`, with values in
+`helm/agent-substrate/{{ context.cluster }}/agent-substrate.yaml.liquid`. Its devbox preset wires Substrate's egress
+and router to the deployment operator's `devbox-gateway` and makes the operator's ServiceAccount
+(`plrl-deploy-operator/deployment-operator`) a Substrate owner, so it can create atespaces. The operator mints its
+Substrate token and reads the API's CA from the cluster, so nothing else needs configuring on its side. The
+`devbox-nodes` service, which holds the DevboxRunner, waits for it.
+
+The stack also creates Substrate's snapshot storage:
+{% if context.cloud == 'aws' %}
+* an S3 bucket, `s3://<bucket>/substrate/` the snapshot location,
+* IAM roles for `ate-system/ate-api-server` and `ate-system/atelet` with read and write on it, through EKS Pod
+  Identity associations (the cluster needs the `eks-pod-identity-agent` add-on, which Karpenter's controller uses too).
+{% elsif context.cloud == 'gcp' %}
+* a GCS bucket, `gs://<bucket>/substrate/` the snapshot location,
+* an `ate-api-server` Google service account bound to `ate-system/ate-api-server` through Workload Identity,
+* a snapshot transfer service account that ate-api-server impersonates for each transfer, scoped to one actor, so
+  atelet needs no access to the bucket.
+{% elsif context.cloud == 'azure' %}
+* a storage account with a `snapshots` container, `azblob://snapshots/substrate/` the snapshot location,
+* two user-assigned identities federated to `ate-system/atelet` and `ate-system/ate-api-server` on the AKS OIDC
+  issuer (the cluster needs the OIDC issuer enabled), with Storage Blob Data Contributor on the account. They run the
+  `objectstore-azure-blob` plugin at `{{ context.azureBlobPluginTag }}`.
+{% endif %}
+Postgres is a CloudNativePG `Cluster` in `ate-system`{% if context.existingCnpg == true or context.existingCnpg == "true" %}, run by the CloudNativePG operator already on the cluster{% else %}, with the operator bundled. Set `cloudnative-pg.enabled: false` in the values if the cluster already runs one{% endif %}.
+
+The cluster needs Kubernetes 1.34+ with the `ClusterTrustBundle`, `ClusterTrustBundleProjection` and
+`PodCertificateRequest` feature gates and the `certificates.k8s.io/v1beta1` API, which Substrate's pod-certificate
+controller issues every workload certificate through. The chart refuses to render otherwise.
+{% if context.sandboxClass == 'microvm' %}
+The chart doesn't stage micro-VM assets. Stage them with `ate-setup deploy sandboxconfig` and set
+`sandboxConfigs.microvm` in the values before the runner's workers can start.
+{% endif %}
+{% endif %}## Point a DevboxRunner at the pool
 
 {% if context.runnerName %}The `{{ context.runnerName }}` DevboxRunner is already set up on this pool, in
 `services/devbox-nodes/{{ context.cluster }}/devbox-runner.yaml`. Edit it there to add agents, SCM connections or
@@ -106,8 +143,10 @@ spec:
     #       - {key: topology.kubernetes.io/zone, operator: In, values: [us-east-2a, us-east-2b]}
 ```
 
-To keep atelet off other nodes, set `atelet.nodeSelector` in the `agent-substrate` chart values to
-`plural.sh/devbox-pool: {{ context.pool }}`.
+{% if context.substrate == true or context.substrate == "true" %}The Substrate values set `atelet.nodeSelector` to
+`plural.sh/devbox-pool: {{ context.pool }}`, so atelet stays off other nodes; widen it before adding WorkerPools on
+other pools.{% else %}To keep atelet off other nodes, set `atelet.nodeSelector` in the `agent-substrate` chart values to
+`plural.sh/devbox-pool: {{ context.pool }}`.{% endif %}
 
 ## Disruption
 

@@ -10,14 +10,60 @@
 {% comment %}375GB per local SSD.{% endcomment %}
 {% assign diskSize = context.localSsdCount | default: 2 | times: 349 %}
 {% endif %}
+{% assign scmConnections = context.scmConnections | default: '' | split: ',' %}
+{% assign allowedRepositories = context.allowedRepositories | default: '' | split: ',' %}
+{% assign autonomy = context.autonomy | default: 'auto' %}
 apiVersion: deployments.plural.sh/v1alpha1
 kind: DevboxRunner
 metadata:
   name: {{ context.runnerName }}
 spec:
+{% if context.image and context.image != '' %}
+  image: {{ context.image }}
+{% endif %}
   agents:
   - type: {{ context.agent }}
     default: true
+{% if scmConnections.size > 0 %}
+  scmConnections:
+{% for conn in scmConnections %}
+  - {{ conn | strip }}
+{% endfor %}
+{% endif %}
+{% if allowedRepositories.size > 0 %}
+  allowedRepositories:
+{% for repo in allowedRepositories %}
+  - {{ repo | strip }}
+{% endfor %}
+{% endif %}
+  autonomy:
+    default: {{ autonomy }}
+    max: {{ autonomy }}
+{% if context.browser %}
+  browser:
+    enabled: true
+{% endif %}
+{% if context.cloud == 'aws' and context.awsRoleArn and context.awsRoleArn != '' %}
+  cloudIdentities:
+  - name: aws
+    default: true
+    aws:
+      roleArn: {{ context.awsRoleArn }}
+{% elsif context.cloud == 'gcp' and context.gcpWorkloadIdentityProvider and context.gcpWorkloadIdentityProvider != '' %}
+  cloudIdentities:
+  - name: gcp
+    default: true
+    gcp:
+      workloadIdentityProvider: {{ context.gcpWorkloadIdentityProvider }}
+      serviceAccount: {{ context.gcpServiceAccount }}
+{% elsif context.cloud == 'azure' and context.azureTenantId and context.azureTenantId != '' %}
+  cloudIdentities:
+  - name: azure
+    default: true
+    azure:
+      tenantId: {{ context.azureTenantId }}
+      clientId: {{ context.azureClientId }}
+{% endif %}
   resources:
     cpu: "{{ context.instanceCpu }}"
     memory: {{ context.instanceMemory }}

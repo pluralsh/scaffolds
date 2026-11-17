@@ -2,14 +2,48 @@
 
 
 
+
+
+
 apiVersion: deployments.plural.sh/v1alpha1
 kind: DevboxRunner
 metadata:
   name: platform
 spec:
+
   agents:
   - type: claude
     default: true
+
+  scmConnections:
+
+  - github
+
+  - gitlab
+
+
+
+  allowedRepositories:
+
+  - https://github.com/acme/api.git
+
+  - https://github.com/acme/web.git
+
+
+  autonomy:
+    default: manual
+    max: manual
+
+  browser:
+    enabled: true
+
+
+  cloudIdentities:
+  - name: aws
+    default: true
+    aws:
+      roleArn: arn:aws:iam::123456789012:role/devbox
+
   resources:
     cpu: "2"
     memory: 4Gi

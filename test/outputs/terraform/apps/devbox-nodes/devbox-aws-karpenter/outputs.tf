@@ -21,3 +21,7 @@ output "node_security_group_id" {
 output "interruption_queue" {
   value = try(module.karpenter[0].queue_name, "")
 }
+
+output "substrate_snapshot_location" {
+  value = try("s3://${aws_s3_bucket.substrate[0].id}/substrate/", "")
+}

@@ -4,6 +4,8 @@
 
 
 
+
+
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
@@ -32,6 +34,7 @@ spec:
   clusterRef:
     name: mgmt
     namespace: infra
+
 
 ---
 apiVersion: deployments.plural.sh/v1alpha1

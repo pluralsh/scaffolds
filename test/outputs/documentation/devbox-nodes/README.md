@@ -16,6 +16,7 @@ fast disk instead of the boot volume.
   * **Azure**: an AKS node pool. Use an L-series size (e.g. `Standard_L16s_v3`) for local NVMe.
 * A `devbox-nodes` service with the `devbox-disk-prep` DaemonSet.
 
+
 Every node carries the label `plural.sh/devbox-pool=devbox`, the taint
 `ate.dev/sandboxClass=gvisor:NoSchedule` (Substrate worker pods tolerate it automatically)
 and the startup taint `plural.sh/devbox-disk=pending:NoSchedule`.

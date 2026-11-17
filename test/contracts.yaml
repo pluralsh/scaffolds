@@ -49,3 +49,6 @@ spec:
   - file: ../../setup/catalogs/devbox/devbox.yaml
     externalDir: ../../catalogs/devbox/devbox-nodes
     context: ../contexts/devbox-gcp-network.yaml
+  - file: ../../setup/catalogs/devbox/devbox.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-azure.yaml

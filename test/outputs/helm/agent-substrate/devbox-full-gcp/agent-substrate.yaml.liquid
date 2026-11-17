@@ -1,0 +1,31 @@
+# Agent Substrate for the devboxes on devbox-full-gcp. Values reference:
+# https://github.com/pluralsh/console/blob/master/charts/agent-substrate/values.yaml
+
+# Wires Substrate to the deployment operator's devbox-gateway in plrl-deploy-operator and makes the operator's
+# ServiceAccount a bootstrap owner, so it can create atespaces.
+devboxes:
+  enabled: true
+
+otel:
+  endpoint: ""
+
+cloudnative-pg:
+  enabled: false
+
+# Substrate workers only run on the devbox pool, so atelet only needs to run there too. It doesn't tolerate the
+# plural.sh/devbox-disk startup taint, so it waits for devbox-disk-prep to mount /var/lib/ate.
+atelet:
+  nodeSelector:
+    plural.sh/devbox-pool: devbox
+
+
+apiServer:
+  snapshotTransferServiceAccount: {{ imports[configuration.stackName].substrate_transfer_service_account }}
+  serviceAccount:
+    annotations:
+      iam.gke.io/gcp-service-account: {{ imports[configuration.stackName].substrate_api_server_service_account }}
+
+objectStore:
+  backend: gcs
+  snapshotLocation: {{ imports[configuration.stackName].substrate_snapshot_location }}
+

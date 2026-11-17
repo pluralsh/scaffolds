@@ -6,6 +6,8 @@
 
 
 
+
+
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
@@ -61,6 +63,7 @@ spec:
     stackName: devbox-nodes-devbox-aws-karpenter
   cluster: devbox-aws-karpenter
 
+
 ---
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
@@ -80,7 +83,10 @@ spec:
     namespace: infra
 
   dependencies:
+
   - name: karpenter
+
+
 
   imports:
   - stackRef:
