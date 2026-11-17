@@ -4,7 +4,7 @@ metadata:
   name: devbox
 spec:
   name: devbox
-  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/plural-logo.png
+  icon: https://docs.plural.sh/favicon-128.png
   identifier: mgmt
   documentation: |
     Sets up a Plural devbox end to end: a dedicated, autoscaled node pool (as in devbox-nodes) and a DevboxRunner

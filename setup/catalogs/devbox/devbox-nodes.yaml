@@ -4,7 +4,7 @@ metadata:
   name: devbox-nodes
 spec:
   name: devbox-nodes
-  icon: https://plural-assets.s3.us-east-2.amazonaws.com/uploads/repos/plural-logo.png
+  icon: https://docs.plural.sh/favicon-128.png
   identifier: mgmt
   documentation: |
     Sets up a dedicated, autoscaled node pool for Plural devboxes (Agent Substrate workers) with /var/lib/ate on
