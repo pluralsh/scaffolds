@@ -12,7 +12,7 @@ spec:
     operator with devbox support installed.
   creates:
     git:
-      ref: main
+      ref: substrate-setup
       folder: catalogs/devbox/devbox-nodes
     templates:
     - source: README.md

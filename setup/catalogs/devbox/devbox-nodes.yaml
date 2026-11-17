@@ -11,7 +11,7 @@ spec:
     fast local or attached disk. On AWS the pool is provisioned with Karpenter or an EKS managed node group.
   creates:
     git:
-      ref: main
+      ref: substrate-setup
       folder: catalogs/devbox/devbox-nodes
     templates:
     - source: README.md
