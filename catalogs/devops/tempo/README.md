@@ -37,7 +37,9 @@ Terraform provisions the object storage and cloud identity first. The Tempo serv
 
 ## Scaling considerations
 
-This scaffold uses object storage, but the single Tempo replica is still aimed at smaller installations and demos. For high availability or larger production workloads, use the `tempo-distributed` chart. See the [Tempo docs](https://grafana.com/docs/tempo/latest/) for guidance.
+This scaffold deliberately runs one replica of the monolithic `tempo` chart. All ingest, recent-trace storage, querying, and compaction components share that process, so it can be scaled vertically by increasing the pod's CPU and memory. Raising the chart's top-level `replicas` value does not provide supported horizontal scaling or reliable high availability; recent traces and coordination responsibilities cannot safely be treated as stateless replicas.
+
+For horizontal scaling or high availability, migrate to the `tempo-distributed` chart. That mode requires a Kafka-compatible queue and lets operators scale distributors, live-stores, block-builders, queriers, and backend workers independently. Size those components from measured ingestion, query, and compaction load rather than setting a common replica count. See Grafana's [deployment mode guidance](https://grafana.com/docs/tempo/latest/reference-tempo-architecture/deployment-modes/) for details.
 
 ## Contributing
 

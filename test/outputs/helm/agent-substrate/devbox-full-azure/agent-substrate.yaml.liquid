@@ -1,0 +1,34 @@
+# Agent Substrate for the devboxes on devbox-full-azure. Values reference:
+# https://github.com/pluralsh/console/blob/master/charts/agent-substrate/values.yaml
+
+# Wires Substrate to the deployment operator's devbox-gateway in plrl-deploy-operator and makes the operator's
+# ServiceAccount a bootstrap owner, so it can create atespaces.
+devboxes:
+  enabled: true
+
+otel:
+  endpoint: ""
+
+cloudnative-pg:
+  enabled: true
+
+# Substrate workers only run on the devbox pool, so atelet only needs to run there too. It doesn't tolerate the
+# plural.sh/devbox-disk startup taint, so it waits for devbox-disk-prep to mount /var/lib/ate.
+atelet:
+  nodeSelector:
+    plural.sh/devbox-pool: devbox
+
+
+objectStore:
+  backend: azureBlob
+  snapshotLocation: {{ imports[configuration.stackName].substrate_snapshot_location }}
+  azureBlob:
+    image:
+      tag: "0.3.0"
+    accountUrl: {{ imports[configuration.stackName].substrate_account_url }}
+    containers:
+    - snapshots
+    tenantId: {{ imports[configuration.stackName].substrate_tenant_id }}
+    nodeClientId: {{ imports[configuration.stackName].substrate_node_client_id }}
+    controlClientId: {{ imports[configuration.stackName].substrate_control_client_id }}
+

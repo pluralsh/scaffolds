@@ -1,6 +1,10 @@
 {% raw %}
 fullnameOverride: tempo
 
+# Tempo's monolithic mode does not support horizontal scale-out. Keep one
+# replica here; use tempo-distributed for component-level scaling and HA.
+replicas: 1
+
 tempo:
   receivers:
     otlp:

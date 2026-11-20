@@ -1,0 +1,19 @@
+
+replicas: 2
+
+settings:
+  clusterName: {{ imports[configuration.stackName].cluster_name }}
+  clusterEndpoint: {{ imports[configuration.stackName].cluster_endpoint }}
+  interruptionQueue: {{ imports[configuration.stackName].interruption_queue }}
+
+serviceAccount:
+  name: karpenter
+
+controller:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+

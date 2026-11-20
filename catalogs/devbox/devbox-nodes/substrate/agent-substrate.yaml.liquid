@@ -1,0 +1,51 @@
+# Agent Substrate for the devboxes on {{ context.cluster }}. Values reference:
+# https://github.com/pluralsh/console/blob/master/charts/agent-substrate/values.yaml
+
+# Wires Substrate to the deployment operator's devbox-gateway in plrl-deploy-operator and makes the operator's
+# ServiceAccount a bootstrap owner, so it can create atespaces.
+devboxes:
+  enabled: true
+
+otel:
+  endpoint: ""
+
+cloudnative-pg:
+  enabled: {% if context.existingCnpg == true or context.existingCnpg == "true" %}false{% else %}true{% endif %}
+
+# Substrate workers only run on the devbox pool, so atelet only needs to run there too. It doesn't tolerate the
+# plural.sh/devbox-disk startup taint, so it waits for devbox-disk-prep to mount /var/lib/ate.
+atelet:
+  nodeSelector:
+    plural.sh/devbox-pool: {{ context.pool }}
+
+{% if context.cloud == 'aws' %}
+# ate-api-server and atelet get their S3 access through EKS Pod Identity associations made by the devbox-nodes stack.
+objectStore:
+  backend: s3
+  snapshotLocation: {% raw %}{{ imports[configuration.stackName].substrate_snapshot_location }}{% endraw %}
+  s3:
+    region: {{ context.region }}
+{% elsif context.cloud == 'gcp' %}
+apiServer:
+  snapshotTransferServiceAccount: {% raw %}{{ imports[configuration.stackName].substrate_transfer_service_account }}{% endraw %}
+  serviceAccount:
+    annotations:
+      iam.gke.io/gcp-service-account: {% raw %}{{ imports[configuration.stackName].substrate_api_server_service_account }}{% endraw %}
+
+objectStore:
+  backend: gcs
+  snapshotLocation: {% raw %}{{ imports[configuration.stackName].substrate_snapshot_location }}{% endraw %}
+{% elsif context.cloud == 'azure' %}
+objectStore:
+  backend: azureBlob
+  snapshotLocation: {% raw %}{{ imports[configuration.stackName].substrate_snapshot_location }}{% endraw %}
+  azureBlob:
+    image:
+      tag: "{{ context.azureBlobPluginTag }}"
+    accountUrl: {% raw %}{{ imports[configuration.stackName].substrate_account_url }}{% endraw %}
+    containers:
+    - snapshots
+    tenantId: {% raw %}{{ imports[configuration.stackName].substrate_tenant_id }}{% endraw %}
+    nodeClientId: {% raw %}{{ imports[configuration.stackName].substrate_node_client_id }}{% endraw %}
+    controlClientId: {% raw %}{{ imports[configuration.stackName].substrate_control_client_id }}{% endraw %}
+{% endif %}

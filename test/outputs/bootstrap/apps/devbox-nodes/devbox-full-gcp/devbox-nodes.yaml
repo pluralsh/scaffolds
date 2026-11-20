@@ -1,0 +1,101 @@
+
+
+
+
+
+
+
+
+
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: devbox-nodes-devbox-full-gcp
+  namespace: apps
+spec:
+
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/devbox-nodes/devbox-full-gcp
+  repositoryRef:
+    name: infra
+    namespace: infra
+  
+  clusterRef:
+    name: mgmt
+    namespace: infra
+
+
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: agent-substrate-devbox-full-gcp
+  namespace: apps
+spec:
+
+  name: agent-substrate
+  # The Substrate binaries default every in-cluster address and SPIFFE ID to ate-system, so the chart only renders there.
+  namespace: ate-system
+  git:
+    folder: helm/agent-substrate/devbox-full-gcp
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "0.1.0"
+    chart: agent-substrate
+    release: ate
+    url: oci://ghcr.io/pluralsh/charts
+    valuesFiles:
+    - agent-substrate.yaml.liquid
+  imports:
+  - stackRef:
+      name: devbox-nodes-devbox-full-gcp
+      namespace: apps
+  configuration:
+    stackName: devbox-nodes-devbox-full-gcp
+  cluster: devbox-full-gcp
+
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: devbox-nodes-devbox-full-gcp
+  namespace: apps
+spec:
+
+  name: devbox-nodes
+  namespace: devbox-nodes
+  git:
+    folder: services/devbox-nodes/devbox-full-gcp
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+
+  dependencies:
+
+
+  # The DevboxRunner needs Substrate's WorkerPool API.
+  - name: agent-substrate
+
+
+  imports:
+  - stackRef:
+      name: devbox-nodes-devbox-full-gcp
+      namespace: apps
+  configuration:
+    stackName: devbox-nodes-devbox-full-gcp
+    pool: devbox
+    diskModel: ""
+    diskPrepImage: ghcr.io/pluralsh/agent-harness-base:0.6.76
+  cluster: devbox-full-gcp
