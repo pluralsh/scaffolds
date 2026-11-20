@@ -14,8 +14,8 @@ output "subnet_ids" {
   value = join(",", local.subnet_ids)
 }
 
-output "node_security_group_id" {
-  value = data.aws_eks_cluster.cluster.vpc_config[0].cluster_security_group_id
+output "node_security_group_ids" {
+  value = join(",", local.node_security_group_ids)
 }
 
 output "interruption_queue" {

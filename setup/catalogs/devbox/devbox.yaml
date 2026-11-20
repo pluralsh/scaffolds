@@ -314,7 +314,9 @@ spec:
       allocatable CPU, e.g. 14 on a 16 vCPU node
   - name: workerMemory
     type: STRING
-    documentation: the memory each worker requests and is limited to, roughly the node's allocatable memory, e.g. 56Gi on 64GiB
+    documentation: |
+      the memory each worker requests and is limited to; one worker runs per node, so stay a little under the node's
+      allocatable memory (several GiB below its RAM) to leave room for DaemonSets, e.g. 24Gi on 32GiB or 56Gi on 64GiB
   - name: diskSize
     type: STRING
     documentation: |

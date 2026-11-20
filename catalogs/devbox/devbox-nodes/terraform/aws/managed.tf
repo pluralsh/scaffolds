@@ -32,6 +32,9 @@ resource "aws_launch_template" "nodes" {
   count       = local.managed
   name_prefix = "${local.cluster_name}-${var.pool}-"
 
+  # Setting any security group drops the cluster primary group EKS attaches by default, so it's listed too.
+  vpc_security_group_ids = local.node_security_group_ids
+
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"

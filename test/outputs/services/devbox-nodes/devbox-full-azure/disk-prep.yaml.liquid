@@ -18,6 +18,10 @@ rules:
 - apiGroups: [""]
   resources: ["nodes"]
   verbs: ["get", "update"]
+# restarts pods on the node that started before /var/lib/ate was mounted
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

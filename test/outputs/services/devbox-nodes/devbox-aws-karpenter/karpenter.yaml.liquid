@@ -15,7 +15,10 @@ spec:
   - id: {{ subnet }}
 {% endfor %}
   securityGroupSelectorTerms:
-  - id: {{ imports[configuration.stackName].node_security_group_id }}
+{% assign securityGroups = imports[configuration.stackName].node_security_group_ids | split: "," %}
+{% for securityGroup in securityGroups %}
+  - id: {{ securityGroup }}
+{% endfor %}
 
 
   cpuOptions:

@@ -21,3 +21,23 @@ locals {
 data "aws_eks_cluster" "cluster" {
   name = local.cluster_name
 }
+
+# The node security group of terraform-aws-modules/eks, which the cluster's other nodes (and CoreDNS) run in and
+# which only accepts traffic from its own members. Clusters without one match nothing.
+data "aws_security_groups" "cluster_nodes" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_eks_cluster.cluster.vpc_config[0].vpc_id]
+  }
+  filter {
+    name   = "tag:Name"
+    values = ["${local.cluster_name}-node"]
+  }
+}
+
+locals {
+  node_security_group_ids = distinct(concat(
+    [data.aws_eks_cluster.cluster.vpc_config[0].cluster_security_group_id],
+    data.aws_security_groups.cluster_nodes.ids,
+  ))
+}
