@@ -13,6 +13,9 @@
 {% assign scmConnections = context.scmConnections | default: '' | split: ',' %}
 {% assign allowedRepositories = context.allowedRepositories | default: '' | split: ',' %}
 {% assign autonomy = context.autonomy | default: 'auto' %}
+{% assign maxAutonomy = context.maxAutonomy | default: 'full' %}
+{% comment %}Every devbox image ships all five agents; the chosen one is the default.{% endcomment %}
+{% assign extraAgents = context.agents | default: 'claude,codex,opencode,gemini,pi' | split: ',' %}
 apiVersion: deployments.plural.sh/v1alpha1
 kind: DevboxRunner
 metadata:
@@ -24,6 +27,12 @@ spec:
   agents:
   - type: {{ context.agent }}
     default: true
+{%- for extra in extraAgents %}
+{%- assign extra = extra | strip %}
+{%- if extra != '' and extra != context.agent %}
+  - type: {{ extra }}
+{%- endif %}
+{%- endfor %}
 {% if scmConnections.size > 0 %}
   scmConnections:
 {% for conn in scmConnections %}
@@ -38,7 +47,7 @@ spec:
 {% endif %}
   autonomy:
     default: {{ autonomy }}
-    max: {{ autonomy }}
+    max: {{ maxAutonomy }}
 {% if context.browser %}
   browser:
     enabled: true

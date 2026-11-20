@@ -5,6 +5,9 @@
 
 
 
+
+
+
 apiVersion: deployments.plural.sh/v1alpha1
 kind: DevboxRunner
 metadata:
@@ -14,11 +17,15 @@ spec:
   agents:
   - type: claude
     default: true
+  - type: codex
+  - type: opencode
+  - type: gemini
+  - type: pi
 
 
   autonomy:
     default: auto
-    max: auto
+    max: full
 
 
   cloudIdentities:

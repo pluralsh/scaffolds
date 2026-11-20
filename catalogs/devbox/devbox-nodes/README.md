@@ -33,9 +33,12 @@ and the startup taint `plural.sh/devbox-disk=pending:NoSchedule`.
 3. removes the `plural.sh/devbox-disk` taint and labels the node `plural.sh/devbox-disk-ready=true`.
 
 atelet doesn't tolerate the startup taint, so it never writes to the boot disk before the data disk is mounted.
-Disks are only claimed on the node's first boot, so CSI volumes attached later are never touched. After a reboot
-the array is reassembled and remounted, but the taint is gone by then, so atelet can race the remount. Restart
-atelet on that node if it started first.
+Substrate workers do, so the cluster autoscaler can size the pool from its template, and after a reboot the array
+is reassembled and remounted with the taint already gone, so atelet can race the remount too. A pod that started
+first keeps writing to the boot disk directory the mount hides (a worker's socket atelet can then never reach), so
+after each mount `devbox-disk-prep` deletes the node's pods that mount `/var/lib/ate` from the host and started
+before it, and their controllers recreate them on the data disk. Disks are only claimed on the node's first boot, so
+CSI volumes attached later are never touched.
 
 With GCP/Azure `diskMode: network` there is nothing to format. `/var/lib/ate` stays on the boot disk, so size
 `bootDiskSize` for the actors you expect per node.

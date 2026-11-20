@@ -6,6 +6,9 @@
 
 
 
+
+
+
 apiVersion: deployments.plural.sh/v1alpha1
 kind: DevboxRunner
 metadata:
@@ -15,11 +18,15 @@ spec:
   agents:
   - type: codex
     default: true
+  - type: claude
+  - type: opencode
+  - type: gemini
+  - type: pi
 
 
   autonomy:
     default: auto
-    max: auto
+    max: full
 
 
   resources:

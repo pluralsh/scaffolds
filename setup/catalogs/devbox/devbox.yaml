@@ -213,13 +213,19 @@ spec:
       regex: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
   - name: agent
     type: ENUM
-    documentation: the default coding agent; add more under spec.agents in the generated DevboxRunner
+    documentation: the default coding agent
     values:
     - claude
     - codex
     - opencode
     - gemini
     - pi
+  - name: agents
+    type: STRING
+    documentation: |
+      comma-separated agents users can pick from besides the default, e.g. codex,gemini. Leave empty to offer every
+      agent the devbox image ships (claude, codex, opencode, gemini and pi)
+    optional: true
   - name: scmConnections
     type: STRING
     documentation: |
@@ -235,12 +241,22 @@ spec:
   - name: autonomy
     type: ENUM
     documentation: |
-      how much agents may do without asking. manual sends every permission request to a human, auto lets the
-      agent's reviewer approve what it can, full approves everything
+      how much agents may do without asking when a session starts. manual sends every permission request to a
+      human, auto lets the agent's reviewer approve what it can, full approves everything
     values:
     - auto
     - manual
     - full
+  - name: maxAutonomy
+    type: ENUM
+    documentation: |
+      the most autonomy users can switch a session to. Defaults to full; lower it to keep agents from approving
+      everything
+    optional: true
+    values:
+    - full
+    - auto
+    - manual
   - name: browser
     type: BOOL
     documentation: give each devbox a headless browser the agent can drive

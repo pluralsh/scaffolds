@@ -16,8 +16,13 @@ spec:
 {% endfor %}
   securityGroupSelectorTerms:
 {% assign securityGroups = imports[configuration.stackName].node_security_group_ids | split: "," %}
+<<<<<<< Updated upstream
 {% for securityGroup in securityGroups %}
   - id: {{ securityGroup }}
+=======
+{% for group in securityGroups %}
+  - id: {{ group }}
+>>>>>>> Stashed changes
 {% endfor %}
 
 
