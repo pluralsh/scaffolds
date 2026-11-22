@@ -1,0 +1,26 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: jenkins-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: jenkins
+  namespace: jenkins
+  git:
+    folder: helm/jenkins
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    url: https://charts.jenkins.io
+    chart: jenkins
+    version: "5.9.54"
+    release: jenkins
+    valuesFiles:
+    - jenkins.yaml.liquid
+  cluster: {{ context.cluster }}

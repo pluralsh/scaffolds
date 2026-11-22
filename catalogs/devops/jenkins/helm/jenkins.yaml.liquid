@@ -1,0 +1,71 @@
+# Jenkins controller and Kubernetes build-agent defaults.
+# The chart version and plugin set are intentionally pinned by the ServiceDeployment.
+controller:
+  replicas: 1
+  numExecutors: 0
+  disableRememberMe: true
+  serviceType: ClusterIP
+
+  # The chart generates a random password. Helm lookup reuses it only when the
+  # renderer can see the live Secret. For controlled rotation, configure
+  # admin.existingSecret with the documented username and password keys.
+  admin:
+    createSecret: true
+
+  # Resolve the chart's pinned plugins and minimum dependency versions only.
+  # Persistence plus initializeOnce avoids plugin drift on ordinary restarts.
+  installLatestPlugins: false
+  installLatestSpecifiedPlugins: false
+  initializeOnce: true
+
+  JCasC:
+    defaultConfig: true
+
+  # Keep JCasC changes independent from the initializeOnce plugin marker.
+  sidecars:
+    configAutoReload:
+      enabled: true
+
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    path: /
+    pathType: Prefix
+    hostName: "{{ context.hostname }}"
+    annotations:
+      cert-manager.io/cluster-issuer: plural
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    tls:
+    - secretName: jenkins-tls
+      hosts:
+      - "{{ context.hostname }}"
+
+# Builds run on disposable Kubernetes agents rather than the controller.
+agent:
+  enabled: true
+  privileged: false
+  restrictedPssSecurityContext: true
+  useDefaultServiceAccount: true
+  serviceAccount: jenkins-agent
+
+# Default agents need no Kubernetes API token to connect back to Jenkins.
+# Jobs that call the API should use a separate, least-privileged ServiceAccount.
+serviceAccountAgent:
+  create: true
+  name: jenkins-agent
+  automountServiceAccountToken: false
+
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: "{{ context.storageSize }}"
+
+rbac:
+  create: true
+  readSecrets: false
+
+# Correct ingress and egress policy depends on cluster-specific labels, DNS,
+# source-control endpoints, update centers, and any remote build dependencies.
+networkPolicy:
+  enabled: false
