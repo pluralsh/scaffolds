@@ -12,7 +12,7 @@ spec:
     Unless `consoleSettings` is turned off, the generated PR also updates `bootstrap/settings.yaml`, which must exist: it points the Console's log driver (`logging`, driver LOKI) and its Prometheus connection (`prometheusConnection`) at this Telemetry instance. It merges into the file, so it overrides those fields (for example an Elasticsearch log driver or a Victoria Metrics host) and keeps every other key, including old connection blocks that are no longer selected and any extra keys inside `logging.loki` or `prometheusConnection`. The file is rewritten, so comments are removed and keys are sorted. The Console switches to Telemetry as soon as the PR is merged and synced, so its log and metrics views fail until the Telemetry stack is healthy and DNS and TLS work, and existing logs and metrics are not migrated.
   creates:
     git:
-      ref: sebastian/prod-5328-add-plural-telemetry-service-catalog-entry # todo: change to main after testing
+      ref: main
       folder: catalogs/devops/plural-telemetry
     templates:
     - source: README.md
