@@ -1,0 +1,77 @@
+
+
+
+
+
+
+
+
+
+
+apiVersion: deployments.plural.sh/v1alpha1
+kind: DevboxRunner
+metadata:
+  name: team-two
+spec:
+
+  agents:
+  - type: codex
+    default: true
+
+
+
+  - type: claude
+
+
+
+
+
+
+
+  - type: opencode
+
+
+
+
+  - type: gemini
+
+
+
+
+  - type: pi
+
+
+
+
+  autonomy:
+    default: auto
+    max: full
+
+
+  resources:
+    cpu: "2"
+    memory: 4Gi
+    disk: 20Gi
+  workerPool:
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 5
+      spareInstances: 1
+
+    diskSize: 880Gi
+
+    sandboxClass: gvisor
+    nodeSelector:
+      plural.sh/devbox-pool: team-gvisor
+    tolerations:
+    # Lets the cluster autoscaler size the pool from its template; atelet still waits for the disk.
+    - key: plural.sh/devbox-disk
+      operator: Exists
+      effect: NoSchedule
+
+    podAnnotations:
+      karpenter.sh/do-not-disrupt: "true"
+
+    resources:
+      requests: {cpu: "14", memory: 56Gi}
+      limits: {cpu: "14", memory: 56Gi}

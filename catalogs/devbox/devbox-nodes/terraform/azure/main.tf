@@ -6,6 +6,8 @@ locals {
   cluster_context     = jsondecode(data.plural_service_context.cluster.configuration)
   cluster_name        = local.cluster_context.cluster_name
   resource_group_name = try(local.cluster_context.resource_group_name, var.resource_group_name)
+  # AKS Linux node pool names are 1-12 lowercase alphanumerics; the node label keeps the full pool name.
+  node_pool_name = substr(replace(var.pool, "-", ""), 0, 12)
 }
 
 data "azurerm_kubernetes_cluster" "cluster" {
@@ -14,7 +16,7 @@ data "azurerm_kubernetes_cluster" "cluster" {
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "devbox" {
-  name                  = var.pool
+  name                  = local.node_pool_name
   kubernetes_cluster_id = data.azurerm_kubernetes_cluster.cluster.id
   vm_size               = var.vm_size
   zones                 = var.zones

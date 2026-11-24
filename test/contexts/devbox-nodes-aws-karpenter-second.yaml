@@ -1,0 +1,14 @@
+cluster: devbox-aws-karpenter
+cloud: aws
+region: us-east-2
+pool: gpu-heavy
+sandboxClass: gvisor
+awsProvisioner: karpenter
+installKarpenter: false
+maxCpu: "500"
+instanceTypes: c8id.8xlarge
+diskMode: local
+bootDiskSize: "100"
+minNodes: "1"
+maxNodes: "5"
+diskPrepImage: ghcr.io/pluralsh/agent-harness-base:0.6.76

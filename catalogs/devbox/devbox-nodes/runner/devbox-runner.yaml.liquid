@@ -27,12 +27,12 @@ spec:
   agents:
   - type: {{ context.agent }}
     default: true
-{%- for extra in extraAgents %}
-{%- assign extra = extra | strip %}
-{%- if extra != '' and extra != context.agent %}
+{% for extra in extraAgents %}
+{% assign extra = extra | strip %}
+{% if extra != '' and extra != context.agent %}
   - type: {{ extra }}
-{%- endif %}
-{%- endfor %}
+{% endif %}
+{% endfor %}
 {% if scmConnections.size > 0 %}
   scmConnections:
 {% for conn in scmConnections %}

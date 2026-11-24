@@ -12,11 +12,16 @@ otel:
 cloudnative-pg:
   enabled: true
 
-# Substrate workers only run on the devbox pool, so atelet only needs to run there too. It doesn't tolerate the
-# plural.sh/devbox-disk startup taint, so it waits for devbox-disk-prep to mount /var/lib/ate.
+# Substrate workers only run on devbox pools, so atelet only needs to run there too, on every pool of the cluster.
+# It doesn't tolerate the plural.sh/devbox-disk startup taint, so it waits for devbox-disk-prep to mount /var/lib/ate.
 atelet:
-  nodeSelector:
-    plural.sh/devbox-pool: devbox
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: plural.sh/devbox-pool
+            operator: Exists
 
 
 # ate-api-server and atelet get their S3 access through EKS Pod Identity associations made by the devbox-nodes stack.

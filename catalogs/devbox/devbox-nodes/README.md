@@ -6,17 +6,22 @@ fast disk instead of the boot volume.
 
 ## What gets created
 
-* An `InfrastructureStack` (`terraform/apps/devbox-nodes/{{ context.cluster }}`) with the node pool:
-  * **AWS, Karpenter**: Karpenter IAM (controller pod identity, node role with an access entry) and the
-    interruption queue. The `NodePool`/`EC2NodeClass` are rendered into the `devbox-nodes` service. With
-    `installKarpenter` the Karpenter chart is installed as its own service.
+* An `InfrastructureStack` (`terraform/apps/devbox-nodes/{{ context.cluster }}/{{ context.pool }}`) with the node pool:
+  * **AWS, Karpenter**: a node role with an access entry. The `NodePool`/`EC2NodeClass` are rendered into the
+    pool's service. With `installKarpenter` the stack also creates the controller's IAM, pod identity and
+    interruption queue, and the Karpenter chart is installed as its own service; do that once per cluster.
   * **AWS, managed node group**: an EKS managed node group with a launch template. EKS drops the launch template's
     nested virtualization CPU option, so this only supports `gvisor`.
   * **GCP**: a GKE node pool (Ubuntu, raw local NVMe SSDs, nested virtualization for `microvm`).
   * **Azure**: an AKS node pool. Use an L-series size (e.g. `Standard_L16s_v3`) for local NVMe.
-* A `devbox-nodes` service with the `devbox-disk-prep` DaemonSet.
+* A `devbox-nodes-{{ context.pool }}` service in the `devbox-nodes` namespace with the
+  `devbox-disk-prep-{{ context.pool }}` DaemonSet{% if context.runnerName %} and the DevboxRunner{% endif %}.
 {% if context.substrate == true or context.substrate == "true" %}* Agent Substrate, see [Agent Substrate](#agent-substrate).
 {% endif %}
+
+Everything is named after the pool, so further pools on `{{ context.cluster }}` sit beside this one. Karpenter and
+Agent Substrate run once per cluster, so turn off `installKarpenter`{% if context.runnerName %} and `substrate`{% endif %} when adding a pool to a
+cluster that already runs them.
 
 Every node carries the label `plural.sh/devbox-pool={{ context.pool }}`, the taint
 `ate.dev/sandboxClass={{ context.sandboxClass }}:NoSchedule` (Substrate worker pods tolerate it automatically)
@@ -55,7 +60,7 @@ The `agent-substrate` service installs the [agent-substrate chart](https://githu
 and router to the deployment operator's `devbox-gateway` and makes the operator's ServiceAccount
 (`plrl-deploy-operator/deployment-operator`) a Substrate owner, so it can create atespaces. The operator mints its
 Substrate token and reads the API's CA from the cluster, so nothing else needs configuring on its side. The
-`devbox-nodes` service, which holds the DevboxRunner, waits for it.
+pool's service, which holds the DevboxRunner, waits for it.
 
 The stack also creates Substrate's snapshot storage:
 {% if context.cloud == 'aws' %}
@@ -85,8 +90,8 @@ The chart doesn't stage micro-VM assets. Stage them with `ate-setup deploy sandb
 {% endif %}## Point a DevboxRunner at the pool
 
 {% if context.runnerName %}The `{{ context.runnerName }}` DevboxRunner is already set up on this pool, in
-`services/devbox-nodes/{{ context.cluster }}/devbox-runner.yaml`. Edit it there to add agents, SCM connections or
-egress rules. The rest of this section explains its settings.
+`services/devbox-nodes/{{ context.cluster }}/{{ context.pool }}/devbox-runner.yaml`. Edit it there to add agents, SCM
+connections or egress rules. The rest of this section explains its settings.
 
 {% endif %}Run one worker per node by setting requests equal to limits at roughly the node's allocatable resources. The worker's
 limits are the capacity Substrate places actors against.
@@ -146,10 +151,10 @@ spec:
     #       - {key: topology.kubernetes.io/zone, operator: In, values: [us-east-2a, us-east-2b]}
 ```
 
-{% if context.substrate == true or context.substrate == "true" %}The Substrate values set `atelet.nodeSelector` to
-`plural.sh/devbox-pool: {{ context.pool }}`, so atelet stays off other nodes; widen it before adding WorkerPools on
-other pools.{% else %}To keep atelet off other nodes, set `atelet.nodeSelector` in the `agent-substrate` chart values to
-`plural.sh/devbox-pool: {{ context.pool }}`.{% endif %}
+{% if context.substrate == true or context.substrate == "true" %}The Substrate values give atelet a node affinity for
+`plural.sh/devbox-pool`, so it runs on every devbox pool and stays off other nodes.{% else %}To keep atelet off other
+nodes, give it a node affinity for the `plural.sh/devbox-pool` label (operator `Exists`) in the `agent-substrate` chart
+values, so it still runs on every devbox pool.{% endif %}
 
 ## Disruption
 

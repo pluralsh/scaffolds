@@ -17,26 +17,27 @@ spec:
       folder: catalogs/devbox/devbox-nodes
     templates:
     - source: README.md
-      destination: documentation/devbox/README.md
+      destination: "documentation/devbox-nodes/{{ context.cluster }}/{{ context.pool }}/README.md"
       external: true
     - source: helm
-      destination: "helm/devbox-nodes/{{ context.cluster }}"
+      destination: "helm/karpenter/{{ context.cluster }}"
       external: true
+      condition: context.installKarpenter == true and context.awsProvisioner == "karpenter"
     - source: services
-      destination: "services/devbox-nodes/{{ context.cluster }}"
+      destination: "services/devbox-nodes/{{ context.cluster }}/{{ context.pool }}"
       external: true
     - source: "terraform/{{ context.cloud }}"
-      destination: "terraform/apps/devbox-nodes/{{ context.cluster }}"
+      destination: "terraform/apps/devbox-nodes/{{ context.cluster }}/{{ context.pool }}"
       external: true
     - source: substrate
       destination: "helm/agent-substrate/{{ context.cluster }}"
       external: true
       condition: context.substrate == true
     - source: runner/devbox-runner.yaml.liquid
-      destination: "services/devbox-nodes/{{ context.cluster }}/devbox-runner.yaml"
+      destination: "services/devbox-nodes/{{ context.cluster }}/{{ context.pool }}/devbox-runner.yaml"
       external: true
     - source: devbox-nodes.yaml.liquid
-      destination: "bootstrap/apps/devbox-nodes/{{ context.cluster }}/devbox-nodes.yaml"
+      destination: "bootstrap/apps/devbox-nodes/{{ context.cluster }}/{{ context.pool }}.yaml"
       external: true
   repositoryRef:
     name: scaffolds
@@ -67,7 +68,8 @@ spec:
     documentation: |
       install Agent Substrate in ate-system: its snapshot bucket (S3, GCS or Azure Blob), the workload identities of
       ate-api-server and atelet, and the agent-substrate chart wired to the deployment operator's devbox gateway.
-      On by default. Turn it off if Substrate already runs on the cluster. Substrate needs pod certificates, which
+      On by default. Substrate runs once per cluster, so turn it off if it already does, e.g. from another devbox
+      pool; that setup's stack keeps its snapshot storage. Substrate needs pod certificates, which
       EKS, GKE and AKS only serve from Kubernetes 1.37, so the cluster must run 1.37 or later.
   - name: substrateVersion
     type: STRING
@@ -93,11 +95,12 @@ spec:
   - name: pool
     type: STRING
     documentation: |
-      the node pool name, also the plural.sh/devbox-pool node label DevboxRunners select on (lowercase
-      alphanumeric, at most 12 characters on Azure)
+      the node pool name, also the plural.sh/devbox-pool node label DevboxRunners select on. Every file and
+      resource this creates is named after it, so each pool on a cluster sits beside the others. Lowercase letters,
+      digits and hyphens, at most 32 characters; AKS node pools drop the hyphens and keep the first 12 characters
     default: devbox
     validation:
-      regex: '^[a-z][a-z0-9]{0,11}$'
+      regex: '^[a-z]([-a-z0-9]{0,30}[a-z0-9])?$'
   - name: sandboxClass
     type: ENUM
     documentation: |
@@ -127,7 +130,10 @@ spec:
       value: aws
   - name: installKarpenter
     type: BOOL
-    documentation: install Karpenter (IAM, interruption queue and the Helm chart); leave off if the cluster already runs it
+    documentation: |
+      install Karpenter (controller IAM, interruption queue and the Helm chart) once per cluster, with the first
+      Karpenter pool. Leave it off for further pools, or if the cluster already runs Karpenter; its controller must
+      then be allowed to pass the node roles named <cluster>-devbox-<pool>, as the one installed here is
     optional: true
     condition:
       field: awsProvisioner

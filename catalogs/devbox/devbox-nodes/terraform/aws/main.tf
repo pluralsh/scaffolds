@@ -7,7 +7,10 @@ locals {
   cluster_name    = local.cluster_context.cluster_name
   subnet_ids      = try(local.cluster_context.private_subnets, local.cluster_context.subnet_ids)
   instance_types  = [for t in split(",", var.instance_types) : trimspace(t)]
-  node_role_name  = substr("${local.cluster_name}-${var.pool}-nodes", 0, 64)
+  # Every devbox pool's node role shares this prefix, which the Karpenter controller may pass to EC2 (at most
+  # 24 + 8 + 32 characters, within IAM's 64).
+  node_role_prefix = "${substr(local.cluster_name, 0, 24)}-devbox-"
+  node_role_name   = "${local.node_role_prefix}${var.pool}"
 
   labels = {
     "plural.sh/devbox-pool" = var.pool

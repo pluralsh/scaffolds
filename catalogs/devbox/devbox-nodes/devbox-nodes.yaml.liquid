@@ -17,10 +17,11 @@
 {% else %}
 {% assign diskModel = '' %}
 {% endif %}
+{% assign stackName = 'devbox-nodes-' | append: context.cluster | append: '-' | append: context.pool %}
 apiVersion: deployments.plural.sh/v1alpha1
 kind: InfrastructureStack
 metadata:
-  name: devbox-nodes-{{ context.cluster }}
+  name: {{ stackName }}
   namespace: apps
 spec:
 {% if context.ai %}
@@ -33,7 +34,7 @@ spec:
   actor: console@plural.sh
   git:
     ref: main
-    folder: terraform/apps/devbox-nodes/{{ context.cluster }}
+    folder: terraform/apps/devbox-nodes/{{ context.cluster }}/{{ context.pool }}
   repositoryRef:
     name: infra
     namespace: infra
@@ -61,7 +62,7 @@ spec:
   name: karpenter
   namespace: karpenter
   git:
-    folder: helm/devbox-nodes/{{ context.cluster }}
+    folder: helm/karpenter/{{ context.cluster }}
     ref: main
   repositoryRef:
     kind: GitRepository
@@ -76,10 +77,10 @@ spec:
     - karpenter.yaml.liquid
   imports:
   - stackRef:
-      name: devbox-nodes-{{ context.cluster }}
+      name: {{ stackName }}
       namespace: apps
   configuration:
-    stackName: devbox-nodes-{{ context.cluster }}
+    stackName: {{ stackName }}
   cluster: {{ context.cluster }}
 {% endif %}
 {% if substrate %}
@@ -112,26 +113,27 @@ spec:
     - agent-substrate.yaml.liquid
   imports:
   - stackRef:
-      name: devbox-nodes-{{ context.cluster }}
+      name: {{ stackName }}
       namespace: apps
   configuration:
-    stackName: devbox-nodes-{{ context.cluster }}
+    stackName: {{ stackName }}
   cluster: {{ context.cluster }}
 {% endif %}
 ---
 apiVersion: deployments.plural.sh/v1alpha1
 kind: ServiceDeployment
 metadata:
-  name: devbox-nodes-{{ context.cluster }}
+  name: {{ stackName }}
   namespace: apps
 spec:
 {% if context.ai %}
   agentId: {{ context.ai.session.agent_id }}
 {% endif %}
-  name: devbox-nodes
+  name: devbox-nodes-{{ context.pool }}
+  # Shared by every devbox pool on the cluster; each pool's resources carry its name.
   namespace: devbox-nodes
   git:
-    folder: services/devbox-nodes/{{ context.cluster }}
+    folder: services/devbox-nodes/{{ context.cluster }}/{{ context.pool }}
     ref: main
   repositoryRef:
     kind: GitRepository
@@ -149,10 +151,10 @@ spec:
 {% endif %}
   imports:
   - stackRef:
-      name: devbox-nodes-{{ context.cluster }}
+      name: {{ stackName }}
       namespace: apps
   configuration:
-    stackName: devbox-nodes-{{ context.cluster }}
+    stackName: {{ stackName }}
     pool: {{ context.pool }}
     diskModel: "{{ diskModel }}"
     diskPrepImage: {{ context.diskPrepImage }}

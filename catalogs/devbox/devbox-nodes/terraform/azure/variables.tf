@@ -14,8 +14,8 @@ variable "pool" {
   default = "{{ context.pool }}"
 
   validation {
-    condition     = can(regex("^[a-z][a-z0-9]{0,11}$", var.pool))
-    error_message = "AKS Linux node pool names must be 1-12 lowercase alphanumeric characters starting with a letter."
+    condition     = can(regex("^[a-z]([-a-z0-9]{0,30}[a-z0-9])?$", var.pool))
+    error_message = "pool must be 1-32 lowercase letters, digits and hyphens, starting with a letter."
   }
 }
 

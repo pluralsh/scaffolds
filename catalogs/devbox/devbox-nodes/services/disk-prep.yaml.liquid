@@ -1,19 +1,14 @@
 {% raw %}
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: devbox-nodes
----
-apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: devbox-disk-prep
+  name: devbox-disk-prep-{{ configuration.pool }}
   namespace: devbox-nodes
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: devbox-disk-prep
+  name: devbox-disk-prep-{{ configuration.pool }}
 rules:
 - apiGroups: [""]
   resources: ["nodes"]
@@ -26,14 +21,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: devbox-disk-prep
+  name: devbox-disk-prep-{{ configuration.pool }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: devbox-disk-prep
+  name: devbox-disk-prep-{{ configuration.pool }}
 subjects:
 - kind: ServiceAccount
-  name: devbox-disk-prep
+  name: devbox-disk-prep-{{ configuration.pool }}
   namespace: devbox-nodes
 ---
 # devbox-disk-prep ships in the agent-harness base image. On a node's first boot it formats the disks whose model
@@ -42,12 +37,13 @@ subjects:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: devbox-disk-prep
+  name: devbox-disk-prep-{{ configuration.pool }}
   namespace: devbox-nodes
 spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: devbox-disk-prep
+      app.kubernetes.io/instance: {{ configuration.pool }}
   updateStrategy:
     type: RollingUpdate
     rollingUpdate:
@@ -56,8 +52,9 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: devbox-disk-prep
+        app.kubernetes.io/instance: {{ configuration.pool }}
     spec:
-      serviceAccountName: devbox-disk-prep
+      serviceAccountName: devbox-disk-prep-{{ configuration.pool }}
       priorityClassName: system-node-critical
       nodeSelector:
         plural.sh/devbox-pool: {{ configuration.pool }}

@@ -1,0 +1,68 @@
+
+
+
+
+
+
+
+
+
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: devbox-nodes-devbox-azure-devbox
+  namespace: apps
+spec:
+
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/devbox-nodes/devbox-azure/devbox
+  repositoryRef:
+    name: infra
+    namespace: infra
+  
+  jobSpec:
+    namespace: plrl-deploy-operator
+    labels:
+      azure.workload.identity/use: "true"
+    serviceAccount: stacks
+  
+  clusterRef:
+    name: mgmt
+    namespace: infra
+
+
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: devbox-nodes-devbox-azure-devbox
+  namespace: apps
+spec:
+
+  name: devbox-nodes-devbox
+  # Shared by every devbox pool on the cluster; each pool's resources carry its name.
+  namespace: devbox-nodes
+  git:
+    folder: services/devbox-nodes/devbox-azure/devbox
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+
+  imports:
+  - stackRef:
+      name: devbox-nodes-devbox-azure-devbox
+      namespace: apps
+  configuration:
+    stackName: devbox-nodes-devbox-azure-devbox
+    pool: devbox
+    diskModel: "NVMe Direct Disk"
+    diskPrepImage: ghcr.io/pluralsh/agent-harness-base:0.6.76
+  cluster: devbox-azure

@@ -1,0 +1,102 @@
+
+
+
+
+
+
+
+
+
+
+
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: devbox-nodes-devbox-aws-karpenter-devbox
+  namespace: apps
+spec:
+
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/devbox-nodes/devbox-aws-karpenter/devbox
+  repositoryRef:
+    name: infra
+    namespace: infra
+  
+  clusterRef:
+    name: mgmt
+    namespace: infra
+
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: karpenter-devbox-aws-karpenter
+  namespace: apps
+spec:
+
+  name: karpenter
+  namespace: karpenter
+  git:
+    folder: helm/karpenter/devbox-aws-karpenter
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "1.13.0"
+    chart: karpenter
+    release: karpenter
+    url: oci://public.ecr.aws/karpenter
+    valuesFiles:
+    - karpenter.yaml.liquid
+  imports:
+  - stackRef:
+      name: devbox-nodes-devbox-aws-karpenter-devbox
+      namespace: apps
+  configuration:
+    stackName: devbox-nodes-devbox-aws-karpenter-devbox
+  cluster: devbox-aws-karpenter
+
+
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: devbox-nodes-devbox-aws-karpenter-devbox
+  namespace: apps
+spec:
+
+  name: devbox-nodes-devbox
+  # Shared by every devbox pool on the cluster; each pool's resources carry its name.
+  namespace: devbox-nodes
+  git:
+    folder: services/devbox-nodes/devbox-aws-karpenter/devbox
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+
+  dependencies:
+
+  - name: karpenter
+
+
+
+  imports:
+  - stackRef:
+      name: devbox-nodes-devbox-aws-karpenter-devbox
+      namespace: apps
+  configuration:
+    stackName: devbox-nodes-devbox-aws-karpenter-devbox
+    pool: devbox
+    diskModel: "Instance Storage"
+    diskPrepImage: ghcr.io/pluralsh/agent-harness-base:0.6.76
+  cluster: devbox-aws-karpenter

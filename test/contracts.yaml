@@ -36,6 +36,9 @@ spec:
     context: ../contexts/devbox-nodes-aws-karpenter.yaml
   - file: ../../setup/catalogs/devbox/devbox-nodes.yaml
     externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-nodes-aws-karpenter-second.yaml
+  - file: ../../setup/catalogs/devbox/devbox-nodes.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
     context: ../contexts/devbox-nodes-aws-mng.yaml
   - file: ../../setup/catalogs/devbox/devbox-nodes.yaml
     externalDir: ../../catalogs/devbox/devbox-nodes
@@ -46,6 +49,9 @@ spec:
   - file: ../../setup/catalogs/devbox/devbox.yaml
     externalDir: ../../catalogs/devbox/devbox-nodes
     context: ../contexts/devbox-aws-karpenter.yaml
+  - file: ../../setup/catalogs/devbox/devbox.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-aws-second-pool.yaml
   - file: ../../setup/catalogs/devbox/devbox.yaml
     externalDir: ../../catalogs/devbox/devbox-nodes
     context: ../contexts/devbox-gcp-network.yaml

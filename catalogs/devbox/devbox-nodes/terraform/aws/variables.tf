@@ -24,6 +24,12 @@ variable "provisioner" {
   }
 }
 
+variable "install_karpenter" {
+  type        = bool
+  default     = {% if context.installKarpenter == true or context.installKarpenter == "true" %}true{% else %}false{% endif %}
+  description = "create the Karpenter controller's IAM, pod identity and interruption queue, once per cluster"
+}
+
 variable "sandbox_class" {
   type    = string
   default = "{{ context.sandboxClass }}"
