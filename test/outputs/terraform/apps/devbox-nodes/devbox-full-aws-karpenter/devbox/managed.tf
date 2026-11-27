@@ -2,6 +2,29 @@ locals {
   managed = var.provisioner == "managed-node-group" ? 1 : 0
 }
 
+data "aws_subnet" "nodes" {
+  for_each = local.managed == 1 ? toset(local.subnet_ids) : toset([])
+  id       = each.value
+}
+
+locals {
+  # One node group per zone: a group spanning zones is one Auto Scaling group, and the cluster autoscaler can't choose
+  # which zone it launches into, so a worker pinned to its homes' zone could wait on a node in another.
+  zone_subnets = { for id, subnet in data.aws_subnet.nodes : subnet.availability_zone => id... }
+
+  # Lets the cluster autoscaler build a zone's node from its template while the group is at zero.
+  autoscaler_tags = merge(
+    { for k, v in local.labels : "k8s.io/cluster-autoscaler/node-template/label/${k}" => v },
+    { for t in values(local.taints) : "k8s.io/cluster-autoscaler/node-template/taint/${t.key}" => "${t.value}:NoSchedule" },
+  )
+  zone_autoscaler_tags = merge([
+    for zone in keys(local.zone_subnets) : {
+      for k, v in merge(local.autoscaler_tags, { "k8s.io/cluster-autoscaler/node-template/label/topology.kubernetes.io/zone" = zone }) :
+      "${zone}/${k}" => { zone = zone, key = k, value = v }
+    }
+  ]...)
+}
+
 resource "aws_iam_role" "nodes" {
   count = local.managed
   name  = local.node_role_name
@@ -73,11 +96,11 @@ resource "aws_launch_template" "nodes" {
 }
 
 resource "aws_eks_node_group" "devbox" {
-  count           = local.managed
+  for_each        = local.zone_subnets
   cluster_name    = local.cluster_name
-  node_group_name = "${var.pool}-${var.sandbox_class}"
+  node_group_name = "${var.pool}-${var.sandbox_class}-${each.key}"
   node_role_arn   = aws_iam_role.nodes[0].arn
-  subnet_ids      = local.subnet_ids
+  subnet_ids      = each.value
   ami_type        = "AL2023_x86_64_STANDARD"
   instance_types  = local.instance_types
   capacity_type   = "ON_DEMAND"
@@ -88,9 +111,11 @@ resource "aws_eks_node_group" "devbox" {
     version = aws_launch_template.nodes[0].latest_version
   }
 
+  # Zones start empty and each may take the whole pool. The runner's minReplicas and maxReplicas bound the workers
+  # across zones and decide which zone keeps the warm ones; a per-zone minimum would keep idle nodes in every zone.
   scaling_config {
-    min_size     = var.min_nodes
-    desired_size = var.min_nodes
+    min_size     = 0
+    desired_size = 0
     max_size     = var.max_nodes
   }
 
@@ -117,4 +142,15 @@ resource "aws_eks_node_group" "devbox" {
   }
 
   depends_on = [aws_iam_role_policy_attachment.nodes]
+}
+
+resource "aws_autoscaling_group_tag" "devbox" {
+  for_each               = local.zone_autoscaler_tags
+  autoscaling_group_name = aws_eks_node_group.devbox[each.value.zone].resources[0].autoscaling_groups[0].name
+
+  tag {
+    key                 = each.value.key
+    value               = each.value.value
+    propagate_at_launch = false
+  }
 }

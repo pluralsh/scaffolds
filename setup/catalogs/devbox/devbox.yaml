@@ -211,13 +211,15 @@ spec:
     default: "250"
   - name: minNodes
     type: STRING
-    documentation: the minimum node count, also the runner's minimum worker count (Karpenter ignores it for nodes)
+    documentation: |
+      the minimum node count, also the runner's minimum worker count (Karpenter and EKS managed node groups ignore it
+      for nodes: their zones start empty and grow with the runner's workers)
     default: "1"
   - name: maxNodes
     type: STRING
     documentation: |
-      the maximum node count, also the runner's maximum worker count (Karpenter ignores it for nodes and is capped by
-      maxCpu)
+      the maximum node count, also the runner's maximum worker count (per zone for EKS managed node groups; Karpenter
+      ignores it for nodes and is capped by maxCpu)
     default: "10"
   - name: runnerName
     type: STRING

@@ -163,11 +163,11 @@ spec:
     default: "250"
   - name: minNodes
     type: STRING
-    documentation: the minimum node count (ignored by Karpenter)
+    documentation: the minimum node count (ignored by Karpenter and EKS managed node groups, whose zones start empty)
     default: "1"
   - name: maxNodes
     type: STRING
-    documentation: the maximum node count (ignored by Karpenter, use maxCpu)
+    documentation: the maximum node count, per zone with EKS managed node groups (ignored by Karpenter, use maxCpu)
     default: "10"
   - name: diskPrepImage
     type: STRING

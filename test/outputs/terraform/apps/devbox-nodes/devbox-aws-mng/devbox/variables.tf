@@ -61,14 +61,10 @@ variable "data_disk_size" {
   default = 300
 }
 
-variable "min_nodes" {
-  type    = number
-  default = 1
-}
-
 variable "max_nodes" {
-  type    = number
-  default = 10
+  type        = number
+  default     = 10
+  description = "the most nodes each zone's managed node group may grow to"
 }
 
 variable "install_substrate" {
