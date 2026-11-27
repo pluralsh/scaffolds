@@ -2,11 +2,13 @@ locals {
   substrate = var.install_substrate ? 1 : 0
   # Storage account names are 3-24 lowercase alphanumerics and globally unique.
   substrate_account_prefix = substr(replace(lower("ate${local.cluster_name}"), "/[^a-z0-9]/", ""), 0, 16)
-  # The objectstore-azure-blob plugin runs next to atelet (node) and ate-api-server (control), each as its own
-  # Entra identity federated to that pod's ServiceAccount.
+  # The objectstore-azure-blob plugin runs next to atelet (node) and ate-api-server (control), and the ZeroFS
+  # controller and node plugins (zerofs) keep devbox homes.
+  # Each is its own Entra identity federated to that pod's ServiceAccount.
   substrate_identities = var.install_substrate ? {
     node    = "atelet"
     control = "ate-api-server"
+    zerofs  = "devbox-zerofs"
   } : {}
 }
 

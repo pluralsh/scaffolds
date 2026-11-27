@@ -25,3 +25,7 @@ output "substrate_node_client_id" {
 output "substrate_control_client_id" {
   value = try(azurerm_user_assigned_identity.substrate["control"].client_id, "")
 }
+
+output "substrate_zerofs_client_id" {
+  value = try(azurerm_user_assigned_identity.substrate["zerofs"].client_id, "")
+}

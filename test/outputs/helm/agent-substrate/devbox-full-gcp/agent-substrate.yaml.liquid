@@ -34,3 +34,16 @@ objectStore:
   backend: gcs
   snapshotLocation: {{ imports[configuration.stackName].substrate_snapshot_location }}
 
+
+# ZeroFS devbox homes (DevboxRunner spec.home.storage: ZeroFS), kept under devbox-homes-zerofs/ in the snapshot
+# bucket through the devbox-zerofs ServiceAccount's own access, which the devbox-nodes stack grants. Its image is a
+# deployment-operator release; keep it in step with the operator.
+zerofs:
+  enabled: true
+  image:
+    tag: "0.6.77"
+
+  serviceAccount:
+    annotations:
+      iam.gke.io/gcp-service-account: {{ imports[configuration.stackName].substrate_zerofs_service_account }}
+

@@ -68,6 +68,11 @@ The stack also creates Substrate's snapshot storage:
 * IAM roles for `ate-system/ate-api-server` and `ate-system/atelet` with read and write on it, through EKS Pod
   Identity associations (the cluster needs the `eks-pod-identity-agent` add-on, which Karpenter's controller uses too).
 
+It also gives `ate-system/devbox-zerofs` its own read and write on the bucket, for ZeroFS devbox homes under
+`devbox-homes-zerofs/`, and turns ZeroFS on in the agent-substrate values with that identity, so DevboxRunners can
+set `spec.home.storage: ZeroFS` (the `platform` runner uses `ZeroFS`). Its image,
+`zerofs.image.tag` in `helm/agent-substrate/devbox-full-aws-karpenter`, is pinned to deployment-operator
+`0.6.77`; keep it in step with the operator.
 Postgres is a CloudNativePG `Cluster` in `ate-system`, with the operator bundled. Set `cloudnative-pg.enabled: false` in the values if the cluster already runs one.
 
 The cluster needs Kubernetes 1.34+ with the `ClusterTrustBundle`, `ClusterTrustBundleProjection` and

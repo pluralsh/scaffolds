@@ -37,6 +37,21 @@ resource "google_service_account_iam_member" "substrate_api_server_workload_iden
   member             = "serviceAccount:${local.project}.svc.id.goog[ate-system/ate-api-server]"
 }
 
+# The ZeroFS controller and node plugins keep devbox homes under their own prefix of the bucket.
+resource "google_service_account" "substrate_zerofs" {
+  count        = local.substrate
+  project      = local.project
+  account_id   = "ate-zfs-${local.substrate_suffix}"
+  display_name = "Agent Substrate ZeroFS devbox homes on ${local.cluster_context.cluster_name}"
+}
+
+resource "google_service_account_iam_member" "substrate_zerofs_workload_identity" {
+  count              = local.substrate
+  service_account_id = google_service_account.substrate_zerofs[0].name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${local.project}.svc.id.goog[ate-system/devbox-zerofs]"
+}
+
 resource "google_service_account_iam_member" "substrate_transfer_token_creator" {
   count              = local.substrate
   service_account_id = google_service_account.substrate_transfer[0].name
@@ -50,9 +65,19 @@ resource "google_storage_bucket_iam_member" "substrate" {
     "api-bucket-viewer"      = { role = "roles/storage.bucketViewer", sa = "api" }
     "transfer-object-admin"  = { role = "roles/storage.objectAdmin", sa = "transfer" }
     "transfer-bucket-viewer" = { role = "roles/storage.bucketViewer", sa = "transfer" }
+    "zerofs-object-admin"    = { role = "roles/storage.objectAdmin", sa = "zerofs" }
+    "zerofs-bucket-viewer"   = { role = "roles/storage.bucketViewer", sa = "zerofs" }
   } : {}
 
   bucket = google_storage_bucket.substrate[0].name
   role   = each.value.role
-  member = "serviceAccount:${each.value.sa == "api" ? google_service_account.substrate_api_server[0].email : google_service_account.substrate_transfer[0].email}"
+  member = "serviceAccount:${local.substrate_accounts[each.value.sa]}"
+}
+
+locals {
+  substrate_accounts = var.install_substrate ? {
+    api      = google_service_account.substrate_api_server[0].email
+    transfer = google_service_account.substrate_transfer[0].email
+    zerofs   = google_service_account.substrate_zerofs[0].email
+  } : {}
 }

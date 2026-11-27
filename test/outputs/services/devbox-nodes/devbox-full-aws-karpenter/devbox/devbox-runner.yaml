@@ -64,6 +64,8 @@ spec:
   browser:
     enabled: true
 
+  home:
+    storage: ZeroFS
 
   cloudIdentities:
   - name: aws

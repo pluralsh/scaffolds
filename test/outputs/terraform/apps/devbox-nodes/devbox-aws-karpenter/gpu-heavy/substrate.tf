@@ -1,7 +1,8 @@
 locals {
   substrate = var.install_substrate ? 1 : 0
-  # Both read and write snapshots through the default AWS credential chain, here EKS Pod Identity.
-  substrate_service_accounts = var.install_substrate ? toset(["ate-api-server", "atelet"]) : toset([])
+  # Each reads and writes the bucket through the default AWS credential chain, here EKS Pod Identity: ate-api-server
+  # and atelet for snapshots, devbox-zerofs (the ZeroFS controller and node plugin) for devbox homes.
+  substrate_service_accounts = var.install_substrate ? toset(["ate-api-server", "atelet", "devbox-zerofs"]) : toset([])
 }
 
 resource "aws_s3_bucket" "substrate" {

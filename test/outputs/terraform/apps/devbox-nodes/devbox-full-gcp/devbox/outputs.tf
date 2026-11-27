@@ -17,3 +17,7 @@ output "substrate_api_server_service_account" {
 output "substrate_transfer_service_account" {
   value = try(google_service_account.substrate_transfer[0].email, "")
 }
+
+output "substrate_zerofs_service_account" {
+  value = try(google_service_account.substrate_zerofs[0].email, "")
+}

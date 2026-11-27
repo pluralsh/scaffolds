@@ -48,6 +48,8 @@ spec:
     default: auto
     max: full
 
+  home:
+    storage: ZeroFS
 
   resources:
     cpu: "2"

@@ -69,6 +69,11 @@ The stack also creates Substrate's snapshot storage:
 * a snapshot transfer service account that ate-api-server impersonates for each transfer, scoped to one actor, so
   atelet needs no access to the bucket.
 
+It also gives `ate-system/devbox-zerofs` its own read and write on the bucket, for ZeroFS devbox homes under
+`devbox-homes-zerofs/`, and turns ZeroFS on in the agent-substrate values with that identity, so DevboxRunners can
+set `spec.home.storage: ZeroFS` (the `platform` runner uses `ZeroFS`). Its image,
+`zerofs.image.tag` in `helm/agent-substrate/devbox-full-gcp`, is pinned to deployment-operator
+`0.6.77`; keep it in step with the operator.
 Postgres is a CloudNativePG `Cluster` in `ate-system`, run by the CloudNativePG operator already on the cluster.
 
 The cluster needs Kubernetes 1.34+ with the `ClusterTrustBundle`, `ClusterTrustBundleProjection` and

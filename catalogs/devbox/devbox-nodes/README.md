@@ -78,6 +78,11 @@ The stack also creates Substrate's snapshot storage:
   issuer (the cluster needs the OIDC issuer enabled), with Storage Blob Data Contributor on the account. They run the
   `objectstore-azure-blob` plugin at `{{ context.azureBlobPluginTag }}`.
 {% endif %}
+It also gives `ate-system/devbox-zerofs` its own read and write on the bucket, for ZeroFS devbox homes under
+`devbox-homes-zerofs/`, and turns ZeroFS on in the agent-substrate values with that identity, so DevboxRunners can
+set `spec.home.storage: ZeroFS`{% if context.runnerName %} (the `{{ context.runnerName }}` runner uses `{{ context.homeStorage | default: 'ZeroFS' }}`){% endif %}. Its image,
+`zerofs.image.tag` in `helm/agent-substrate/{{ context.cluster }}`, is pinned to deployment-operator
+`{{ context.zerofsImageTag | default: '0.6.77' }}`; keep it in step with the operator.
 Postgres is a CloudNativePG `Cluster` in `ate-system`{% if context.existingCnpg == true or context.existingCnpg == "true" %}, run by the CloudNativePG operator already on the cluster{% else %}, with the operator bundled. Set `cloudnative-pg.enabled: false` in the values if the cluster already runs one{% endif %}.
 
 The cluster needs Kubernetes 1.34+ with the `ClusterTrustBundle`, `ClusterTrustBundleProjection` and

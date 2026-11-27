@@ -52,6 +52,8 @@ spec:
   browser:
     enabled: true
 {% endif %}
+  home:
+    storage: {{ context.homeStorage | default: 'ZeroFS' }}
 {% if context.cloud == 'aws' and context.awsRoleArn and context.awsRoleArn != '' %}
   cloudIdentities:
   - name: aws

@@ -67,7 +67,8 @@ spec:
     default: "true"
     documentation: |
       install Agent Substrate in ate-system: its snapshot bucket (S3, GCS or Azure Blob), the workload identities of
-      ate-api-server and atelet, and the agent-substrate chart wired to the deployment operator's devbox gateway.
+      ate-api-server, atelet and devbox-zerofs (ZeroFS devbox homes, kept in the same bucket), and the
+      agent-substrate chart wired to the deployment operator's devbox gateway, with ZeroFS on.
       On by default. Substrate runs once per cluster, so turn it off if it already does, e.g. from another devbox
       pool; that setup's stack keeps its snapshot storage. Substrate needs pod certificates, which
       EKS, GKE and AKS only serve from Kubernetes 1.37, so the cluster must run 1.37 or later.
@@ -76,6 +77,13 @@ spec:
     documentation: the agent-substrate chart version (oci://ghcr.io/pluralsh/charts), when substrate is on
     optional: true
     default: "0.1.0"
+  - name: zerofsImageTag
+    type: STRING
+    documentation: |
+      the ghcr.io/pluralsh/devbox-zerofs image tag ZeroFS homes run on, when substrate is on: a deployment operator
+      release from 0.6.77, ideally the operator's own version
+    optional: true
+    default: "0.6.77"
   - name: existingCnpg
     type: BOOL
     documentation: |
@@ -267,6 +275,18 @@ spec:
     type: BOOL
     documentation: give each devbox a headless browser the agent can drive
     optional: true
+  - name: homeStorage
+    type: ENUM
+    documentation: |
+      where devboxes keep /home/dev. ZeroFS (the default) keeps each home as its own volume in Substrate's bucket,
+      so it survives suspends, resumes on any node and isn't part of the golden snapshot; it needs ZeroFS on in the
+      cluster's agent-substrate chart, which this sets up when substrate is on. Snapshot keeps the home in each
+      instance's snapshots instead
+    optional: true
+    default: ZeroFS
+    values:
+    - ZeroFS
+    - Snapshot
   - name: image
     type: STRING
     documentation: |
