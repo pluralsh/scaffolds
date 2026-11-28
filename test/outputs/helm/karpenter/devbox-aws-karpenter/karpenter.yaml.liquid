@@ -5,6 +5,9 @@ settings:
   clusterName: {{ imports[configuration.stackName].cluster_name }}
   clusterEndpoint: {{ imports[configuration.stackName].cluster_endpoint }}
   interruptionQueue: {{ imports[configuration.stackName].interruption_queue }}
+  featureGates:
+    # Each devbox pool's NodeOverlay tells Karpenter its nodes will have ate.dev/kvm.
+    nodeOverlay: true
 
 serviceAccount:
   name: karpenter

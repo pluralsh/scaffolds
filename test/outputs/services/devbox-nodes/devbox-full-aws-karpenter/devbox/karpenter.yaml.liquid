@@ -85,4 +85,20 @@ spec:
     - nodes: "10%"
   limits:
     cpu: "1000"
+---
+# Karpenter only launches a node for a pod whose requests the instance type covers, and ate.dev/kvm (which microvm
+# workers request) only appears once atelet's device plugin runs on the node, so an empty pool would never scale up
+# for one. The count is the one atelet advertises; it is a placeholder, not a limit. Needs Karpenter's NodeOverlay
+# feature gate.
+apiVersion: karpenter.sh/v1alpha1
+kind: NodeOverlay
+metadata:
+  name: devbox-kvm
+spec:
+  requirements:
+  - key: karpenter.sh/nodepool
+    operator: In
+    values: ["devbox"]
+  capacity:
+    ate.dev/kvm: "4096"
 

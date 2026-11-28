@@ -10,9 +10,12 @@ fast disk instead of the boot volume.
   * **AWS, Karpenter** (the default): a node role with an access entry. The `NodePool`/`EC2NodeClass` are
     rendered into the pool's service, with nested virtualization on, so the pool can run `microvm` sandboxes as
     well as `gvisor`; that needs instance types that support it (`*7i`/`*8i`, `i7i`, `x8i`). Karpenter launches
-    each node in the zone its pending worker asks for. With `installKarpenter` the stack also creates the
+    each node in the zone its pending worker asks for. microvm workers request `ate.dev/kvm`, which atelet only
+    advertises once a node runs, so a `NodeOverlay` tells Karpenter the pool's nodes will have it; without it an
+    empty pool never scales up for one. With `installKarpenter` the stack also creates the
     controller's IAM, pod identity and interruption queue, and the Karpenter chart is installed as its own
-    service; do that once per cluster.
+    service with the `NodeOverlay` feature gate on; do that once per cluster. A Karpenter you install yourself
+    needs `settings.featureGates.nodeOverlay: true`.
   * **AWS, managed node group**: one EKS managed node group per availability zone, sharing a launch template. EKS
     drops the launch template's nested virtualization CPU option, so this only supports `gvisor`. A group spanning
     zones is one Auto Scaling group whose zone the cluster autoscaler can't choose, so a worker pinned to its
