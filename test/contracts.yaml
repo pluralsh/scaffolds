@@ -46,6 +46,9 @@ spec:
   - file: ../../setup/catalogs/devbox/devbox-nodes.yaml
     externalDir: ../../catalogs/devbox/devbox-nodes
     context: ../contexts/devbox-nodes-azure.yaml
+  - file: ../../setup/catalogs/devbox/devbox-nodes.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-nodes-azure-pools.yaml
   - file: ../../setup/catalogs/devbox/devbox.yaml
     externalDir: ../../catalogs/devbox/devbox-nodes
     context: ../contexts/devbox-aws-karpenter.yaml

@@ -64,8 +64,9 @@ spec:
   browser:
     enabled: true
 
+  # each devbox's /home/dev is its own cloud disk from agent-substrate's block driver, in one zone
   home:
-    storage: ZeroFS
+    storage: Block
 
   cloudIdentities:
   - name: aws
@@ -93,6 +94,10 @@ spec:
     - key: plural.sh/devbox-disk
       operator: Exists
       effect: NoSchedule
+
+
+
+
 
     podAnnotations:
       karpenter.sh/do-not-disrupt: "true"

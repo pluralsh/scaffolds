@@ -1,7 +1,7 @@
 {% assign karpenter = false %}
-{% if context.cloud == 'aws' and context.awsProvisioner == 'karpenter' and context.installKarpenter %}
+{% if context.cloud == 'aws' and context.awsProvisioner == 'karpenter' %}{% if context.installKarpenter == true or context.installKarpenter == "true" %}
 {% assign karpenter = true %}
-{% endif %}
+{% endif %}{% endif %}
 {% assign substrate = false %}
 {% if context.substrate == true or context.substrate == "true" %}
 {% assign substrate = true %}

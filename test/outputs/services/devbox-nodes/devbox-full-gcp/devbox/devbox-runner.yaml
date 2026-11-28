@@ -48,8 +48,9 @@ spec:
     default: auto
     max: full
 
+  # each devbox's /home/dev is its own cloud disk from agent-substrate's block driver, in one zone
   home:
-    storage: ZeroFS
+    storage: Block
 
   resources:
     cpu: "2"
@@ -71,6 +72,10 @@ spec:
     - key: plural.sh/devbox-disk
       operator: Exists
       effect: NoSchedule
+
+
+
+
 
     resources:
       requests: {cpu: "14", memory: 56Gi}

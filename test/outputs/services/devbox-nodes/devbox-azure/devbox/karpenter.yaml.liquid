@@ -1,1 +1,81 @@
 
+
+
+# AKS node auto-provisioning (managed Karpenter)
+apiVersion: karpenter.azure.com/v1beta1
+kind: AKSNodeClass
+metadata:
+  name: devbox
+spec:
+  imageFamily: Ubuntu
+  osDiskSizeGB: 100
+  osDiskType: Managed
+  # Azure has no nested virtualization switch: the VM size brings it (Dv5, Ev5, Lsv3) and Trusted Launch takes it
+  # away. With it the pool can run microvm sandboxes as well as gvisor.
+  security:
+    trustedLaunch:
+      secureBoot: false
+      vtpm: false
+  tags:
+    plural-devbox-pool: devbox
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: devbox
+spec:
+  template:
+    metadata:
+      labels:
+        plural.sh/devbox-pool: devbox
+
+{% if imports[configuration.stackName].network_dataplane == "cilium" %}
+        # lets NAP account for the Cilium agent on each node
+        kubernetes.azure.com/ebpf-dataplane: cilium
+{% endif %}
+
+    spec:
+      nodeClassRef:
+        group: karpenter.azure.com
+        kind: AKSNodeClass
+        name: devbox
+      taints:
+      - key: ate.dev/sandboxClass
+        value: gvisor
+        effect: NoSchedule
+      startupTaints:
+      - key: plural.sh/devbox-disk
+        value: pending
+        effect: NoSchedule
+
+{% if imports[configuration.stackName].network_dataplane == "cilium" %}
+      - key: node.cilium.io/agent-not-ready
+        value: "true"
+        effect: NoExecute
+{% endif %}
+
+      requirements:
+      - key: kubernetes.io/arch
+        operator: In
+        values: ["amd64"]
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values: ["on-demand"]
+      - key: node.kubernetes.io/instance-type
+        operator: In
+        values:
+
+        - Standard_L16s_v3
+
+      # Sandboxes are stateful between snapshots: never expire nodes, and give atelet time to suspend
+      # actors when a node is drained.
+      expireAfter: Never
+      terminationGracePeriod: 1h
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 15m
+    budgets:
+    - nodes: "10%"
+  limits:
+    cpu: "160"
+

@@ -1,6 +1,9 @@
 cluster: devbox-azure
 cloud: azure
 resourceGroup: workload-prod
+azureProvisioner: nap
+enableNap: true
+maxCpu: "160"
 pool: devbox
 sandboxClass: gvisor
 instanceTypes: Standard_L16s_v3

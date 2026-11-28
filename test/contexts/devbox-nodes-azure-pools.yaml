@@ -1,0 +1,12 @@
+cluster: devbox-azure-pools
+cloud: azure
+resourceGroup: workload-prod
+azureProvisioner: node-pools
+pool: devbox
+sandboxClass: gvisor
+instanceTypes: Standard_D16s_v5
+diskMode: network
+bootDiskSize: "100"
+minNodes: "1"
+maxNodes: "10"
+diskPrepImage: ghcr.io/pluralsh/agent-harness-base:0.6.76

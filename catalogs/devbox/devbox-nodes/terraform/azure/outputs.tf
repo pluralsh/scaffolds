@@ -2,8 +2,13 @@ output "cluster_name" {
   value = local.cluster_name
 }
 
-output "node_pool" {
-  value = azurerm_kubernetes_cluster_node_pool.devbox.name
+# the devbox NodePool carries the Cilium label and startup taint NAP expects on Cilium clusters
+output "network_dataplane" {
+  value = try(data.azapi_resource.cluster.output.properties.networkProfile.networkDataplane, "")
+}
+
+output "node_pools" {
+  value = [for p in azurerm_kubernetes_cluster_node_pool.devbox : p.name]
 }
 
 output "substrate_snapshot_location" {
@@ -24,8 +29,4 @@ output "substrate_node_client_id" {
 
 output "substrate_control_client_id" {
   value = try(azurerm_user_assigned_identity.substrate["control"].client_id, "")
-}
-
-output "substrate_zerofs_client_id" {
-  value = try(azurerm_user_assigned_identity.substrate["zerofs"].client_id, "")
 }

@@ -65,5 +65,5 @@ variable "max_nodes" {
 variable "install_substrate" {
   type        = bool
   default     = false
-  description = "create Agent Substrate's snapshot storage and the workload identities of ate-api-server, atelet and devbox-zerofs"
+  description = "create Agent Substrate's snapshot storage and the workload identities of ate-api-server and atelet"
 }

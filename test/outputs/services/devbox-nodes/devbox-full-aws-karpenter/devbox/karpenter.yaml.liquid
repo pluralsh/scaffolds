@@ -1,5 +1,6 @@
 
 
+
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
@@ -20,10 +21,9 @@ spec:
   - id: {{ securityGroup }}
 {% endfor %}
 
-
+  # Lets the pool run microvm sandboxes as well as gvisor; it needs instance types that support it.
   cpuOptions:
     nestedVirtualization: enabled
-
   metadataOptions:
     httpEndpoint: enabled
     httpTokens: required

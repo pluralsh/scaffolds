@@ -52,8 +52,9 @@ spec:
   browser:
     enabled: true
 {% endif %}
+  # each devbox's /home/dev is its own cloud disk from agent-substrate's block driver, in one zone
   home:
-    storage: {{ context.homeStorage | default: 'ZeroFS' }}
+    storage: Block
 {% if context.cloud == 'aws' and context.awsRoleArn and context.awsRoleArn != '' %}
   cloudIdentities:
   - name: aws
@@ -95,7 +96,11 @@ spec:
     - key: plural.sh/devbox-disk
       operator: Exists
       effect: NoSchedule
-{% if context.cloud == 'aws' and context.awsProvisioner == 'karpenter' %}
+{% assign azureProvisioner = context.azureProvisioner | default: 'nap' %}
+{% assign karpenterNodes = false %}
+{% if context.cloud == 'aws' and context.awsProvisioner == 'karpenter' %}{% assign karpenterNodes = true %}{% endif %}
+{% if context.cloud == 'azure' and azureProvisioner == 'nap' %}{% assign karpenterNodes = true %}{% endif %}
+{% if karpenterNodes %}
     podAnnotations:
       karpenter.sh/do-not-disrupt: "true"
 {% endif %}

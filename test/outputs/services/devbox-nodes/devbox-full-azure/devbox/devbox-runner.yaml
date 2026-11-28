@@ -47,8 +47,9 @@ spec:
     default: auto
     max: full
 
+  # each devbox's /home/dev is its own cloud disk from agent-substrate's block driver, in one zone
   home:
-    storage: ZeroFS
+    storage: Block
 
   cloudIdentities:
   - name: azure
@@ -77,6 +78,13 @@ spec:
     - key: plural.sh/devbox-disk
       operator: Exists
       effect: NoSchedule
+
+
+
+
+
+    podAnnotations:
+      karpenter.sh/do-not-disrupt: "true"
 
     resources:
       requests: {cpu: "14", memory: 112Gi}

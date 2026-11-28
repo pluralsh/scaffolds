@@ -70,5 +70,11 @@ variable "max_nodes" {
 variable "install_substrate" {
   type        = bool
   default     = {% if context.substrate == true or context.substrate == "true" %}true{% else %}false{% endif %}
-  description = "create Agent Substrate's snapshot storage and the workload identities of ate-api-server, atelet and devbox-zerofs"
+  description = "create Agent Substrate's snapshot storage and the workload identities of ate-api-server and atelet"
+}
+
+variable "install_snapshot_controller" {
+  type        = bool
+  default     = {% if context.substrate == true or context.substrate == "true" %}true{% else %}false{% endif %}
+  description = "install the EKS snapshot-controller add-on (VolumeSnapshot CRDs and controller) Block homes need, once per cluster"
 }

@@ -7,9 +7,12 @@ fast disk instead of the boot volume.
 ## What gets created
 
 * An `InfrastructureStack` (`terraform/apps/devbox-nodes/devbox-aws-karpenter/devbox`) with the node pool:
-  * **AWS, Karpenter**: a node role with an access entry. The `NodePool`/`EC2NodeClass` are rendered into the
-    pool's service. With `installKarpenter` the stack also creates the controller's IAM, pod identity and
-    interruption queue, and the Karpenter chart is installed as its own service; do that once per cluster.
+  * **AWS, Karpenter** (the default): a node role with an access entry. The `NodePool`/`EC2NodeClass` are
+    rendered into the pool's service, with nested virtualization on, so the pool can run `microvm` sandboxes as
+    well as `gvisor`; that needs instance types that support it (`*7i`/`*8i`, `i7i`, `x8i`). Karpenter launches
+    each node in the zone its pending worker asks for. With `installKarpenter` the stack also creates the
+    controller's IAM, pod identity and interruption queue, and the Karpenter chart is installed as its own
+    service; do that once per cluster.
   * **AWS, managed node group**: one EKS managed node group per availability zone, sharing a launch template. EKS
     drops the launch template's nested virtualization CPU option, so this only supports `gvisor`. A group spanning
     zones is one Auto Scaling group whose zone the cluster autoscaler can't choose, so a worker pinned to its
@@ -18,8 +21,27 @@ fast disk instead of the boot volume.
     [cluster autoscaler](https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler/cloudprovider/aws)
     with `--balance-similar-node-groups`. The groups' Auto Scaling groups carry its node-template label and taint
     tags, so it can scale a zone up from zero.
-  * **GCP**: a GKE node pool (Ubuntu, raw local NVMe SSDs, nested virtualization for `microvm`).
-  * **Azure**: an AKS node pool. Use an L-series size (e.g. `Standard_L16s_v3`) for local NVMe.
+  * **GCP**: a GKE node pool (Ubuntu, raw local NVMe SSDs, nested virtualization for `microvm`). A regional
+    pool is one managed instance group per zone, and GKE's cluster autoscaler grows the zone a pending worker
+    asks for, so one pool serves every zone.
+  * **Azure, node auto-provisioning** (the default): AKS's [managed Karpenter](https://learn.microsoft.com/en-us/azure/aks/node-auto-provisioning).
+    The `NodePool`/`AKSNodeClass` are rendered into the pool's service and capped by `maxCpu`; NAP launches each
+    node in the zone its pending worker asks for. Azure has no nested virtualization switch: Dv5, Ev5 and Lsv3
+    sizes support it, and the node class keeps Trusted Launch, which would take it away, off, so the pool can run
+    `microvm` sandboxes as well as `gvisor`. With `enableNap` the stack turns NAP on for the cluster without AKS's
+    default `NodePools` (they're untainted, so they'd scale for the same pods as the cluster autoscaler), grants
+    the cluster identity `Network Contributor` on a custom VNet's subnet, and, if the cluster has autoscaled pools,
+    registers the subscription feature `AllowClusterAutoscalerAndNAP` that lets NAP run beside them. Registering
+    needs subscription rights the stack's identity usually lacks; if it fails, run
+    `az feature register --namespace Microsoft.ContainerService --name AllowClusterAutoscalerAndNAP` once as a
+    subscription owner. NAP needs Azure CNI without Calico and a managed cluster identity. Turn `enableNap` off on
+    a cluster where NAP already runs, since it would remove the default `NodePools`.
+  * **Azure, node pools**: one AKS node pool per availability zone (`zones`, named after the pool's first 11
+    letters and digits and the zone). A pool spanning zones is one scale set that picks zones itself, and the
+    cluster autoscaler isn't zone-aware, so a worker pinned to its devboxes' block homes could wait on a node in
+    the wrong zone. Each zone's pool starts at zero and may grow to `maxNodes`.
+
+  On Azure use an L-series size (e.g. `Standard_L16s_v3`) for local NVMe.
 * A `devbox-nodes-devbox` service in the `devbox-nodes` namespace with the
   `devbox-disk-prep-devbox` DaemonSet.
 
