@@ -1,0 +1,208 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: devbox-nodes
+spec:
+  name: devbox-nodes
+  icon: https://docs.plural.sh/favicon-128.png
+  identifier: mgmt
+  documentation: |
+    Sets up a dedicated, autoscaled node pool for Plural devboxes (Agent Substrate workers) with /var/lib/ate on
+    fast local or attached disk. On AWS the pool is provisioned with Karpenter or an EKS managed node group, on Azure with node
+    auto-provisioning (managed Karpenter) or AKS node pools.
+  creates:
+    git:
+      ref: substrate-setup
+      folder: catalogs/devbox/devbox-nodes
+    templates:
+    - source: README.md
+      destination: "documentation/devbox-nodes/{{ context.cluster }}/{{ context.pool }}/README.md"
+      external: true
+    - source: helm
+      destination: "helm/karpenter/{{ context.cluster }}"
+      external: true
+      condition: (context.installKarpenter == true or context.installKarpenter == "true") and context.awsProvisioner == "karpenter"
+    - source: services
+      destination: "services/devbox-nodes/{{ context.cluster }}/{{ context.pool }}"
+      external: true
+    - source: "terraform/{{ context.cloud }}"
+      destination: "terraform/apps/devbox-nodes/{{ context.cluster }}/{{ context.pool }}"
+      external: true
+    - source: devbox-nodes.yaml.liquid
+      destination: "bootstrap/apps/devbox-nodes/{{ context.cluster }}/{{ context.pool }}.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devbox
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Devbox node pool {{ context.pool }} ({{ context.cluster }}, {{ context.cloud }})"
+  message: |
+    Sets up the {{ context.pool }} devbox node pool on {{ context.cluster }} ({{ context.cloud }}{% if context.cloud == 'aws' %}, {{ context.awsProvisioner }}{% elsif context.cloud == 'azure' %}, {{ context.azureProvisioner | default: 'nap' }}{% endif %}) for {{ context.sandboxClass }} sandboxes on {{ context.instanceTypes }}, with /var/lib/ate on {{ context.diskMode }} disk.
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster the devbox nodes join
+  - name: cloud
+    type: ENUM
+    documentation: the cloud provider hosting the target cluster
+    values:
+    - aws
+    - azure
+    - gcp
+  - name: pool
+    type: STRING
+    documentation: |
+      the node pool name, also the plural.sh/devbox-pool node label DevboxRunners select on. Every file and
+      resource this creates is named after it, so each pool on a cluster sits beside the others. Lowercase letters,
+      digits and hyphens, at most 32 characters; AKS node pools drop the hyphens and keep the first 12 characters
+    default: devbox
+    validation:
+      regex: '^[a-z]([-a-z0-9]{0,30}[a-z0-9])?$'
+  - name: sandboxClass
+    type: ENUM
+    documentation: |
+      the Substrate sandbox class these nodes run. microvm needs nested virtualization: on AWS only Karpenter
+      can enable it (*7i/*8i, i7i, x8i), on GCP use Intel machines (n2, c3, c4, n4), on Azure Dv5/Ev5/Lsv3.
+    values:
+    - gvisor
+    - microvm
+  - name: region
+    type: STRING
+    documentation: the AWS region of the target EKS cluster
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: awsProvisioner
+    type: ENUM
+    documentation: |
+      how AWS nodes are provisioned. Karpenter (the default) launches each node in the zone its worker needs and
+      enables nested virtualization, so the pool can also run microvm sandboxes; managed node groups (one per zone,
+      sized by the cluster autoscaler) only run gvisor.
+    optional: true
+    default: karpenter
+    values:
+    - karpenter
+    - managed-node-group
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: installKarpenter
+    type: BOOL
+    documentation: |
+      install Karpenter (controller IAM, interruption queue and the Helm chart) once per cluster, with the first
+      Karpenter pool. On by default; turn it off for further pools, or if the cluster already runs Karpenter; its
+      controller must then be allowed to pass the node roles named <cluster>-devbox-<pool> and run with the
+      NodeOverlay feature gate (settings.featureGates.nodeOverlay), as the one installed here is
+    optional: true
+    default: "true"
+    condition:
+      field: awsProvisioner
+      operation: EQ
+      value: karpenter
+  - name: karpenterVersion
+    type: STRING
+    documentation: the Karpenter chart version to install, 1.13+ is needed for nested virtualization
+    optional: true
+    default: "1.13.0"
+    condition:
+      field: awsProvisioner
+      operation: EQ
+      value: karpenter
+  - name: azureProvisioner
+    type: ENUM
+    documentation: |
+      how Azure nodes are provisioned. nap (the default) uses AKS node auto-provisioning (managed Karpenter), which
+      launches each node in the zone its worker needs; node-pools makes one AKS node pool per zone, sized by the cluster
+      autoscaler. NAP needs Azure CNI without Calico and a managed cluster identity.
+    optional: true
+    default: nap
+    values:
+    - nap
+    - node-pools
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
+  - name: enableNap
+    type: BOOL
+    documentation: |
+      turn on node auto-provisioning for the cluster, without AKS's default NodePools. Beside cluster-autoscaled pools
+      it needs the subscription feature AllowClusterAutoscalerAndNAP, which the stack registers if its identity may
+      (otherwise register it once as a subscription owner). Turn it off if NAP already runs on the cluster, since it
+      would remove the default NodePools.
+    optional: true
+    default: "true"
+    condition:
+      field: azureProvisioner
+      operation: EQ
+      value: nap
+  - name: maxCpu
+    type: STRING
+    documentation: the NodePool CPU limit across all devbox nodes, with Karpenter on AWS and node auto-provisioning on Azure
+    optional: true
+    default: "1000"
+  - name: resourceGroup
+    type: STRING
+    documentation: the resource group of the target AKS cluster, if its cluster context doesn't carry one
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
+  - name: instanceTypes
+    type: STRING
+    documentation: |
+      the machine type. AWS takes a comma-separated list, e.g. c8id.4xlarge,m8id.4xlarge (local NVMe) or
+      c8i.4xlarge (network disk); with Karpenter they must support nested virtualization (*7i/*8i, i7i, x8i). GCP takes one machine type, e.g. c3-standard-22-lssd or n2-standard-16. Azure
+      takes one VM size, e.g. Standard_L16s_v3 (local NVMe) or Standard_D16s_v5.
+  - name: diskMode
+    type: ENUM
+    documentation: |
+      where /var/lib/ate lives. local formats the instance's NVMe disks (RAID0 when there are several); network
+      attaches a gp3 data volume on AWS and uses a larger boot disk on GCP and Azure.
+    values:
+    - local
+    - network
+  - name: localSsdCount
+    type: STRING
+    documentation: the number of local NVMe SSDs per node on GCP (375GB each); -lssd machine types have a fixed count
+    optional: true
+    default: "2"
+    condition:
+      field: cloud
+      operation: EQ
+      value: gcp
+  - name: dataDiskSize
+    type: STRING
+    documentation: the size in GiB of the AWS gp3 data volume when diskMode is network
+    optional: true
+    default: "200"
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: bootDiskSize
+    type: STRING
+    documentation: the boot disk size in GiB (holds /var/lib/ate on GCP and Azure when diskMode is network)
+    default: "250"
+  - name: minNodes
+    type: STRING
+    documentation: the minimum node count (ignored by Karpenter, node auto-provisioning, EKS managed node groups and AKS node pools, whose zones start empty)
+    default: "1"
+  - name: maxNodes
+    type: STRING
+    documentation: the maximum node count, per zone with EKS managed node groups and AKS node pools (ignored by Karpenter and node auto-provisioning, use maxCpu)
+    default: "10"
+  - name: diskPrepImage
+    type: STRING
+    documentation: |
+      the image the disk-prep DaemonSet runs, the agent-harness base image (it ships /devbox-disk-prep). Use the
+      same version as the deployment operator, or a mirror of it.
+    default: ghcr.io/pluralsh/agent-harness-base:0.6.76

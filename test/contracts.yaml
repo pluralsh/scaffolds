@@ -31,3 +31,33 @@ spec:
   - file: ../../setup/catalogs/devops/plural-telemetry.yaml
     context: ../contexts/plural-telemetry-gcp.yaml
     externalDir: ../../catalogs/devops/plural-telemetry
+  - file: ../../setup/catalogs/devbox/devbox-nodes.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-nodes-aws-karpenter.yaml
+  - file: ../../setup/catalogs/devbox/devbox-nodes.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-nodes-aws-karpenter-second.yaml
+  - file: ../../setup/catalogs/devbox/devbox-nodes.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-nodes-aws-mng.yaml
+  - file: ../../setup/catalogs/devbox/devbox-nodes.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-nodes-gcp.yaml
+  - file: ../../setup/catalogs/devbox/devbox-nodes.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-nodes-azure.yaml
+  - file: ../../setup/catalogs/devbox/devbox-nodes.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-nodes-azure-pools.yaml
+  - file: ../../setup/catalogs/devbox/devbox.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-aws-karpenter.yaml
+  - file: ../../setup/catalogs/devbox/devbox.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-aws-second-pool.yaml
+  - file: ../../setup/catalogs/devbox/devbox.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-gcp-network.yaml
+  - file: ../../setup/catalogs/devbox/devbox.yaml
+    externalDir: ../../catalogs/devbox/devbox-nodes
+    context: ../contexts/devbox-azure.yaml

@@ -1,0 +1,13 @@
+cluster: devbox-aws-mng
+cloud: aws
+region: us-east-2
+pool: devbox
+sandboxClass: gvisor
+awsProvisioner: managed-node-group
+instanceTypes: c8i.4xlarge
+diskMode: network
+dataDiskSize: "300"
+bootDiskSize: "100"
+minNodes: "1"
+maxNodes: "10"
+diskPrepImage: ghcr.io/pluralsh/agent-harness-base:0.6.76

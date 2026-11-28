@@ -1,0 +1,49 @@
+# Agent Substrate for the devboxes on devbox-full-azure. Values reference:
+# https://github.com/pluralsh/console/blob/master/charts/agent-substrate/values.yaml
+
+# Wires Substrate to the deployment operator's devbox-gateway in plrl-deploy-operator and makes the operator's
+# ServiceAccount a bootstrap owner, so it can create atespaces.
+devboxes:
+  enabled: true
+
+otel:
+  endpoint: ""
+
+cloudnative-pg:
+  enabled: true
+
+# Substrate workers only run on devbox pools, so atelet only needs to run there too, on every pool of the cluster.
+# It doesn't tolerate the plural.sh/devbox-disk startup taint, so it waits for devbox-disk-prep to mount /var/lib/ate.
+atelet:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: plural.sh/devbox-pool
+            operator: Exists
+
+
+objectStore:
+  backend: azureBlob
+  snapshotLocation: {{ imports[configuration.stackName].substrate_snapshot_location }}
+  azureBlob:
+    image:
+      tag: "0.3.0"
+    accountUrl: {{ imports[configuration.stackName].substrate_account_url }}
+    containers:
+    - snapshots
+    tenantId: {{ imports[configuration.stackName].substrate_tenant_id }}
+    nodeClientId: {{ imports[configuration.stackName].substrate_node_client_id }}
+    controlClientId: {{ imports[configuration.stackName].substrate_control_client_id }}
+
+
+
+# Devbox homes (DevboxRunner spec.home.storage: Block): one cloud disk per home from the cluster's
+# own CSI driver, snapshotted through the cluster's VolumeSnapshot API. The operator runs a WorkerPool per zone of the
+# runner's nodes and keeps each box in its home's zone. The chart pins the driver's image to its operator release.
+block:
+  enabled: true
+
+  provider: disk.csi.azure.com
+

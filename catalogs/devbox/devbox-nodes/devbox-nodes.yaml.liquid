@@ -1,0 +1,161 @@
+{% assign karpenter = false %}
+{% if context.cloud == 'aws' and context.awsProvisioner == 'karpenter' %}{% if context.installKarpenter == true or context.installKarpenter == "true" %}
+{% assign karpenter = true %}
+{% endif %}{% endif %}
+{% assign substrate = false %}
+{% if context.substrate == true or context.substrate == "true" %}
+{% assign substrate = true %}
+{% endif %}
+{% if context.diskMode == 'local' %}
+{% case context.cloud %}
+{% when 'aws' %}{% assign diskModel = 'Instance Storage' %}
+{% when 'gcp' %}{% assign diskModel = '^nvme_card$' %}
+{% when 'azure' %}{% assign diskModel = 'NVMe Direct Disk' %}
+{% endcase %}
+{% elsif context.cloud == 'aws' %}
+{% assign diskModel = 'Elastic Block Store' %}
+{% else %}
+{% assign diskModel = '' %}
+{% endif %}
+{% assign stackName = 'devbox-nodes-' | append: context.cluster | append: '-' | append: context.pool %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: InfrastructureStack
+metadata:
+  name: {{ stackName }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  detach: false
+  type: TERRAFORM
+  approval: true
+  manageState: true
+  actor: console@plural.sh
+  git:
+    ref: main
+    folder: terraform/apps/devbox-nodes/{{ context.cluster }}/{{ context.pool }}
+  repositoryRef:
+    name: infra
+    namespace: infra
+  {% if context.cloud == 'azure' %}
+  jobSpec:
+    namespace: plrl-deploy-operator
+    labels:
+      azure.workload.identity/use: "true"
+    serviceAccount: stacks
+  {% endif %}
+  clusterRef:
+    name: mgmt
+    namespace: infra
+{% if karpenter %}
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: karpenter-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: karpenter
+  namespace: karpenter
+  git:
+    folder: helm/karpenter/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "{{ context.karpenterVersion }}"
+    chart: karpenter
+    release: karpenter
+    url: oci://public.ecr.aws/karpenter
+    valuesFiles:
+    - karpenter.yaml.liquid
+  imports:
+  - stackRef:
+      name: {{ stackName }}
+      namespace: apps
+  configuration:
+    stackName: {{ stackName }}
+  cluster: {{ context.cluster }}
+{% endif %}
+{% if substrate %}
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: agent-substrate-{{ context.cluster }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: agent-substrate
+  # The Substrate binaries default every in-cluster address and SPIFFE ID to ate-system, so the chart only renders there.
+  namespace: ate-system
+  git:
+    folder: helm/agent-substrate/{{ context.cluster }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+  helm:
+    version: "{{ context.substrateVersion | default: '0.1.0' }}"
+    chart: agent-substrate
+    release: ate
+    url: oci://ghcr.io/pluralsh/charts
+    valuesFiles:
+    - agent-substrate.yaml.liquid
+  imports:
+  - stackRef:
+      name: {{ stackName }}
+      namespace: apps
+  configuration:
+    stackName: {{ stackName }}
+  cluster: {{ context.cluster }}
+{% endif %}
+---
+apiVersion: deployments.plural.sh/v1alpha1
+kind: ServiceDeployment
+metadata:
+  name: {{ stackName }}
+  namespace: apps
+spec:
+{% if context.ai %}
+  agentId: {{ context.ai.session.agent_id }}
+{% endif %}
+  name: devbox-nodes-{{ context.pool }}
+  # Shared by every devbox pool on the cluster; each pool's resources carry its name.
+  namespace: devbox-nodes
+  git:
+    folder: services/devbox-nodes/{{ context.cluster }}/{{ context.pool }}
+    ref: main
+  repositoryRef:
+    kind: GitRepository
+    name: infra
+    namespace: infra
+{% if karpenter or substrate %}
+  dependencies:
+{% if karpenter %}
+  - name: karpenter
+{% endif %}
+{% if substrate %}
+  # The DevboxRunner needs Substrate's WorkerPool API.
+  - name: agent-substrate
+{% endif %}
+{% endif %}
+  imports:
+  - stackRef:
+      name: {{ stackName }}
+      namespace: apps
+  configuration:
+    stackName: {{ stackName }}
+    pool: {{ context.pool }}
+    diskModel: "{{ diskModel }}"
+    diskPrepImage: {{ context.diskPrepImage }}
+  cluster: {{ context.cluster }}

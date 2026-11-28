@@ -1,0 +1,109 @@
+{% assign diskSize = '' %}
+{% if context.diskSize and context.diskSize != '' %}
+{% assign diskSize = context.diskSize %}
+{% elsif context.diskMode == 'network' and context.cloud == 'aws' %}
+{% assign diskSize = context.dataDiskSize | default: 200 %}
+{% elsif context.diskMode == 'network' %}
+{% comment %}GCP/Azure network mode shares the boot disk with the OS and container images.{% endcomment %}
+{% assign diskSize = context.bootDiskSize | minus: 50 %}
+{% elsif context.cloud == 'gcp' %}
+{% comment %}375GB per local SSD.{% endcomment %}
+{% assign diskSize = context.localSsdCount | default: 2 | times: 349 %}
+{% endif %}
+{% assign scmConnections = context.scmConnections | default: '' | split: ',' %}
+{% assign allowedRepositories = context.allowedRepositories | default: '' | split: ',' %}
+{% assign autonomy = context.autonomy | default: 'auto' %}
+{% assign maxAutonomy = context.maxAutonomy | default: 'full' %}
+{% comment %}Every devbox image ships all five agents; the chosen one is the default.{% endcomment %}
+{% assign extraAgents = context.agents | default: 'claude,codex,opencode,gemini,pi' | split: ',' %}
+apiVersion: deployments.plural.sh/v1alpha1
+kind: DevboxRunner
+metadata:
+  name: {{ context.runnerName }}
+spec:
+{% if context.image and context.image != '' %}
+  image: {{ context.image }}
+{% endif %}
+  agents:
+  - type: {{ context.agent }}
+    default: true
+{% for extra in extraAgents %}
+{% assign extra = extra | strip %}
+{% if extra != '' and extra != context.agent %}
+  - type: {{ extra }}
+{% endif %}
+{% endfor %}
+{% if scmConnections.size > 0 %}
+  scmConnections:
+{% for conn in scmConnections %}
+  - {{ conn | strip }}
+{% endfor %}
+{% endif %}
+{% if allowedRepositories.size > 0 %}
+  allowedRepositories:
+{% for repo in allowedRepositories %}
+  - {{ repo | strip }}
+{% endfor %}
+{% endif %}
+  autonomy:
+    default: {{ autonomy }}
+    max: {{ maxAutonomy }}
+{% if context.browser %}
+  browser:
+    enabled: true
+{% endif %}
+  # each devbox's /home/dev is its own cloud disk from agent-substrate's block driver, in one zone
+  home:
+    storage: Block
+{% if context.cloud == 'aws' and context.awsRoleArn and context.awsRoleArn != '' %}
+  cloudIdentities:
+  - name: aws
+    default: true
+    aws:
+      roleArn: {{ context.awsRoleArn }}
+{% elsif context.cloud == 'gcp' and context.gcpWorkloadIdentityProvider and context.gcpWorkloadIdentityProvider != '' %}
+  cloudIdentities:
+  - name: gcp
+    default: true
+    gcp:
+      workloadIdentityProvider: {{ context.gcpWorkloadIdentityProvider }}
+      serviceAccount: {{ context.gcpServiceAccount }}
+{% elsif context.cloud == 'azure' and context.azureTenantId and context.azureTenantId != '' %}
+  cloudIdentities:
+  - name: azure
+    default: true
+    azure:
+      tenantId: {{ context.azureTenantId }}
+      clientId: {{ context.azureClientId }}
+{% endif %}
+  resources:
+    cpu: "{{ context.instanceCpu }}"
+    memory: {{ context.instanceMemory }}
+    disk: {{ context.instanceDisk }}
+  workerPool:
+    autoscaling:
+      minReplicas: {{ context.minNodes }}
+      maxReplicas: {{ context.maxNodes }}
+      spareInstances: {{ context.spareInstances | default: 1 }}
+{% if diskSize != '' %}
+    diskSize: {{ diskSize }}Gi
+{% endif %}
+    sandboxClass: {{ context.sandboxClass }}
+    nodeSelector:
+      plural.sh/devbox-pool: {{ context.pool }}
+    tolerations:
+    # Lets the cluster autoscaler size the pool from its template; atelet still waits for the disk.
+    - key: plural.sh/devbox-disk
+      operator: Exists
+      effect: NoSchedule
+{% assign azureProvisioner = context.azureProvisioner | default: 'nap' %}
+{% assign karpenterNodes = false %}
+{% if context.cloud == 'aws' and context.awsProvisioner == 'karpenter' %}{% assign karpenterNodes = true %}{% endif %}
+{% if context.cloud == 'azure' and azureProvisioner == 'nap' %}{% assign karpenterNodes = true %}{% endif %}
+{% if karpenterNodes %}
+    podAnnotations:
+      karpenter.sh/do-not-disrupt: "true"
+{% endif %}
+    resources:
+      requests: {cpu: "{{ context.workerCpu }}", memory: {{ context.workerMemory }}}
+      limits: {cpu: "{{ context.workerCpu }}", memory: {{ context.workerMemory }}}

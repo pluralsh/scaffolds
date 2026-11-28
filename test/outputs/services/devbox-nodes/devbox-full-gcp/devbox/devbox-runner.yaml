@@ -1,0 +1,82 @@
+
+
+
+
+
+
+
+
+
+
+
+apiVersion: deployments.plural.sh/v1alpha1
+kind: DevboxRunner
+metadata:
+  name: platform
+spec:
+
+  agents:
+  - type: codex
+    default: true
+
+
+
+  - type: claude
+
+
+
+
+
+
+
+  - type: opencode
+
+
+
+
+  - type: gemini
+
+
+
+
+  - type: pi
+
+
+
+
+  autonomy:
+    default: auto
+    max: full
+
+  # each devbox's /home/dev is its own cloud disk from agent-substrate's block driver, in one zone
+  home:
+    storage: Block
+
+  resources:
+    cpu: "2"
+    memory: 4Gi
+    disk: 20Gi
+  workerPool:
+    autoscaling:
+      minReplicas: 1
+      maxReplicas: 10
+      spareInstances: 1
+
+    diskSize: 200Gi
+
+    sandboxClass: gvisor
+    nodeSelector:
+      plural.sh/devbox-pool: devbox
+    tolerations:
+    # Lets the cluster autoscaler size the pool from its template; atelet still waits for the disk.
+    - key: plural.sh/devbox-disk
+      operator: Exists
+      effect: NoSchedule
+
+
+
+
+
+    resources:
+      requests: {cpu: "14", memory: 56Gi}
+      limits: {cpu: "14", memory: 56Gi}

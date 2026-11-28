@@ -1,0 +1,14 @@
+cluster: devbox-azure
+cloud: azure
+resourceGroup: workload-prod
+azureProvisioner: nap
+enableNap: true
+maxCpu: "160"
+pool: devbox
+sandboxClass: gvisor
+instanceTypes: Standard_L16s_v3
+diskMode: local
+bootDiskSize: "100"
+minNodes: "1"
+maxNodes: "10"
+diskPrepImage: ghcr.io/pluralsh/agent-harness-base:0.6.76

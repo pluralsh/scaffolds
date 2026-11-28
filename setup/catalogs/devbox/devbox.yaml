@@ -1,0 +1,393 @@
+apiVersion: deployments.plural.sh/v1alpha1
+kind: PrAutomation
+metadata:
+  name: devbox
+spec:
+  name: devbox
+  icon: https://docs.plural.sh/favicon-128.png
+  identifier: mgmt
+  documentation: |
+    Sets up a Plural devbox end to end: a dedicated, autoscaled node pool (as in devbox-nodes), Agent Substrate with
+    its snapshot storage and workload identities, and a DevboxRunner whose autoscaled Substrate workers run one per
+    node on it. The cluster needs Kubernetes 1.34+ with the ClusterTrustBundle and PodCertificateRequest APIs, and a
+    deployment operator with devbox support.
+  creates:
+    git:
+      ref: substrate-setup
+      folder: catalogs/devbox/devbox-nodes
+    templates:
+    - source: README.md
+      destination: "documentation/devbox-nodes/{{ context.cluster }}/{{ context.pool }}/README.md"
+      external: true
+    - source: helm
+      destination: "helm/karpenter/{{ context.cluster }}"
+      external: true
+      condition: (context.installKarpenter == true or context.installKarpenter == "true") and context.awsProvisioner == "karpenter"
+    - source: services
+      destination: "services/devbox-nodes/{{ context.cluster }}/{{ context.pool }}"
+      external: true
+    - source: "terraform/{{ context.cloud }}"
+      destination: "terraform/apps/devbox-nodes/{{ context.cluster }}/{{ context.pool }}"
+      external: true
+    - source: substrate
+      destination: "helm/agent-substrate/{{ context.cluster }}"
+      external: true
+      condition: context.substrate == true
+    - source: runner/devbox-runner.yaml.liquid
+      destination: "services/devbox-nodes/{{ context.cluster }}/{{ context.pool }}/devbox-runner.yaml"
+      external: true
+    - source: devbox-nodes.yaml.liquid
+      destination: "bootstrap/apps/devbox-nodes/{{ context.cluster }}/{{ context.pool }}.yaml"
+      external: true
+  repositoryRef:
+    name: scaffolds
+  catalogRef:
+    name: devbox
+  scmConnectionRef:
+    name: plural # you'll need to add this ScmConnection manually before this is functional
+  title: "Devbox {{ context.runnerName }} ({{ context.cluster }}, {{ context.cloud }})"
+  message: |
+    Sets up the {{ context.runnerName }} DevboxRunner ({{ context.agent }}) on {{ context.cluster }} and the {{ context.pool }} node pool it runs on ({{ context.cloud }}{% if context.cloud == 'aws' %}, {{ context.awsProvisioner }}{% elsif context.cloud == 'azure' %}, {{ context.azureProvisioner | default: 'nap' }}{% endif %}) for {{ context.sandboxClass }} sandboxes on {{ context.instanceTypes }}, with /var/lib/ate on {{ context.diskMode }} disk.{% if context.substrate == true or context.substrate == "true" %} Installs Agent Substrate (chart {{ context.substrateVersion }}) in ate-system with its snapshot storage.{% endif %}
+
+    Plural Service: mgmt/apps
+  configuration:
+  - name: cluster
+    type: CLUSTER
+    documentation: the cluster the devbox nodes join
+  - name: cloud
+    type: ENUM
+    documentation: the cloud provider hosting the target cluster
+    values:
+    - aws
+    - azure
+    - gcp
+  - name: substrate
+    type: BOOL
+    optional: true
+    default: "true"
+    documentation: |
+      install Agent Substrate in ate-system: its snapshot bucket (S3, GCS or Azure Blob), the workload identities of
+      ate-api-server and atelet, and the agent-substrate chart wired to the deployment operator's devbox gateway, with
+      its block driver on for devbox homes (one cloud disk each). On EKS it also installs the snapshot-controller
+      add-on, whose VolumeSnapshots homes need (GKE and AKS serve them already), and warns if the EBS CSI driver add-on
+      is missing.
+      On by default. Substrate runs once per cluster, so turn it off if it already does, e.g. from another devbox
+      pool; that setup's stack keeps its snapshot storage. Substrate needs pod certificates, which
+      EKS, GKE and AKS only serve from Kubernetes 1.37, so the cluster must run 1.37 or later.
+  - name: substrateVersion
+    type: STRING
+    documentation: the agent-substrate chart version (oci://ghcr.io/pluralsh/charts), when substrate is on
+    optional: true
+    default: "0.1.0"
+  - name: existingCnpg
+    type: BOOL
+    documentation: |
+      CloudNativePG already runs on the cluster, when substrate is on. Substrate's Postgres is a CNPG Cluster, and the
+      chart bundles the operator unless this is on; two copies of the cluster-wide operator conflict.
+    optional: true
+  - name: azureBlobPluginTag
+    type: STRING
+    documentation: |
+      the ghcr.io/pluralsh/objectstore-azure-blob image tag Substrate's snapshot storage runs on Azure; the chart
+      requires it pinned
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
+  - name: pool
+    type: STRING
+    documentation: |
+      the node pool name, also the plural.sh/devbox-pool node label DevboxRunners select on. Every file and
+      resource this creates is named after it, so each pool on a cluster sits beside the others. Lowercase letters,
+      digits and hyphens, at most 32 characters; AKS node pools drop the hyphens and keep the first 12 characters
+    default: devbox
+    validation:
+      regex: '^[a-z]([-a-z0-9]{0,30}[a-z0-9])?$'
+  - name: sandboxClass
+    type: ENUM
+    documentation: |
+      the Substrate sandbox class these nodes run. microvm needs nested virtualization: on AWS only Karpenter
+      can enable it (*7i/*8i, i7i, x8i), on GCP use Intel machines (n2, c3, c4, n4), on Azure Dv5/Ev5/Lsv3.
+    values:
+    - gvisor
+    - microvm
+  - name: region
+    type: STRING
+    documentation: the AWS region of the target EKS cluster
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: awsProvisioner
+    type: ENUM
+    documentation: |
+      how AWS nodes are provisioned. Karpenter (the default) launches each node in the zone its worker needs and
+      enables nested virtualization, so the pool can also run microvm sandboxes; managed node groups (one per zone,
+      sized by the cluster autoscaler) only run gvisor.
+    optional: true
+    default: karpenter
+    values:
+    - karpenter
+    - managed-node-group
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: installKarpenter
+    type: BOOL
+    documentation: |
+      install Karpenter (controller IAM, interruption queue and the Helm chart) once per cluster, with the first
+      Karpenter pool. On by default; turn it off for further pools, or if the cluster already runs Karpenter; its
+      controller must then be allowed to pass the node roles named <cluster>-devbox-<pool>, as the one installed here is
+    optional: true
+    default: "true"
+    condition:
+      field: awsProvisioner
+      operation: EQ
+      value: karpenter
+  - name: karpenterVersion
+    type: STRING
+    documentation: the Karpenter chart version to install, 1.13+ is needed for nested virtualization
+    optional: true
+    default: "1.13.0"
+    condition:
+      field: awsProvisioner
+      operation: EQ
+      value: karpenter
+  - name: azureProvisioner
+    type: ENUM
+    documentation: |
+      how Azure nodes are provisioned. nap (the default) uses AKS node auto-provisioning (managed Karpenter), which
+      launches each node in the zone its worker needs; node-pools makes one AKS node pool per zone, sized by the cluster
+      autoscaler. NAP needs Azure CNI without Calico and a managed cluster identity.
+    optional: true
+    default: nap
+    values:
+    - nap
+    - node-pools
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
+  - name: enableNap
+    type: BOOL
+    documentation: |
+      turn on node auto-provisioning for the cluster, without AKS's default NodePools. Beside cluster-autoscaled pools
+      it needs the subscription feature AllowClusterAutoscalerAndNAP, which the stack registers if its identity may
+      (otherwise register it once as a subscription owner). Turn it off if NAP already runs on the cluster, since it
+      would remove the default NodePools.
+    optional: true
+    default: "true"
+    condition:
+      field: azureProvisioner
+      operation: EQ
+      value: nap
+  - name: maxCpu
+    type: STRING
+    documentation: the NodePool CPU limit across all devbox nodes, with Karpenter on AWS and node auto-provisioning on Azure
+    optional: true
+    default: "1000"
+  - name: resourceGroup
+    type: STRING
+    documentation: the resource group of the target AKS cluster, if its cluster context doesn't carry one
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
+  - name: instanceTypes
+    type: STRING
+    documentation: |
+      the machine type. AWS takes a comma-separated list, e.g. c8id.4xlarge,m8id.4xlarge (local NVMe) or
+      c8i.4xlarge (network disk); with Karpenter they must support nested virtualization (*7i/*8i, i7i, x8i). GCP takes one machine type, e.g. c3-standard-22-lssd or n2-standard-16. Azure
+      takes one VM size, e.g. Standard_L16s_v3 (local NVMe) or Standard_D16s_v5.
+  - name: diskMode
+    type: ENUM
+    documentation: |
+      where /var/lib/ate lives. local formats the instance's NVMe disks (RAID0 when there are several); network
+      attaches a gp3 data volume on AWS and uses a larger boot disk on GCP and Azure.
+    values:
+    - local
+    - network
+  - name: localSsdCount
+    type: STRING
+    documentation: the number of local NVMe SSDs per node on GCP (375GB each); -lssd machine types have a fixed count
+    optional: true
+    default: "2"
+    condition:
+      field: cloud
+      operation: EQ
+      value: gcp
+  - name: dataDiskSize
+    type: STRING
+    documentation: the size in GiB of the AWS gp3 data volume when diskMode is network
+    optional: true
+    default: "200"
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: bootDiskSize
+    type: STRING
+    documentation: the boot disk size in GiB (holds /var/lib/ate on GCP and Azure when diskMode is network)
+    default: "250"
+  - name: minNodes
+    type: STRING
+    documentation: |
+      the minimum node count, also the runner's minimum worker count (Karpenter, node auto-provisioning, EKS managed node
+      groups and AKS node pools ignore it for nodes: their zones start empty and grow with the runner's workers)
+    default: "1"
+  - name: maxNodes
+    type: STRING
+    documentation: |
+      the maximum node count, also the runner's maximum worker count (per zone for EKS managed node groups and AKS node
+      pools; Karpenter and node auto-provisioning ignore it for nodes and are capped by maxCpu)
+    default: "10"
+  - name: runnerName
+    type: STRING
+    documentation: the DevboxRunner name, also the devbox's name in console
+    default: devbox
+    validation:
+      regex: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+  - name: agent
+    type: ENUM
+    documentation: the default coding agent
+    values:
+    - claude
+    - codex
+    - opencode
+    - gemini
+    - pi
+  - name: agents
+    type: STRING
+    documentation: |
+      comma-separated agents users can pick from besides the default, e.g. codex,gemini. Leave empty to offer every
+      agent the devbox image ships (claude, codex, opencode, gemini and pi)
+    optional: true
+  - name: scmConnections
+    type: STRING
+    documentation: |
+      comma-separated console SCM connection names devboxes may use for git credentials, e.g. github. Without one
+      devboxes can't clone private repositories or push
+    optional: true
+  - name: allowedRepositories
+    type: STRING
+    documentation: |
+      comma-separated git repositories devboxes may use, e.g. https://github.com/acme/api.git. Leave empty to allow
+      any repository the SCM connections can reach
+    optional: true
+  - name: autonomy
+    type: ENUM
+    documentation: |
+      how much agents may do without asking when a session starts. manual sends every permission request to a
+      human, auto lets the agent's reviewer approve what it can, full approves everything
+    values:
+    - auto
+    - manual
+    - full
+  - name: maxAutonomy
+    type: ENUM
+    documentation: |
+      the most autonomy users can switch a session to. Defaults to full; lower it to keep agents from approving
+      everything
+    optional: true
+    values:
+    - full
+    - auto
+    - manual
+  - name: browser
+    type: BOOL
+    documentation: give each devbox a headless browser the agent can drive
+    optional: true
+  - name: image
+    type: STRING
+    documentation: |
+      a custom devbox image built FROM ghcr.io/pluralsh/devbox-minimal or devbox-fat. Leave empty for devbox-fat at
+      the deployment operator's version
+    optional: true
+  - name: awsRoleArn
+    type: STRING
+    documentation: |
+      an IAM role devboxes assume through workload identity federation; its trust policy must allow the console's
+      workload identity issuer. Leave empty for no cloud credentials
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: aws
+  - name: gcpWorkloadIdentityProvider
+    type: STRING
+    documentation: |
+      the workload identity provider devboxes federate through, projects/<number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>.
+      Leave empty for no cloud credentials
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: gcp
+  - name: gcpServiceAccount
+    type: STRING
+    documentation: the email of the GCP service account devboxes impersonate
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: gcp
+  - name: azureTenantId
+    type: STRING
+    documentation: the Entra tenant of the app registration devboxes federate as; leave empty for no cloud credentials
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
+  - name: azureClientId
+    type: STRING
+    documentation: the client id of the federated app registration
+    optional: true
+    condition:
+      field: cloud
+      operation: EQ
+      value: azure
+  - name: instanceCpu
+    type: STRING
+    documentation: each devbox's minimum CPU; devboxes split the worker's CPU evenly, so they usually get more
+    default: "2"
+  - name: instanceMemory
+    type: STRING
+    documentation: each devbox's minimum memory, also its snapshot size in disk sizing
+    default: 4Gi
+  - name: instanceDisk
+    type: STRING
+    documentation: each devbox's disk budget (rootfs overlay and durable directories)
+    default: 20Gi
+  - name: workerCpu
+    type: STRING
+    documentation: |
+      the CPU each worker requests and is limited to; one worker runs per node, so use roughly the node's
+      allocatable CPU, e.g. 14 on a 16 vCPU node
+  - name: workerMemory
+    type: STRING
+    documentation: |
+      the memory each worker requests and is limited to; one worker runs per node, so stay a little under the node's
+      allocatable memory (several GiB below its RAM) to leave room for DaemonSets, e.g. 24Gi on 32GiB or 56Gi on 64GiB
+  - name: diskSize
+    type: STRING
+    documentation: |
+      the size in GiB of each node's /var/lib/ate disk, used to size devboxes. Leave empty to derive it: the data
+      disk on AWS network mode, the boot disk less 50GiB on GCP/Azure network mode, localSsdCount x 349GiB on GCP
+      local mode. Set it for AWS and Azure local mode (the instance type's NVMe capacity) and GCP -lssd machine
+      types, otherwise disk is left out of sizing.
+    optional: true
+  - name: spareInstances
+    type: STRING
+    documentation: free devbox slots the runner keeps warm so a resume doesn't wait for a node
+    default: "1"
+  - name: diskPrepImage
+    type: STRING
+    documentation: |
+      the image the disk-prep DaemonSet runs, the agent-harness base image (it ships /devbox-disk-prep). Use the
+      same version as the deployment operator, or a mirror of it.
+    default: ghcr.io/pluralsh/agent-harness-base:0.6.76

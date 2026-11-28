@@ -1,0 +1,51 @@
+# Agent Substrate for the devboxes on devbox-full-aws-karpenter. Values reference:
+# https://github.com/pluralsh/console/blob/master/charts/agent-substrate/values.yaml
+
+# Wires Substrate to the deployment operator's devbox-gateway in plrl-deploy-operator and makes the operator's
+# ServiceAccount a bootstrap owner, so it can create atespaces.
+devboxes:
+  enabled: true
+
+otel:
+  endpoint: ""
+
+cloudnative-pg:
+  enabled: true
+
+# Substrate workers only run on devbox pools, so atelet only needs to run there too, on every pool of the cluster.
+# It doesn't tolerate the plural.sh/devbox-disk startup taint, so it waits for devbox-disk-prep to mount /var/lib/ate.
+atelet:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: plural.sh/devbox-pool
+            operator: Exists
+
+
+# ate-api-server and atelet get their S3 access through EKS Pod Identity associations made by the devbox-nodes stack.
+objectStore:
+  backend: s3
+  snapshotLocation: {{ imports[configuration.stackName].substrate_snapshot_location }}
+  s3:
+    region: us-east-2
+
+
+# The microvm SandboxConfig. Its assets (cloud-hypervisor, virtiofsd, the Kata kernel and rootfs) are staged by a
+# post-install Job into the snapshot bucket under microvm-assets/, which atelet fetches them from.
+sandboxConfigs:
+  microvm:
+    enabled: true
+assetStaging:
+  enabled: true
+
+
+# Devbox homes (DevboxRunner spec.home.storage: Block): one cloud disk per home from the cluster's
+# own CSI driver, snapshotted through the cluster's VolumeSnapshot API. The operator runs a WorkerPool per zone of the
+# runner's nodes and keeps each box in its home's zone. The chart pins the driver's image to its operator release.
+block:
+  enabled: true
+
+  provider: ebs.csi.aws.com
+
