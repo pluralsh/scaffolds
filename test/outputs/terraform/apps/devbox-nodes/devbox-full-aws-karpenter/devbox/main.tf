@@ -23,6 +23,13 @@ locals {
 
 data "aws_eks_cluster" "cluster" {
   name = local.cluster_name
+
+  lifecycle {
+    postcondition {
+      condition     = try(self.access_config[0].authentication_mode, "CONFIG_MAP") != "CONFIG_MAP"
+      error_message = "Cluster ${local.cluster_name} only authenticates through the aws-auth ConfigMap. Devbox nodes join through EKS access entries: set its authentication mode to API (or API_AND_CONFIG_MAP) first."
+    }
+  }
 }
 
 # The node security group of terraform-aws-modules/eks, which the cluster's other nodes (and CoreDNS) run in and

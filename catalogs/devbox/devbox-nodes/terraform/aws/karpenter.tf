@@ -35,6 +35,8 @@ module "karpenter" {
 
   node_iam_role_name            = local.node_role_name
   node_iam_role_use_name_prefix = false
+  # Karpenter's nodes authenticate their kubelet through this access entry; without it they launch but never register.
+  create_access_entry = true
   node_iam_role_additional_policies = {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   }

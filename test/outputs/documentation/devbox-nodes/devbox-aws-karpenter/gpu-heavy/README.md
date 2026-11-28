@@ -15,7 +15,9 @@ fast disk instead of the boot volume.
     empty pool never scales up for one. With `installKarpenter` the stack also creates the
     controller's IAM, pod identity and interruption queue, and the Karpenter chart is installed as its own
     service with the `NodeOverlay` feature gate on; do that once per cluster. A Karpenter you install yourself
-    needs `settings.featureGates.nodeOverlay: true`.
+    needs `settings.featureGates.nodeOverlay: true`. Karpenter's nodes join through an EKS access entry for the
+    node role, so the cluster's authentication mode must be `API` (or `API_AND_CONFIG_MAP`); the stack stops with
+    an error on a cluster that only uses the `aws-auth` ConfigMap.
   * **AWS, managed node group**: one EKS managed node group per availability zone, sharing a launch template. EKS
     drops the launch template's nested virtualization CPU option, so this only supports `gvisor`. A group spanning
     zones is one Auto Scaling group whose zone the cluster autoscaler can't choose, so a worker pinned to its
